@@ -2,27 +2,30 @@
 
 #include "Game.h"
 
-#include <algorithm>   // std::remove_if
-
 #include "Config.h"
 #include "Input.h"
+#include "Util.h"
 
 namespace {
 
-// A function TEMPLATE: one definition that works for any type T. The compiler
-// writes a separate version for Rocket and for InvaderShot, because we call it
-// with both. T only has to have an "alive" flag.
-//
-// This is the erase-remove idiom: remove_if moves all items we want to keep to
-// the front and returns where the leftover (dead) ones start; erase then cuts
-// them off. We call it AFTER the loops that use the items, never during them,
-// which avoids the classic bug of changing a list while walking through it.
-template <typename T>
-void RemoveDead(std::vector<T>& items) {
-    items.erase(
-        std::remove_if(items.begin(), items.end(),
-                       [](const T& item) { return !item.alive; }),
-        items.end());
+// The look of our two explosions. The NUMBERS are tuning values and live in
+// Config.h; the COLOURS are art and live here.
+ExplosionStyle InvaderExplosion() {
+    return ExplosionStyle{
+        config::kInvaderExplosionCount, config::kInvaderExplosionSpeed,
+        config::kInvaderExplosionLife,  config::kInvaderExplosionSize,
+        Color{190, 120, 255, 255},   // light purple (the invader's colour)
+        Color{255, 210, 255, 255},   // hot pink-white
+    };
+}
+
+ExplosionStyle PlayerExplosion() {
+    return ExplosionStyle{
+        config::kPlayerExplosionCount, config::kPlayerExplosionSpeed,
+        config::kPlayerExplosionLife,  config::kPlayerExplosionSize,
+        Color{255, 210, 70, 255},    // yellow-orange
+        Color{255, 60, 30, 255},     // red
+    };
 }
 
 }  // namespace
@@ -43,10 +46,12 @@ void Game::Restart() {
     invaders_.Respawn();
     rockets_.clear();
     invaderShots_.clear();
+    particles_.Clear();
 
     state_            = GameState::Playing;
     playerAlive_      = true;
     gameOverReason_   = "";
+    gameOverTime_     = 0.0f;
     score_            = 0;
     fireCooldown_     = 0.0f;
     invaderShotTimer_ = config::kInvaderShotInterval;
@@ -57,6 +62,7 @@ void Game::EndGame(const char* reason) {
     if (state_ == GameState::GameOver) return;   // already over, keep the first reason
     state_          = GameState::GameOver;
     gameOverReason_ = reason;
+    gameOverTime_   = 0.0f;
 }
 
 void Game::FireRocket() {
@@ -67,14 +73,20 @@ void Game::FireRocket() {
 void Game::Update(float dt) {
     const PlayerInput input = ReadInput();
 
-    // What happens each frame depends on the state we are in.
+    // The background and the explosions keep moving in EVERY state, so the
+    // death explosion plays out nicely before the Game Over screen appears.
+    stars_.Update(dt);
+    particles_.Update(dt);
+
+    // What else happens each frame depends on the state we are in.
     switch (state_) {
         case GameState::Playing:
             UpdatePlaying(dt, input);
             break;
         case GameState::GameOver:
-            // The world is frozen. Wait for Enter.
-            if (input.confirm) {
+            // The world is frozen. After a short pause, wait for Enter.
+            gameOverTime_ += dt;
+            if (gameOverTime_ >= config::kGameOverDelay && input.confirm) {
                 Restart();
             }
             break;
@@ -97,8 +109,8 @@ void Game::UpdatePlaying(float dt, const PlayerInput& input) {
     if (!invaders_.Empty()) {
         invaderShotTimer_ -= dt;
         if (invaderShotTimer_ <= 0.0f) {
-            // PickShooterPosition returns an optional. "if (auto p = ...; p)"
-            // declares p and runs the block only when it holds a value.
+            // PickShooterPosition returns an optional. "if (const auto s = ...)"
+            // declares s and runs the block only when it holds a value.
             if (const auto shooter = invaders_.PickShooterPosition()) {
                 // *shooter reads the value inside the optional.
                 invaderShots_.emplace_back(
@@ -120,9 +132,10 @@ void Game::UpdatePlaying(float dt, const PlayerInput& input) {
     // ---- 4. Collisions ----------------------------------------------------------
     // 4a. Our rockets against the invaders.
     for (auto& rocket : rockets_) {
-        if (invaders_.TryHit(rocket.position, config::kRocketRadius)) {
+        if (const auto hit = invaders_.TryHit(rocket.position, config::kRocketRadius)) {
             rocket.alive = false;                 // the rocket is used up
             score_ += config::kScorePerInvader;
+            particles_.Explode(*hit, InvaderExplosion());   // *hit = where the invader was
         }
     }
 
@@ -132,6 +145,7 @@ void Game::UpdatePlaying(float dt, const PlayerInput& input) {
                                   player_.Position(), config::kPlayerHitRadius)) {
             shot.alive   = false;
             playerAlive_ = false;
+            particles_.Explode(player_.Position(), PlayerExplosion());
             EndGame("Your ship was hit!");
         }
     }
@@ -160,6 +174,9 @@ void Game::UpdatePlaying(float dt, const PlayerInput& input) {
 void Game::Draw() const {
     BeginMode3D(camera_);
 
+        // Draw order matters: far things first, see-through effects last.
+        stars_.Draw();
+
         DrawGrid(60, 1.0f);
 
         // Outline of the play field on the ground (y = 0).
@@ -181,6 +198,8 @@ void Game::Draw() const {
             shot.Draw();
         }
 
+        particles_.Draw();   // last: additive blending must be drawn on top of the solid objects
+
     EndMode3D();
 
     // 2D text on top of the 3D picture.
@@ -188,7 +207,7 @@ void Game::Draw() const {
     DrawText("Move: A / D or arrows     Fire: Space (hold)", 20, 56, 20, LIGHTGRAY);
     DrawFPS(20, 84);
 
-    if (state_ == GameState::GameOver) {
+    if (state_ == GameState::GameOver && gameOverTime_ >= config::kGameOverDelay) {
         DrawGameOver();
     }
 }

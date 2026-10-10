@@ -9,8 +9,10 @@
 
 #include "InvaderGrid.h"
 #include "InvaderShot.h"
+#include "Particles.h"
 #include "Player.h"
 #include "Rocket.h"
+#include "Starfield.h"
 #include "raylib.h"
 
 // An "enum class" is a type with a fixed list of named values. The game is
@@ -40,10 +42,13 @@ private:
     InvaderGrid invaders_;
     std::vector<Rocket>       rockets_;
     std::vector<InvaderShot>  invaderShots_;
+    ParticleSystem            particles_;
+    Starfield                 stars_;
 
     GameState state_       = GameState::Playing;
     bool  playerAlive_     = true;     // false once the ship is destroyed (it is then not drawn)
     const char* gameOverReason_ = "";  // text shown on the Game Over screen
+    float gameOverTime_    = 0.0f;     // seconds since the game ended
 
     int   score_           = 0;
     float fireCooldown_    = 0.0f;   // seconds until the next rocket may be fired

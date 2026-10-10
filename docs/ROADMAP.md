@@ -26,8 +26,8 @@ Each milestone ends with something you can run, and a short note on what it teac
 - [ ] Learn: `std::vector`, collision tests, object lifetime
 
 ## M4 - Effects
-- [ ] 3D particle explosions that fade
-- [ ] Starfield streaming past the camera
+- [x] 3D particle explosions that fade
+- [x] Starfield streaming past the camera
 - [ ] Glow on projectiles; our first custom shader
 - [ ] Learn: shaders, blending, how the GPU draws a frame
 
