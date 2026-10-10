@@ -6,6 +6,7 @@
 
 #pragma once
 
+#include <optional>
 #include <vector>
 
 #include "Invader.h"
@@ -24,6 +25,15 @@ public:
     bool TryHit(Vector3 center, float radius);
 
     bool Empty() const { return invaders_.empty(); }
+
+    // Position of a randomly chosen invader that should fire next.
+    // std::optional<Vector3> means "a Vector3, or nothing at all". It is the safe
+    // way to say "there might be no answer": here, when no invaders are left.
+    std::optional<Vector3> PickShooterPosition() const;
+
+    // Z of the invader closest to the player (the largest Z). Only call this
+    // when the wave is not Empty().
+    float FrontZ() const;
 
 private:
     std::vector<Invader> invaders_;

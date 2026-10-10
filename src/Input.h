@@ -11,6 +11,11 @@
 struct PlayerInput {
     float move = 0.0f;    // -1 = full left, 0 = nothing, +1 = full right
     bool  fire = false;   // true while the fire button is held
+
+    // True ONLY during the single frame in which Enter was pressed. This is
+    // different from "fire": holding Enter must not restart the game 60 times
+    // per second. (Raylib: IsKeyDown = held, IsKeyPressed = just went down.)
+    bool  confirm = false;
 };
 
 // Reads the keyboard and returns what the player wants right now.

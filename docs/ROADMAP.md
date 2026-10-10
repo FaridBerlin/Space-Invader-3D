@@ -22,7 +22,7 @@ Each milestone ends with something you can run, and a short note on what it teac
 - [x] Rockets with fire-rate limit
 - [x] Invader grid: sweep, reverse at the edge, step forward
 - [x] Collisions rocket vs invader, score
-- [ ] Invaders shoot back, player can die
+- [x] Invaders shoot back, player can die (Game Over screen with restart)
 - [ ] Learn: `std::vector`, collision tests, object lifetime
 
 ## M4 - Effects

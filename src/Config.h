@@ -41,6 +41,7 @@ constexpr float kPlayerResponsiveness = 12.0f;  // higher = reaches top speed / 
 constexpr float kPlayerMaxBankDegrees = 35.0f;  // roll angle at top speed
 constexpr float kPlayerHalfWidth      = 1.5f;   // wing tip to centre, used for the wall limit
 constexpr float kPlayerHeight         = 0.6f;   // ship centre above the ground
+constexpr float kPlayerHitRadius      = 1.1f;   // collision sphere of the ship (a bit smaller than the wings)
 
 // ---- Rockets ------------------------------------------------------------------
 constexpr float kRocketSpeed        = 35.0f;   // units per second, flying toward -Z
@@ -59,9 +60,17 @@ constexpr float kInvaderHalfWidth  = 0.7f;     // used to stop at the field edge
 constexpr float kInvaderRadius     = 0.8f;     // size of the collision sphere
 constexpr float kInvaderHeight     = 0.9f;     // centre above the ground
 constexpr float kInvaderSpeed      = 5.0f;     // sideways speed of the whole wave
-constexpr float kInvaderStepZ      = 2.0f;     // how far the wave steps toward you at an edge
+constexpr float kInvaderStepZ      = 1.0f;     // how far the wave steps toward you at an edge
 constexpr float kInvaderStartZ     = -30.0f;   // Z of the front row when a wave spawns
-constexpr float kInvaderLimitZ     = -6.0f;    // the wave never steps closer than this (for now)
+constexpr float kInvaderReachZ     = -2.5f;    // an invader this close to the ship = game over
+
+// ---- Invader shots --------------------------------------------------------------
+// The 2D game fired one shot every ~8 seconds. In 3D you can see shots coming and
+// dodge them more easily, so we fire more often. Tune to taste!
+constexpr float kInvaderShotInterval = 2.0f;   // seconds between shots from the wave
+constexpr float kInvaderShotSpeed    = 14.0f;  // units per second, flying toward +Z (the player)
+constexpr float kInvaderShotRadius   = 0.25f;  // collision sphere of a shot
+constexpr float kInvaderShotDespawnZ = 6.0f;   // shots that fly past the ship are removed here
 
 // ---- Score and waves ------------------------------------------------------------
 constexpr int   kScorePerInvader   = 100;      // same as the 2D game

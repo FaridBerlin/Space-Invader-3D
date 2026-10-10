@@ -6,6 +6,7 @@
 #pragma once
 
 #include "Input.h"
+#include "raylib.h"
 
 class Player {
 public:
@@ -22,6 +23,9 @@ public:
 
     // A tiny "getter": lets other code read x_ without being able to change it.
     float X() const { return x_; }
+
+    // The centre of the ship in world space, used for collision tests.
+    Vector3 Position() const;
 
 private:
     // "private" = only Player's own functions can touch these. Everyone else

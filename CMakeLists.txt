@@ -31,6 +31,7 @@ add_executable(space-invader-3d
     src/Input.cpp
     src/Player.cpp
     src/Rocket.cpp
+    src/InvaderShot.cpp
     src/Invader.cpp
     src/InvaderGrid.cpp
 )
