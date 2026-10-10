@@ -97,6 +97,11 @@ constexpr float kPlayerExplosionSpeed  = 12.0f;
 constexpr float kPlayerExplosionLife   = 1.6f;
 constexpr float kPlayerExplosionSize   = 0.26f;
 
+// ---- Glow (the shader effect) --------------------------------------------------------
+constexpr float kGlowPulseSpeed       = 18.0f;   // flicker speed in radians per second
+constexpr float kRocketGlowSize       = 2.6f;    // width of the light square around a rocket
+constexpr float kInvaderShotGlowSize  = 2.2f;    // ... around an invader shot
+
 // ---- Score and waves ------------------------------------------------------------
 constexpr int   kScorePerInvader   = 100;      // same as the 2D game
 constexpr float kWaveRespawnDelay  = 1.5f;     // pause before a new wave appears
