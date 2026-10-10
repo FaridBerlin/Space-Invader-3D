@@ -51,6 +51,10 @@ void Player::Update(float dt, const PlayerInput& input) {
     }
 }
 
+Vector3 Player::Position() const {
+    return Vector3{x_, config::kPlayerHeight, 0.0f};
+}
+
 void Player::Draw() const {
     // Banking: the faster we slide sideways, the more the ship rolls.
     // The ship flies toward -Z, so "rolling" means rotating around the Z axis.

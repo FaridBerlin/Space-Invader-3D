@@ -18,5 +18,8 @@ PlayerInput ReadInput() {
     // what we want.
 
     input.fire = IsKeyDown(KEY_SPACE);
+
+    // IsKeyPressed is true for exactly one frame per key press.
+    input.confirm = IsKeyPressed(KEY_ENTER) || IsKeyPressed(KEY_KP_ENTER);
     return input;
 }

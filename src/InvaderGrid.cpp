@@ -3,6 +3,7 @@
 #include "InvaderGrid.h"
 
 #include <algorithm>   // std::min, std::max
+#include <cstddef>     // std::size_t
 #include <limits>
 
 #include "Config.h"
@@ -49,11 +50,9 @@ void InvaderGrid::Update(float dt) {
     //    original rectangle) means the wave gets wider room as the edge columns die.
     float minX = std::numeric_limits<float>::max();
     float maxX = std::numeric_limits<float>::lowest();
-    float maxZ = std::numeric_limits<float>::lowest();   // the front row = largest Z
     for (const auto& invader : invaders_) {
         minX = std::min(minX, invader.position.x);
         maxX = std::max(maxX, invader.position.x);
-        maxZ = std::max(maxZ, invader.position.z);
     }
 
     // 3. Did we cross the field edge? If so, push the wave back inside by the
@@ -69,14 +68,11 @@ void InvaderGrid::Update(float dt) {
     if (correction != 0.0f) {
         direction_ = -direction_;
 
-        // Step toward the player, but never closer than kInvaderLimitZ.
-        // (In the next milestone, reaching the player will end the game.)
-        const bool canStep = (maxZ + config::kInvaderStepZ) <= config::kInvaderLimitZ;
-        const float stepZ = canStep ? config::kInvaderStepZ : 0.0f;
-
+        // Move back inside the field and step one notch toward the player.
+        // Game checks FrontZ() and ends the game when we get too close.
         for (auto& invader : invaders_) {
             invader.position.x += correction;
-            invader.position.z += stepZ;
+            invader.position.z += config::kInvaderStepZ;
         }
     }
 }
@@ -85,6 +81,22 @@ void InvaderGrid::Draw() const {
     for (const auto& invader : invaders_) {
         invader.Draw(time_);
     }
+}
+
+std::optional<Vector3> InvaderGrid::PickShooterPosition() const {
+    if (invaders_.empty()) {
+        return std::nullopt;   // "no value"
+    }
+    const int index = GetRandomValue(0, static_cast<int>(invaders_.size()) - 1);
+    return invaders_[static_cast<std::size_t>(index)].position;
+}
+
+float InvaderGrid::FrontZ() const {
+    float front = std::numeric_limits<float>::lowest();
+    for (const auto& invader : invaders_) {
+        front = std::max(front, invader.position.z);
+    }
+    return front;
 }
 
 bool InvaderGrid::TryHit(Vector3 center, float radius) {
