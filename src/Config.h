@@ -30,7 +30,11 @@ constexpr Vector3 kCameraPosition{0.0f, 8.0f, 14.0f};
 constexpr Vector3 kCameraTarget{0.0f, 0.0f, -12.0f};
 constexpr float   kCameraFovDegrees = 60.0f;   // vertical field of view
 
-// ---- Temporary test object (removed in M2, when the player ship arrives) -----
-constexpr float kTestCubeSpeed = 1.5f;   // how fast the test cube swings (radians per second)
+// ---- Player ship --------------------------------------------------------------
+constexpr float kPlayerSpeed          = 14.0f;  // top sideways speed, units per second
+constexpr float kPlayerResponsiveness = 12.0f;  // higher = reaches top speed / stops faster
+constexpr float kPlayerMaxBankDegrees = 35.0f;  // roll angle at top speed
+constexpr float kPlayerHalfWidth      = 1.5f;   // wing tip to centre, used for the wall limit
+constexpr float kPlayerHeight         = 0.6f;   // ship centre above the ground
 
 }  // namespace config
