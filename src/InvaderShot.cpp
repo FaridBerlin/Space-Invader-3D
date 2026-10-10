@@ -6,7 +6,7 @@
 
 void InvaderShot::Update(float dt) {
     // Toward the player = toward +Z (a rocket flies toward -Z).
-    position.z += config::kInvaderShotSpeed * dt;
+    position.z += speed * dt;
 
     // Flew past the ship without hitting it: mark for removal.
     if (position.z > config::kInvaderShotDespawnZ) {

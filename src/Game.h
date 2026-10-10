@@ -20,6 +20,7 @@
 // always in exactly ONE of these states, which keeps the rules simple:
 // what Update and Draw do depends on the current state.
 enum class GameState {
+    Menu,       // title screen, waiting for Enter
     Playing,
     GameOver,
 };
@@ -36,6 +37,8 @@ private:
     void EndGame(const char* reason);     // switch to GameOver
     void UpdatePlaying(float dt, const PlayerInput& input);
     void FireRocket();
+    void DrawMenu() const;
+    void DrawLevelBanner() const;
     void DrawGameOver() const;
 
     Camera3D camera_{};
@@ -47,12 +50,14 @@ private:
     Starfield                 stars_;
     GlowRenderer              glow_;      // owns the shader; see GlowRenderer.h
 
-    GameState state_       = GameState::Playing;
+    GameState state_       = GameState::Menu;
     bool  playerAlive_     = true;     // false once the ship is destroyed (it is then not drawn)
     const char* gameOverReason_ = "";  // text shown on the Game Over screen
     float gameOverTime_    = 0.0f;     // seconds since the game ended
 
     int   score_           = 0;
+    int   level_           = 0;      // 0-based index into the level tables (shown as level_ + 1)
+    float levelBannerTimer_ = 0.0f;  // seconds left to show the "LEVEL n" banner
     float fireCooldown_    = 0.0f;   // seconds until the next rocket may be fired
     float invaderShotTimer_ = 0.0f;  // seconds until the wave fires its next shot
     float respawnTimer_    = 0.0f;   // counts down after a wave is destroyed

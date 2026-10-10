@@ -33,8 +33,8 @@ Each milestone ends with something you can run, and a short note on what it teac
 
 ## M5 - Full game loop
 - [ ] Bombs (+500, big explosion)
-- [ ] 3 levels with the 2D difficulty rules
-- [ ] Menu, HUD, Game Over, restart
+- [x] 3 levels with the 2D difficulty rules (shot speed; bomb speed comes with bombs)
+- [x] Menu, HUD (level + banner), Game Over, restart
 - [ ] All sounds
 - [ ] Learn: state machines, audio
 
