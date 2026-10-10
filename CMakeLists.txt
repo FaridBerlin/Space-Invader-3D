@@ -27,8 +27,12 @@ FetchContent_MakeAvailable(raylib)
 # --- Our game -----------------------------------------------------------------
 add_executable(space-invader-3d
     src/main.cpp
+    src/Game.cpp
     src/Input.cpp
     src/Player.cpp
+    src/Rocket.cpp
+    src/Invader.cpp
+    src/InvaderGrid.cpp
 )
 
 # Link against raylib (this also gives us its header files).

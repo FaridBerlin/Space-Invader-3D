@@ -23,7 +23,7 @@ src/
 
 1. **Delta time everywhere.** `update(float dt)`, speeds in units per second. Never count frames for gameplay.
 2. **Update, then clean up.** Entities have an `alive` flag; dead ones are removed after the loop
-   (`std::erase_if` on a `std::vector`). Never erase while iterating.
+   (the erase-remove idiom on a `std::vector`; `std::erase_if` needs C++20). Never erase while iterating.
 3. **Game logic does not call drawing code and vice versa.** `update()` changes data, `draw()` only reads it.
 4. **All tuning numbers live in `Config.h`.**
 5. **Input goes through `Input`.** Game code asks "is the player moving left?", never "is the A key down?".

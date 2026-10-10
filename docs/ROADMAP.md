@@ -19,9 +19,9 @@ Each milestone ends with something you can run, and a short note on what it teac
 - [ ] Learn: transforms, rotation, classes in C++
 
 ## M3 - Shooting and invaders
-- [ ] Rockets with fire-rate limit
-- [ ] Invader grid: sweep, reverse at the edge, step forward
-- [ ] Collisions rocket vs invader, score
+- [x] Rockets with fire-rate limit
+- [x] Invader grid: sweep, reverse at the edge, step forward
+- [x] Collisions rocket vs invader, score
 - [ ] Invaders shoot back, player can die
 - [ ] Learn: `std::vector`, collision tests, object lifetime
 

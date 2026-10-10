@@ -8,7 +8,7 @@
 #include "raylib.h"
 
 PlayerInput ReadInput() {
-    PlayerInput input;   // starts with move = 0
+    PlayerInput input;   // starts with move = 0 and fire = false
 
     // IsKeyDown is true for as long as the key is held.
     if (IsKeyDown(KEY_LEFT)  || IsKeyDown(KEY_A)) input.move -= 1.0f;
@@ -16,5 +16,7 @@ PlayerInput ReadInput() {
 
     // If both directions are held, -1 and +1 cancel out to 0, which is exactly
     // what we want.
+
+    input.fire = IsKeyDown(KEY_SPACE);
     return input;
 }
