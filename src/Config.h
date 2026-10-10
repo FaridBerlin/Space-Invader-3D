@@ -72,8 +72,34 @@ constexpr float kInvaderShotSpeed    = 14.0f;  // units per second, flying towar
 constexpr float kInvaderShotRadius   = 0.25f;  // collision sphere of a shot
 constexpr float kInvaderShotDespawnZ = 6.0f;   // shots that fly past the ship are removed here
 
+// ---- Starfield ------------------------------------------------------------------
+constexpr int   kStarCount     = 260;
+constexpr float kStarHalfWidth = 70.0f;    // stars spread from X = -70 to +70
+constexpr float kStarMinY      = 1.5f;     // keep stars above the ground and out of the play area
+constexpr float kStarMaxY      = 45.0f;
+constexpr float kStarFarZ      = -130.0f;  // stars are born here ...
+constexpr float kStarNearZ     = 13.0f;    // ... and die here, just in front of the camera
+constexpr float kStarSpeed     = 28.0f;    // base speed toward the camera, units per second
+constexpr float kStarStreak    = 0.9f;     // length of a star's streak
+
+// ---- Particles and explosions ------------------------------------------------------
+constexpr int   kMaxParticles  = 1500;     // safety cap (phones will thank us later)
+constexpr float kParticleGravity = 5.0f;   // downward pull, units per second squared
+constexpr float kParticleDrag    = 1.6f;   // air resistance, higher = slows faster
+
+constexpr int   kInvaderExplosionCount = 40;
+constexpr float kInvaderExplosionSpeed = 9.0f;
+constexpr float kInvaderExplosionLife  = 0.9f;
+constexpr float kInvaderExplosionSize  = 0.5f;
+
+constexpr int   kPlayerExplosionCount  = 110;
+constexpr float kPlayerExplosionSpeed  = 12.0f;
+constexpr float kPlayerExplosionLife   = 1.6f;
+constexpr float kPlayerExplosionSize   = 0.26f;
+
 // ---- Score and waves ------------------------------------------------------------
 constexpr int   kScorePerInvader   = 100;      // same as the 2D game
 constexpr float kWaveRespawnDelay  = 1.5f;     // pause before a new wave appears
+constexpr float kGameOverDelay     = 1.6f;     // time to watch the explosion before the Game Over screen
 
 }  // namespace config

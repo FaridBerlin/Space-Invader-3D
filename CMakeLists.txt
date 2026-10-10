@@ -34,10 +34,18 @@ add_executable(space-invader-3d
     src/InvaderShot.cpp
     src/Invader.cpp
     src/InvaderGrid.cpp
+    src/Particles.cpp
+    src/Starfield.cpp
 )
 
 # Link against raylib (this also gives us its header files).
 target_link_libraries(space-invader-3d PRIVATE raylib)
+
+# Treat raylib's headers as "system headers": compilers then stay quiet about
+# warnings INSIDE them (raymath.h is stricter than our warning flags), while we
+# still get every warning about OUR code.
+get_target_property(RAYLIB_INCLUDE_DIRS raylib INTERFACE_INCLUDE_DIRECTORIES)
+target_include_directories(space-invader-3d SYSTEM PRIVATE ${RAYLIB_INCLUDE_DIRS})
 
 # Turn on useful compiler warnings: they catch many beginner mistakes early.
 if(MSVC)

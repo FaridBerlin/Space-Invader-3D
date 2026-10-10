@@ -99,14 +99,15 @@ float InvaderGrid::FrontZ() const {
     return front;
 }
 
-bool InvaderGrid::TryHit(Vector3 center, float radius) {
+std::optional<Vector3> InvaderGrid::TryHit(Vector3 center, float radius) {
     // We use an iterator (it) so we can erase the element we found.
     for (auto it = invaders_.begin(); it != invaders_.end(); ++it) {
         if (CheckCollisionSpheres(it->position, config::kInvaderRadius, center, radius)) {
+            const Vector3 where = it->position;   // remember it BEFORE erasing
             invaders_.erase(it);
-            return true;   // we leave the function right away, so the erased
-                           // element can never be used again: this is safe.
+            return where;   // we leave the function right away, so the erased
+                            // element can never be used again: this is safe.
         }
     }
-    return false;
+    return std::nullopt;
 }

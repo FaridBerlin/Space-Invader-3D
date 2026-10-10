@@ -21,8 +21,9 @@ public:
     void Draw() const;
 
     // Is there an invader touching the sphere (centre, radius)?
-    // If yes: that invader is destroyed and the function returns true.
-    bool TryHit(Vector3 center, float radius);
+    // If yes: that invader is destroyed and we return WHERE it was (so the
+    // caller can spawn an explosion there). If not: an empty optional.
+    std::optional<Vector3> TryHit(Vector3 center, float radius);
 
     bool Empty() const { return invaders_.empty(); }
 
