@@ -3,14 +3,14 @@
 Each milestone ends with something you can run, and a short note on what it teaches.
 
 ## M0 - Project setup
-- [ ] GitHub repo created, local folder connected (see SETUP.md)
-- [ ] Toolchain installed (compiler, CMake, Git)
-- [ ] CMake project that opens a window with raylib
+- [x] GitHub repo created, local folder connected (see SETUP.md)
+- [x] Toolchain installed (compiler, CMake, Git)
+- [x] CMake project that opens a window with raylib
 - [ ] Learn: how a C++ project is built, what a game loop is
 
 ## M1 - 3D scene and camera
-- [ ] Camera behind the field, a ground grid for reference
-- [ ] Delta-time timer, FPS display
+- [x] Camera behind the field, a ground grid for reference
+- [x] Delta-time timer, FPS display
 - [ ] Learn: 3D coordinates, vectors, camera, projection
 
 ## M2 - Player ship
