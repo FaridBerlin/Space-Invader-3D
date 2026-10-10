@@ -10,9 +10,10 @@
 
 struct InvaderShot {
     Vector3 position;
+    float   speed;          // units per second; depends on the level, so each shot remembers its own
     bool    alive = true;
 
-    explicit InvaderShot(Vector3 start) : position(start) {}
+    InvaderShot(Vector3 start, float shotSpeed) : position(start), speed(shotSpeed) {}
 
     void Update(float dt);
     void Draw() const;

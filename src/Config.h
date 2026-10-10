@@ -68,9 +68,17 @@ constexpr float kInvaderReachZ     = -2.5f;    // an invader this close to the s
 // The 2D game fired one shot every ~8 seconds. In 3D you can see shots coming and
 // dodge them more easily, so we fire more often. Tune to taste!
 constexpr float kInvaderShotInterval = 2.0f;   // seconds between shots from the wave
-constexpr float kInvaderShotSpeed    = 14.0f;  // units per second, flying toward +Z (the player)
 constexpr float kInvaderShotRadius   = 0.25f;  // collision sphere of a shot
 constexpr float kInvaderShotDespawnZ = 6.0f;   // shots that fly past the ship are removed here
+
+// ---- Levels --------------------------------------------------------------------------
+// Same three levels and score thresholds as the 2D game. A higher level makes the
+// invader shots faster (units per second, flying toward +Z, the player). Later, bombs
+// get faster and bigger per level as well. Arrays are indexed from 0: level 1 is index 0.
+constexpr int   kLevelCount = 3;
+constexpr int   kLevelStartScore[kLevelCount] = {0, 10000, 20000};
+constexpr float kLevelShotSpeed[kLevelCount]  = {11.0f, 15.0f, 19.0f};
+constexpr float kLevelBannerTime = 2.0f;       // seconds the "LEVEL 2" banner stays on screen
 
 // ---- Starfield ------------------------------------------------------------------
 constexpr int   kStarCount     = 260;

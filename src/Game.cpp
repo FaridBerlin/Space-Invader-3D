@@ -2,6 +2,8 @@
 
 #include "Game.h"
 
+#include <cmath>   // sinf
+
 #include "Config.h"
 #include "Input.h"
 #include "Util.h"
@@ -28,6 +30,17 @@ ExplosionStyle PlayerExplosion() {
     };
 }
 
+// Which level belongs to this score? Walk the thresholds, keep the highest one reached.
+int LevelForScore(int score) {
+    int level = 0;
+    for (int i = 1; i < config::kLevelCount; ++i) {
+        if (score >= config::kLevelStartScore[i]) {
+            level = i;
+        }
+    }
+    return level;
+}
+
 }  // namespace
 
 Game::Game() {
@@ -38,7 +51,8 @@ Game::Game() {
     camera_.fovy       = config::kCameraFovDegrees;
     camera_.projection = CAMERA_PERSPECTIVE;
 
-    Restart();
+    Restart();                 // builds a fresh game ...
+    state_ = GameState::Menu;  // ... but we wait on the title screen until Enter is pressed
 }
 
 void Game::Restart() {
@@ -53,6 +67,8 @@ void Game::Restart() {
     gameOverReason_   = "";
     gameOverTime_     = 0.0f;
     score_            = 0;
+    level_            = 0;
+    levelBannerTimer_ = config::kLevelBannerTime;   // announce "LEVEL 1"
     fireCooldown_     = 0.0f;
     invaderShotTimer_ = config::kInvaderShotInterval;
     respawnTimer_     = config::kWaveRespawnDelay;
@@ -81,6 +97,11 @@ void Game::Update(float dt) {
 
     // What else happens each frame depends on the state we are in.
     switch (state_) {
+        case GameState::Menu:
+            if (input.confirm) {
+                Restart();
+            }
+            break;
         case GameState::Playing:
             UpdatePlaying(dt, input);
             break;
@@ -115,7 +136,8 @@ void Game::UpdatePlaying(float dt, const PlayerInput& input) {
             if (const auto shooter = invaders_.PickShooterPosition()) {
                 // *shooter reads the value inside the optional.
                 invaderShots_.emplace_back(
-                    Vector3{shooter->x, shooter->y, shooter->z + 0.6f});
+                    Vector3{shooter->x, shooter->y, shooter->z + 0.6f},
+                    config::kLevelShotSpeed[level_]);
             }
             invaderShotTimer_ = config::kInvaderShotInterval;
         }
@@ -138,6 +160,16 @@ void Game::UpdatePlaying(float dt, const PlayerInput& input) {
             score_ += config::kScorePerInvader;
             particles_.Explode(*hit, InvaderExplosion());   // *hit = where the invader was
         }
+    }
+
+    // 4a'. Did the score just reach the next level? Levels only go up.
+    const int newLevel = LevelForScore(score_);
+    if (newLevel > level_) {
+        level_            = newLevel;
+        levelBannerTimer_ = config::kLevelBannerTime;
+    }
+    if (levelBannerTimer_ > 0.0f) {
+        levelBannerTimer_ -= dt;
     }
 
     // 4b. Invader shots against our ship.
@@ -216,10 +248,24 @@ void Game::Draw() const {
 
     EndMode3D();
 
-    // 2D text on top of the 3D picture.
+    if (state_ == GameState::Menu) {
+        DrawMenu();
+        return;   // no score or banner on the title screen
+    }
+
+    // 2D text on top of the 3D picture (the HUD = "heads-up display").
     DrawText(TextFormat("SCORE  %06d", score_), 20, 16, 32, RAYWHITE);
     DrawText("Move: A / D or arrows     Fire: Space (hold)", 20, 56, 20, LIGHTGRAY);
     DrawFPS(20, 84);
+
+    // Level in the top right corner, right-aligned: measure the text, then
+    // start that far left of the screen edge.
+    const char* levelText = TextFormat("LEVEL %d", level_ + 1);
+    DrawText(levelText, GetScreenWidth() - 20 - MeasureText(levelText, 32), 16, 32, SKYBLUE);
+
+    if (state_ == GameState::Playing && levelBannerTimer_ > 0.0f) {
+        DrawLevelBanner();
+    }
 
     if (state_ == GameState::GameOver && gameOverTime_ >= config::kGameOverDelay) {
         DrawGameOver();
@@ -244,4 +290,33 @@ void Game::DrawGameOver() const {
     drawCentered(gameOverReason_, middle - 30, 30, RAYWHITE);
     drawCentered(TextFormat("Final score: %06d", score_), middle + 20, 36, YELLOW);
     drawCentered("Press ENTER to play again", middle + 90, 26, LIGHTGRAY);
+}
+
+void Game::DrawMenu() const {
+    const int screenW = GetScreenWidth();
+    const int screenH = GetScreenHeight();
+    DrawRectangle(0, 0, screenW, screenH, Fade(BLACK, 0.55f));
+
+    auto drawCentered = [&](const char* text, int y, int fontSize, Color color) {
+        const int width = MeasureText(text, fontSize);
+        DrawText(text, (screenW - width) / 2, y, fontSize, color);
+    };
+
+    // A gentle pulse for the "press Enter" line: sin() swings between -1 and +1,
+    // we turn that into an opacity between 0.4 and 1.
+    const float pulse = 0.7f + 0.3f * sinf(static_cast<float>(GetTime()) * 4.0f);
+
+    drawCentered("SPACE INVADER", 70, 90, Color{190, 120, 255, 255});
+    drawCentered("3D", 160, 90, SKYBLUE);
+    drawCentered("Press ENTER to start", 330, 32, Fade(RAYWHITE, pulse));
+    drawCentered("Move: A / D or arrows     Fire: Space (hold)", 380, 22, LIGHTGRAY);
+}
+
+void Game::DrawLevelBanner() const {
+    // Fade out during the last half second of the banner time.
+    const float alpha = levelBannerTimer_ > 0.5f ? 1.0f : levelBannerTimer_ / 0.5f;
+    const char* text = TextFormat("LEVEL %d", level_ + 1);
+    const int fontSize = 70;
+    DrawText(text, (GetScreenWidth() - MeasureText(text, fontSize)) / 2,
+             GetScreenHeight() / 4, fontSize, Fade(SKYBLUE, alpha));
 }
