@@ -15,6 +15,11 @@ namespace config {
 constexpr int kScreenWidth  = 1280;
 constexpr int kScreenHeight = 720;
 
+// Longest time step we allow, in seconds. If the game stalls (window dragged,
+// slow computer), dt can become huge and fast objects would jump straight
+// through their targets. Capping dt keeps the simulation stable.
+constexpr float kMaxFrameTime = 0.05f;
+
 // ---- Play field -------------------------------------------------------------
 // Coordinates (raylib is right-handed, Y is up):
 //   X: left (-) / right (+)       the player moves along X
@@ -36,5 +41,30 @@ constexpr float kPlayerResponsiveness = 12.0f;  // higher = reaches top speed / 
 constexpr float kPlayerMaxBankDegrees = 35.0f;  // roll angle at top speed
 constexpr float kPlayerHalfWidth      = 1.5f;   // wing tip to centre, used for the wall limit
 constexpr float kPlayerHeight         = 0.6f;   // ship centre above the ground
+
+// ---- Rockets ------------------------------------------------------------------
+constexpr float kRocketSpeed        = 35.0f;   // units per second, flying toward -Z
+constexpr float kRocketFireInterval = 0.2f;    // seconds between shots (same as the 2D game)
+constexpr float kRocketRadius       = 0.3f;    // size of the rocket's collision sphere
+constexpr float kRocketSpawnZ       = -2.7f;   // just in front of the ship's nose
+
+// ---- Invaders -----------------------------------------------------------------
+constexpr int   kInvaderMinColumns = 5;        // a wave gets a random size, like the 2D game
+constexpr int   kInvaderMaxColumns = 10;
+constexpr int   kInvaderMinRows    = 2;
+constexpr int   kInvaderMaxRows    = 5;
+constexpr float kInvaderSpacingX   = 2.2f;     // distance between neighbours sideways
+constexpr float kInvaderSpacingZ   = 2.4f;     // distance between rows in depth
+constexpr float kInvaderHalfWidth  = 0.7f;     // used to stop at the field edge
+constexpr float kInvaderRadius     = 0.8f;     // size of the collision sphere
+constexpr float kInvaderHeight     = 0.9f;     // centre above the ground
+constexpr float kInvaderSpeed      = 5.0f;     // sideways speed of the whole wave
+constexpr float kInvaderStepZ      = 2.0f;     // how far the wave steps toward you at an edge
+constexpr float kInvaderStartZ     = -30.0f;   // Z of the front row when a wave spawns
+constexpr float kInvaderLimitZ     = -6.0f;    // the wave never steps closer than this (for now)
+
+// ---- Score and waves ------------------------------------------------------------
+constexpr int   kScorePerInvader   = 100;      // same as the 2D game
+constexpr float kWaveRespawnDelay  = 1.5f;     // pause before a new wave appears
 
 }  // namespace config
