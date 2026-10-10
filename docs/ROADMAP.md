@@ -28,7 +28,7 @@ Each milestone ends with something you can run, and a short note on what it teac
 ## M4 - Effects
 - [x] 3D particle explosions that fade
 - [x] Starfield streaming past the camera
-- [ ] Glow on projectiles; our first custom shader
+- [x] Glow on projectiles; our first custom shader
 - [ ] Learn: shaders, blending, how the GPU draws a frame
 
 ## M5 - Full game loop

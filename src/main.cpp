@@ -18,19 +18,25 @@ int main() {
     InitWindow(config::kScreenWidth, config::kScreenHeight, "Space Invader 3D");
     SetTargetFPS(60);
 
-    Game game;   // creates the player, the first wave of invaders and the camera
+    // The extra { } braces create a SCOPE. Game now owns GPU objects (the glow
+    // shader), and they must be freed while the window (the graphics context)
+    // still exists. C++ destroys a variable at the closing brace of its scope,
+    // so `game` is cleaned up BEFORE CloseWindow() runs below.
+    {
+        Game game;   // creates the player, the first wave of invaders and the camera
 
-    while (!WindowShouldClose()) {
-        // Never let one very long frame become a huge time step (see Config.h).
-        const float dt = std::min(GetFrameTime(), config::kMaxFrameTime);
+        while (!WindowShouldClose()) {
+            // Never let one very long frame become a huge time step (see Config.h).
+            const float dt = std::min(GetFrameTime(), config::kMaxFrameTime);
 
-        game.Update(dt);
+            game.Update(dt);
 
-        BeginDrawing();
-            ClearBackground(Color{5, 5, 20, 255});
-            game.Draw();
-        EndDrawing();
-    }
+            BeginDrawing();
+                ClearBackground(Color{5, 5, 20, 255});
+                game.Draw();
+            EndDrawing();
+        }
+    }   // <- `game` is destroyed here, and its destructor frees the shader
 
     CloseWindow();
     return 0;

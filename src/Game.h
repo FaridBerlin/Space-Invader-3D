@@ -7,6 +7,7 @@
 
 #include <vector>
 
+#include "GlowRenderer.h"
 #include "InvaderGrid.h"
 #include "InvaderShot.h"
 #include "Particles.h"
@@ -44,6 +45,7 @@ private:
     std::vector<InvaderShot>  invaderShots_;
     ParticleSystem            particles_;
     Starfield                 stars_;
+    GlowRenderer              glow_;      // owns the shader; see GlowRenderer.h
 
     GameState state_       = GameState::Playing;
     bool  playerAlive_     = true;     // false once the ship is destroyed (it is then not drawn)

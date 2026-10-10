@@ -36,6 +36,7 @@ add_executable(space-invader-3d
     src/InvaderGrid.cpp
     src/Particles.cpp
     src/Starfield.cpp
+    src/GlowRenderer.cpp
 )
 
 # Link against raylib (this also gives us its header files).

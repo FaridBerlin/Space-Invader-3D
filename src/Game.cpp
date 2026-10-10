@@ -77,6 +77,7 @@ void Game::Update(float dt) {
     // death explosion plays out nicely before the Game Over screen appears.
     stars_.Update(dt);
     particles_.Update(dt);
+    glow_.Update(dt);
 
     // What else happens each frame depends on the state we are in.
     switch (state_) {
@@ -197,6 +198,19 @@ void Game::Draw() const {
         for (const auto& shot : invaderShots_) {
             shot.Draw();
         }
+
+        // Glow around the projectiles, drawn by our custom shader. Like the
+        // particles it is additive and see-through, so it comes after the solid objects.
+        glow_.Begin();
+        for (const auto& rocket : rockets_) {
+            glow_.Draw(camera_, rocket.position, config::kRocketGlowSize,
+                       Color{255, 90, 40, 255});    // red-orange
+        }
+        for (const auto& shot : invaderShots_) {
+            glow_.Draw(camera_, shot.position, config::kInvaderShotGlowSize,
+                       Color{255, 220, 60, 255});   // yellow
+        }
+        glow_.End();
 
         particles_.Draw();   // last: additive blending must be drawn on top of the solid objects
 
