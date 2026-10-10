@@ -14,8 +14,8 @@ Each milestone ends with something you can run, and a short note on what it teac
 - [ ] Learn: 3D coordinates, vectors, camera, projection
 
 ## M2 - Player ship
-- [ ] Ship mesh (built from primitives first), left/right movement with bounds, banking
-- [ ] `Input` layer
+- [x] Ship mesh (built from primitives first), left/right movement with bounds, banking
+- [x] `Input` layer
 - [ ] Learn: transforms, rotation, classes in C++
 
 ## M3 - Shooting and invaders

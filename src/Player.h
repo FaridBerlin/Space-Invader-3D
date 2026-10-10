@@ -1,0 +1,33 @@
+// Player.h - the player's ship.
+//
+// This is our first C++ class. A class bundles DATA (the ship's position and
+// speed) together with the FUNCTIONS that work on that data (Update, Draw).
+
+#pragma once
+
+#include "Input.h"
+
+class Player {
+public:
+    Player();   // the "constructor": runs once when a Player is created
+
+    // Moves the ship. dt = seconds since the last frame.
+    // "const PlayerInput&" means: give me the input without copying it (&),
+    // and I promise not to change it (const).
+    void Update(float dt, const PlayerInput& input);
+
+    // Draws the ship. The "const" at the end promises that drawing does not
+    // change the ship. The compiler enforces this promise.
+    void Draw() const;
+
+    // A tiny "getter": lets other code read x_ without being able to change it.
+    float X() const { return x_; }
+
+private:
+    // "private" = only Player's own functions can touch these. Everyone else
+    // must go through the public functions, so the ship can never end up in an
+    // invalid state. A trailing underscore marks member variables.
+    float x_         = 0.0f;   // position along X (left/right)
+    float velocityX_ = 0.0f;   // current sideways speed in units per second
+    float time_      = 0.0f;   // seconds since creation, drives the engine flicker
+};
