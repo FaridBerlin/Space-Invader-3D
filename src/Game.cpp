@@ -47,6 +47,27 @@ ExplosionStyle BombExplosion(Color base) {
     };
 }
 
+// The floor grid. raylib has DrawGrid(), but its lines run through the camera's
+// position, which breaks in some browsers (see Config.h). Our own version is
+// just two loops: lines running into the distance (along Z) and lines running
+// across (along X), one every unit.
+void DrawGround() {
+    const Color lineColor{130, 130, 155, 255};
+    const Color centerColor{255, 255, 255, 255};
+    const float half = static_cast<float>(config::kGridHalfWidth);
+
+    for (int x = -config::kGridHalfWidth; x <= config::kGridHalfWidth; ++x) {
+        const float fx = static_cast<float>(x);
+        DrawLine3D(Vector3{fx, 0.0f, config::kGridFarZ}, Vector3{fx, 0.0f, config::kGridNearZ},
+                   x == 0 ? centerColor : lineColor);
+    }
+    for (int z = static_cast<int>(config::kGridFarZ); z <= static_cast<int>(config::kGridNearZ); ++z) {
+        const float fz = static_cast<float>(z);
+        DrawLine3D(Vector3{-half, 0.0f, fz}, Vector3{half, 0.0f, fz},
+                   z == 0 ? centerColor : lineColor);
+    }
+}
+
 // Which level belongs to this score? Walk the thresholds, keep the highest one reached.
 int LevelForScore(int score) {
     int level = 0;
@@ -287,7 +308,7 @@ void Game::Draw() const {
         // Draw order matters: far things first, see-through effects last.
         stars_.Draw();
 
-        DrawGrid(60, 1.0f);
+        DrawGround();
 
         // Outline of the play field on the ground (y = 0).
         const float w = config::kFieldHalfWidth;

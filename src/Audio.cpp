@@ -4,6 +4,8 @@
 
 #include <cstddef>   // std::size_t
 
+#include "AssetPath.h"
+
 namespace {
 
 // One row per effect: which file, how loud, how many overlapping voices.
@@ -15,11 +17,11 @@ struct EffectInfo {
 };
 
 constexpr EffectInfo kEffectInfo[] = {
-    {"laser.wav",     0.35f, 4},   // PlayerShot
-    {"laser2.wav",    0.40f, 3},   // InvaderShot
-    {"explosion.wav", 0.70f, 4},   // InvaderDestroyed
-    {"laser4.wav",    0.90f, 2},   // BombExplosion
-    {"laser3.wav",    1.00f, 1},   // PlayerDeath
+    {"audio/laser.wav",     0.35f, 4},   // PlayerShot
+    {"audio/laser2.wav",    0.40f, 3},   // InvaderShot
+    {"audio/explosion.wav", 0.70f, 4},   // InvaderDestroyed
+    {"audio/laser4.wav",    0.90f, 2},   // BombExplosion
+    {"audio/laser3.wav",    1.00f, 1},   // PlayerDeath
 };
 
 static_assert(sizeof(kEffectInfo) / sizeof(kEffectInfo[0]) == static_cast<std::size_t>(Sfx::Count),
@@ -39,10 +41,8 @@ Audio::Audio() {
         Effect& effect = effects_[i];
         const EffectInfo& info = kEffectInfo[i];
 
-        // The assets folder sits next to the program (CMake copies it there).
-        // GetApplicationDirectory() ends with a slash, so the game finds its
-        // sounds no matter which folder you started it from.
-        const char* path = TextFormat("%sassets/audio/%s", GetApplicationDirectory(), info.file);
+        // AssetPath knows where the assets are on this platform (see AssetPath.h).
+        const char* path = AssetPath(info.file);
         effect.source = LoadSound(path);
         if (!IsSoundValid(effect.source)) {
             TraceLog(LOG_WARNING, "AUDIO: could not load %s", path);

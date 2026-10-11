@@ -44,12 +44,32 @@ add_executable(space-invader-3d
 # Link against raylib (this also gives us its header files).
 target_link_libraries(space-invader-3d PRIVATE raylib)
 
-# Copy the assets folder (sounds, ...) next to the finished program. The game
-# looks for "assets/..." in the folder of its own executable, so it finds
-# its files wherever you start it from. This runs after every build.
-add_custom_command(TARGET space-invader-3d POST_BUILD
-    COMMAND ${CMAKE_COMMAND} -E copy_directory
-            ${CMAKE_SOURCE_DIR}/assets $<TARGET_FILE_DIR:space-invader-3d>/assets)
+# --- Assets (sounds, ...) --------------------------------------------------------
+if(EMSCRIPTEN)
+    # ---- Web build -----------------------------------------------------------
+    # Configure with:  emcmake cmake -B build-web -DPLATFORM=Web -DCMAKE_BUILD_TYPE=Release
+    # The result is build-web/index.html (+ .js, .wasm, .data), ready to upload.
+    #
+    #  --shell-file     our own HTML page around the game (web/shell.html)
+    #  --preload-file   packs the assets folder into a .data file that the
+    #                   browser downloads before the game starts; inside the
+    #                   browser it appears as the folder "assets/"
+    #  ALLOW_MEMORY_GROWTH  the game may use more memory if it needs to
+    set_target_properties(space-invader-3d PROPERTIES OUTPUT_NAME "index" SUFFIX ".html")
+    target_link_options(space-invader-3d PRIVATE
+        "SHELL:--shell-file ${CMAKE_SOURCE_DIR}/web/shell.html"
+        "SHELL:--preload-file ${CMAKE_SOURCE_DIR}/assets@/assets"
+        "-sALLOW_MEMORY_GROWTH=1")
+    set_target_properties(space-invader-3d PROPERTIES LINK_DEPENDS "${CMAKE_SOURCE_DIR}/web/shell.html")
+else()
+    # Desktop: copy the assets folder next to the finished program. The game
+    # looks for "assets/..." in the folder of its own executable (see
+    # AssetPath.h), so it finds its files wherever you start it from.
+    # This runs after every build.
+    add_custom_command(TARGET space-invader-3d POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy_directory
+                ${CMAKE_SOURCE_DIR}/assets $<TARGET_FILE_DIR:space-invader-3d>/assets)
+endif()
 
 # Treat raylib's headers as "system headers": compilers then stay quiet about
 # warnings INSIDE them (raymath.h is stricter than our warning flags), while we
