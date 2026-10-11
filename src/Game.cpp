@@ -9,6 +9,7 @@
 #include "Input.h"
 #include "Random.h"
 #include "Util.h"
+#include "rlgl.h"      // rlDisableDepthMask (the glass must not hide what is behind it)
 
 namespace {
 
@@ -71,6 +72,26 @@ void DrawGround() {
         DrawLine3D(Vector3{-w, 0.0f, fz}, Vector3{w, 0.0f, fz},
                    z == 0 ? centerColor : lineColor);
     }
+}
+
+// A tinted glass pane over the play field. It is two triangles (a rectangle) at y = 0
+// with a see-through colour, so the stars underneath shine through it. We switch off
+// "depth writing" while drawing it: otherwise the pane would count as a solid wall
+// and anything drawn after it behind it would be cut away.
+void DrawGlassFloor() {
+    const float w = config::kFieldHalfWidth;
+    const float l = config::kFieldLength;
+    const Vector3 a{-w, 0.0f, 0.0f};    // near left
+    const Vector3 b{ w, 0.0f, 0.0f};    // near right
+    const Vector3 c{ w, 0.0f, -l};      // far right
+    const Vector3 d{-w, 0.0f, -l};      // far left
+
+    rlDisableDepthMask();
+    // Triangles are only drawn when their corners go counter-clockwise as seen
+    // from the camera (above the floor), so the order a, b, c / a, c, d matters.
+    DrawTriangle3D(a, b, c, config::kGlassColor);
+    DrawTriangle3D(a, c, d, config::kGlassColor);
+    rlEnableDepthMask();
 }
 
 // Which level belongs to this score? Walk the thresholds, keep the highest one reached.
@@ -313,6 +334,7 @@ void Game::Draw() const {
         // Draw order matters: far things first, see-through effects last.
         stars_.Draw();
 
+        DrawGlassFloor();   // after the stars (they shine through), before the grid lines
         DrawGround();
 
         // Outline of the play field on the ground (y = 0).

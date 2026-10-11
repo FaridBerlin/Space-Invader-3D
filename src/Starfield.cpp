@@ -9,9 +9,18 @@
 
 Starfield::Star Starfield::MakeStar(float z) {
     Star star;
+
+    // Stars fill the whole space: above the floor AND below it. Only a thin
+    // layer around the floor is left empty, so no star streaks through the
+    // glass or the ship. Pick a height; if it lands in the gap, pick again.
+    float y = 0.0f;
+    do {
+        y = RandomFloat(config::kStarMinY, config::kStarMaxY);
+    } while (y > config::kStarGapMinY && y < config::kStarGapMaxY);
+
     star.position = Vector3{
         RandomFloat(-config::kStarHalfWidth, config::kStarHalfWidth),
-        RandomFloat(config::kStarMinY, config::kStarMaxY),
+        y,
         z};
     star.speedFactor = RandomFloat(0.5f, 1.5f);
     star.brightness  = RandomFloat(0.3f, 1.0f);
