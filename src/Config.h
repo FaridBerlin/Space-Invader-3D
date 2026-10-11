@@ -41,6 +41,10 @@ constexpr float   kCameraFovDegrees = 60.0f;   // vertical field of view
 // of the camera (it sits at Z = 14): lines that cross the camera's position are clipped by
 // the GPU, and some browsers get that wrong. The field ends at Z = 0, so we are safe.
 
+// ---- Glass floor --------------------------------------------------------------------------
+// A see-through tinted pane over the play field. Stars below it shine through.
+constexpr Color kGlassColor{40, 110, 190, 55};   // blue tint, alpha 55 of 255 (see-through)
+
 // ---- Player ship --------------------------------------------------------------
 constexpr float kPlayerSpeed          = 14.0f;  // top sideways speed, units per second
 constexpr float kPlayerResponsiveness = 12.0f;  // higher = reaches top speed / stops faster
@@ -105,10 +109,12 @@ constexpr float kBombExplosionSize  = 0.4f;
 constexpr float kBombGlowFactor     = 4.5f;   // glow square width = radius * this
 
 // ---- Starfield ------------------------------------------------------------------
-constexpr int   kStarCount     = 260;
+constexpr int   kStarCount     = 520;
 constexpr float kStarHalfWidth = 70.0f;    // stars spread from X = -70 to +70
-constexpr float kStarMinY      = 1.5f;     // keep stars above the ground and out of the play area
+constexpr float kStarMinY      = -35.0f;   // stars also float BELOW the floor (seen through the glass)
 constexpr float kStarMaxY      = 45.0f;
+constexpr float kStarGapMinY   = -0.5f;    // thin empty layer around the floor (y = 0) ...
+constexpr float kStarGapMaxY   = 1.5f;     // ... up to the height of the ship, so stars never cut through it
 constexpr float kStarFarZ      = -130.0f;  // stars are born here ...
 constexpr float kStarNearZ     = 13.0f;    // ... and die here, just in front of the camera
 constexpr float kStarSpeed     = 28.0f;    // base speed toward the camera, units per second
