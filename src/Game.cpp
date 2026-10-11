@@ -148,9 +148,14 @@ void Game::EndGame(const char* reason) {
 }
 
 void Game::FireRocket() {
-    // The rocket appears just in front of the ship's nose.
-    rockets_.emplace_back(Vector3{player_.X(), config::kPlayerHeight, config::kRocketSpawnZ});
-    audio_.Play(Sfx::PlayerShot);
+    // A higher ship tier fires more rockets at once, from different points
+    // (nose and wing cannons). The table is in Config.h.
+    const int tier = player_.Tier();
+    for (int i = 0; i < config::kTierShotCount[tier]; ++i) {
+        const config::ShotPoint& point = config::kTierShots[tier][i];
+        rockets_.emplace_back(Vector3{player_.X() + point.x, config::kPlayerHeight, point.z}, tier);
+    }
+    audio_.Play(Sfx::PlayerShot);   // one sound per volley, so it does not get louder and louder
 }
 
 void Game::Update(float dt) {
@@ -274,6 +279,13 @@ void Game::UpdatePlaying(float dt, const PlayerInput& input) {
     if (newLevel > level_) {
         level_            = newLevel;
         levelBannerTimer_ = config::kLevelBannerTime;
+
+        // Level up = ship upgrade: new look, and a burst of sparkles in the new
+        // shot colour around the ship.
+        player_.SetTier(level_);
+        particles_.Explode(player_.Position(),
+                           ExplosionStyle{70, 9.0f, 1.0f, 0.3f,
+                                          config::kTierShotColor[level_], Color{255, 255, 255, 255}});
     }
     if (levelBannerTimer_ > 0.0f) {
         levelBannerTimer_ -= dt;
@@ -365,7 +377,7 @@ void Game::Draw() const {
         glow_.Begin();
         for (const auto& rocket : rockets_) {
             glow_.Draw(camera_, rocket.position, config::kRocketGlowSize,
-                       Color{255, 90, 40, 255});    // red-orange
+                       rocket.color);               // same colour as the rocket
         }
         for (const auto& shot : invaderShots_) {
             glow_.Draw(camera_, shot.position, config::kInvaderShotGlowSize,

@@ -27,6 +27,11 @@ public:
     // The centre of the ship in world space, used for collision tests.
     Vector3 Position() const;
 
+    // Upgrades the ship's look: 0 = basic, 1 = second tier, 2 = third tier.
+    // Higher tiers are bigger and have more parts (see Player.cpp).
+    void SetTier(int tier);
+    int  Tier() const { return tier_; }
+
 private:
     // "private" = only Player's own functions can touch these. Everyone else
     // must go through the public functions, so the ship can never end up in an
@@ -34,4 +39,8 @@ private:
     float x_         = 0.0f;   // position along X (left/right)
     float velocityX_ = 0.0f;   // current sideways speed in units per second
     float time_      = 0.0f;   // seconds since creation, drives the engine flicker
+    int   tier_      = 0;      // upgrade level, 0..kLevelCount-1
+
+    // Half the ship's width, which grows with the tier. Used for the wall limit.
+    float HalfWidth() const;
 };

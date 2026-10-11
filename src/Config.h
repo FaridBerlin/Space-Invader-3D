@@ -63,7 +63,6 @@ constexpr float kPlayerHitRadius      = 1.1f;   // collision sphere of the ship 
 constexpr float kRocketSpeed        = 35.0f;   // units per second, flying toward -Z
 constexpr float kRocketFireInterval = 0.2f;    // seconds between shots (same as the 2D game)
 constexpr float kRocketRadius       = 0.3f;    // size of the rocket's collision sphere
-constexpr float kRocketSpawnZ       = -2.7f;   // just in front of the ship's nose
 
 // ---- Invaders -----------------------------------------------------------------
 constexpr int   kInvaderMinColumns = 5;        // a wave gets a random size, like the 2D game
@@ -95,6 +94,30 @@ constexpr int   kLevelCount = 3;
 constexpr int   kLevelStartScore[kLevelCount] = {0, 10000, 20000};
 constexpr float kLevelShotSpeed[kLevelCount]  = {11.0f, 15.0f, 19.0f};
 constexpr float kLevelBannerTime = 2.0f;       // seconds the "LEVEL 2" banner stays on screen
+
+// ---- Ship upgrades -------------------------------------------------------------------
+// The ship grows with the level: tier 0 at level 1, tier 1 at level 2, tier 2 at level 3.
+// Each tier is bigger, fires more rockets at once, and fires a different colour.
+// (The colours and parts of the ship itself are in Player.cpp.)
+constexpr float kTierScale[kLevelCount] = {1.0f, 1.12f, 1.25f};   // 1.0 = original size
+
+// Where a rocket leaves the ship: x = sideways from the ship's centre, z = forward
+// (negative = toward the invaders). Wing cannons sit at x = +-0.95 * scale.
+struct ShotPoint {
+    float x;
+    float z;
+};
+constexpr int kTierShotCount[kLevelCount] = {1, 2, 3};
+constexpr ShotPoint kTierShots[kLevelCount][3] = {
+    {{ 0.00f, -2.7f}, { 0.00f,  0.0f}, { 0.00f,  0.0f}},   // tier 0: one rocket from the nose
+    {{-1.06f, -1.3f}, { 1.06f, -1.3f}, { 0.00f,  0.0f}},   // tier 1: one from each wing cannon
+    {{-1.19f, -1.4f}, { 0.00f, -3.4f}, { 1.19f, -1.4f}},   // tier 2: both cannons plus the nose
+};
+constexpr Color kTierShotColor[kLevelCount] = {
+    {150, 255,  70, 255},   // lime green
+    { 80, 220, 255, 255},   // cyan
+    {255,  80, 200, 255},   // hot pink
+};
 
 // ---- Bombs ---------------------------------------------------------------------------
 // Numbers from the 2D game: one bomb every 5 s; faster, bigger and redder per level.
