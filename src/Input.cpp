@@ -21,5 +21,6 @@ PlayerInput ReadInput() {
 
     // IsKeyPressed is true for exactly one frame per key press.
     input.confirm = IsKeyPressed(KEY_ENTER) || IsKeyPressed(KEY_KP_ENTER);
+    input.toggleMute = IsKeyPressed(KEY_M);
     return input;
 }

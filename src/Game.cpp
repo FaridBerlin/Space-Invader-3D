@@ -103,10 +103,14 @@ void Game::EndGame(const char* reason) {
 void Game::FireRocket() {
     // The rocket appears just in front of the ship's nose.
     rockets_.emplace_back(Vector3{player_.X(), config::kPlayerHeight, config::kRocketSpawnZ});
+    audio_.Play(Sfx::PlayerShot);
 }
 
 void Game::Update(float dt) {
     const PlayerInput input = ReadInput();
+    if (input.toggleMute) {
+        audio_.ToggleMute();
+    }
 
     // The background and the explosions keep moving in EVERY state, so the
     // death explosion plays out nicely before the Game Over screen appears.
@@ -158,6 +162,7 @@ void Game::UpdatePlaying(float dt, const PlayerInput& input) {
                 invaderShots_.emplace_back(
                     Vector3{shooter->x, shooter->y, shooter->z + 0.6f},
                     config::kLevelShotSpeed[level_]);
+                audio_.Play(Sfx::InvaderShot);
             }
             invaderShotTimer_ = config::kInvaderShotInterval;
         }
@@ -196,6 +201,7 @@ void Game::UpdatePlaying(float dt, const PlayerInput& input) {
             rocket.alive = false;                 // the rocket is used up
             score_ += config::kScorePerInvader;
             particles_.Explode(*hit, InvaderExplosion());   // *hit = where the invader was
+            audio_.Play(Sfx::InvaderDestroyed);
         }
     }
 
@@ -210,6 +216,7 @@ void Game::UpdatePlaying(float dt, const PlayerInput& input) {
                 bomb.alive   = false;
                 score_ += config::kScorePerBomb;
                 particles_.Explode(bomb.position, BombExplosion(bomb.color));
+                audio_.Play(Sfx::BombExplosion);
                 break;   // this rocket is gone: stop looking at more bombs
             }
         }
@@ -232,6 +239,7 @@ void Game::UpdatePlaying(float dt, const PlayerInput& input) {
             shot.alive   = false;
             playerAlive_ = false;
             particles_.Explode(player_.Position(), PlayerExplosion());
+            audio_.Play(Sfx::PlayerDeath);
             EndGame("Your ship was hit!");
         }
     }
@@ -245,6 +253,8 @@ void Game::UpdatePlaying(float dt, const PlayerInput& input) {
             playerAlive_ = false;
             particles_.Explode(bomb.position, BombExplosion(bomb.color));
             particles_.Explode(player_.Position(), PlayerExplosion());
+            audio_.Play(Sfx::BombExplosion);
+            audio_.Play(Sfx::PlayerDeath);
             EndGame("A bomb destroyed your ship!");
         }
     }
@@ -328,7 +338,10 @@ void Game::Draw() const {
 
     // 2D text on top of the 3D picture (the HUD = "heads-up display").
     DrawText(TextFormat("SCORE  %06d", score_), 20, 16, 32, RAYWHITE);
-    DrawText("Move: A / D or arrows     Fire: Space (hold)", 20, 56, 20, LIGHTGRAY);
+    DrawText("Move: A / D or arrows     Fire: Space (hold)     Mute: M", 20, 56, 20, LIGHTGRAY);
+    if (audio_.Muted()) {
+        DrawText("SOUND OFF", 20, 112, 20, ORANGE);
+    }
     DrawFPS(20, 84);
 
     // Level in the top right corner, right-aligned: measure the text, then
