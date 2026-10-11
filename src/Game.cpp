@@ -2,10 +2,12 @@
 
 #include "Game.h"
 
-#include <cmath>   // sinf
+#include <algorithm>   // std::clamp
+#include <cmath>       // sinf
 
 #include "Config.h"
 #include "Input.h"
+#include "Random.h"
 #include "Util.h"
 
 namespace {
@@ -27,6 +29,21 @@ ExplosionStyle PlayerExplosion() {
         config::kPlayerExplosionLife,  config::kPlayerExplosionSize,
         Color{255, 210, 70, 255},    // yellow-orange
         Color{255, 60, 30, 255},     // red
+    };
+}
+
+// The bomb colour gets "hotter" with each level: yellow, orange, red.
+Color BombColor(int level) {
+    const Color colors[config::kLevelCount] = {YELLOW, ORANGE, RED};
+    return colors[level];
+}
+
+ExplosionStyle BombExplosion(Color base) {
+    return ExplosionStyle{
+        config::kBombExplosionCount, config::kBombExplosionSpeed,
+        config::kBombExplosionLife,  config::kBombExplosionSize,
+        base,
+        Color{255, 255, 230, 255},   // white-hot
     };
 }
 
@@ -60,6 +77,7 @@ void Game::Restart() {
     invaders_.Respawn();
     rockets_.clear();
     invaderShots_.clear();
+    bombs_.clear();
     particles_.Clear();
 
     state_            = GameState::Playing;
@@ -71,6 +89,7 @@ void Game::Restart() {
     levelBannerTimer_ = config::kLevelBannerTime;   // announce "LEVEL 1"
     fireCooldown_     = 0.0f;
     invaderShotTimer_ = config::kInvaderShotInterval;
+    bombTimer_        = config::kBombInterval;
     respawnTimer_     = config::kWaveRespawnDelay;
 }
 
@@ -94,6 +113,7 @@ void Game::Update(float dt) {
     stars_.Update(dt);
     particles_.Update(dt);
     glow_.Update(dt);
+    time_ += dt;
 
     // What else happens each frame depends on the state we are in.
     switch (state_) {
@@ -143,12 +163,29 @@ void Game::UpdatePlaying(float dt, const PlayerInput& input) {
         }
     }
 
+    // ---- 2b. Bombs appear every few seconds -----------------------------------------
+    bombTimer_ -= dt;
+    if (bombTimer_ <= 0.0f) {
+        // Aimed roughly at where the ship is NOW, so the player has to react.
+        // std::clamp keeps the bomb inside the walls.
+        const float x = std::clamp(player_.X() + RandomFloat(-config::kBombAimSpread, config::kBombAimSpread),
+                                   -config::kFieldHalfWidth + 1.0f, config::kFieldHalfWidth - 1.0f);
+        bombs_.emplace_back(Vector3{x, config::kBombSpawnY, config::kBombSpawnZ},
+                            config::kLevelBombSpeed[level_],
+                            config::kLevelBombRadius[level_],
+                            BombColor(level_));
+        bombTimer_ = config::kBombInterval;
+    }
+
     // ---- 3. Move everything ---------------------------------------------------
     for (auto& rocket : rockets_) {
         rocket.Update(dt);
     }
     for (auto& shot : invaderShots_) {
         shot.Update(dt);
+    }
+    for (auto& bomb : bombs_) {
+        bomb.Update(dt);
     }
     invaders_.Update(dt);
 
@@ -159,6 +196,22 @@ void Game::UpdatePlaying(float dt, const PlayerInput& input) {
             rocket.alive = false;                 // the rocket is used up
             score_ += config::kScorePerInvader;
             particles_.Explode(*hit, InvaderExplosion());   // *hit = where the invader was
+        }
+    }
+
+    // 4a2. Our rockets against the bombs. A bomb is worth more than an invader and
+    // explodes bigger. "continue" skips rockets that were already used up above.
+    for (auto& rocket : rockets_) {
+        if (!rocket.alive) continue;
+        for (auto& bomb : bombs_) {
+            if (bomb.alive && CheckCollisionSpheres(rocket.position, config::kRocketRadius,
+                                                    bomb.position, bomb.radius)) {
+                rocket.alive = false;
+                bomb.alive   = false;
+                score_ += config::kScorePerBomb;
+                particles_.Explode(bomb.position, BombExplosion(bomb.color));
+                break;   // this rocket is gone: stop looking at more bombs
+            }
         }
     }
 
@@ -183,6 +236,19 @@ void Game::UpdatePlaying(float dt, const PlayerInput& input) {
         }
     }
 
+    // 4b2. Bombs against our ship.
+    for (auto& bomb : bombs_) {
+        if (bomb.alive && playerAlive_ &&
+            CheckCollisionSpheres(bomb.position, bomb.radius,
+                                  player_.Position(), config::kPlayerHitRadius)) {
+            bomb.alive   = false;
+            playerAlive_ = false;
+            particles_.Explode(bomb.position, BombExplosion(bomb.color));
+            particles_.Explode(player_.Position(), PlayerExplosion());
+            EndGame("A bomb destroyed your ship!");
+        }
+    }
+
     // 4c. Did the wave reach us?
     if (!invaders_.Empty() && invaders_.FrontZ() >= config::kInvaderReachZ) {
         EndGame("The invaders reached you!");
@@ -191,6 +257,7 @@ void Game::UpdatePlaying(float dt, const PlayerInput& input) {
     // ---- 5. Clean up dead objects -------------------------------------------------
     RemoveDead(rockets_);
     RemoveDead(invaderShots_);
+    RemoveDead(bombs_);
 
     // ---- 6. New wave ------------------------------------------------------------
     if (invaders_.Empty()) {
@@ -230,6 +297,9 @@ void Game::Draw() const {
         for (const auto& shot : invaderShots_) {
             shot.Draw();
         }
+        for (const auto& bomb : bombs_) {
+            bomb.Draw(time_);
+        }
 
         // Glow around the projectiles, drawn by our custom shader. Like the
         // particles it is additive and see-through, so it comes after the solid objects.
@@ -241,6 +311,9 @@ void Game::Draw() const {
         for (const auto& shot : invaderShots_) {
             glow_.Draw(camera_, shot.position, config::kInvaderShotGlowSize,
                        Color{255, 220, 60, 255});   // yellow
+        }
+        for (const auto& bomb : bombs_) {
+            glow_.Draw(camera_, bomb.position, bomb.radius * config::kBombGlowFactor, bomb.color);
         }
         glow_.End();
 
