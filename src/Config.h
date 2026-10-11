@@ -35,6 +35,14 @@ constexpr Vector3 kCameraPosition{0.0f, 8.0f, 14.0f};
 constexpr Vector3 kCameraTarget{0.0f, 0.0f, -12.0f};
 constexpr float   kCameraFovDegrees = 60.0f;   // vertical field of view
 
+// ---- Ground grid ------------------------------------------------------------------------
+// We draw the grid ourselves (see Game.cpp). Every line must stay IN FRONT of the camera:
+// the camera sits at Z = 14, so the grid ends at Z = 10. Lines that cross the camera's
+// position are clipped by the GPU, and some browsers get that wrong.
+constexpr int   kGridHalfWidth = 30;      // lines from X = -30 to +30, one per unit
+constexpr float kGridFarZ      = -60.0f;  // beyond the far edge of the field (-50)
+constexpr float kGridNearZ     = 10.0f;
+
 // ---- Player ship --------------------------------------------------------------
 constexpr float kPlayerSpeed          = 14.0f;  // top sideways speed, units per second
 constexpr float kPlayerResponsiveness = 12.0f;  // higher = reaches top speed / stops faster

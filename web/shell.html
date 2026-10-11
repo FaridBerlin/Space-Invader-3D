@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+<title>Space Invader 3D</title>
+<style>
+  html, body { margin: 0; height: 100%; background: #05050f; color: #cfd3ff;
+               font-family: system-ui, sans-serif; overflow: hidden; }
+  /* The game renders at 1280x720; CSS scales the picture to fit any window
+     while keeping the 16:9 shape. */
+  #stage { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; }
+  canvas { max-width: 100vw; max-height: 100vh; aspect-ratio: 16 / 9;
+           width: min(100vw, 177.78vh); height: auto; display: block;
+           outline: none; background: #05050f; }
+  #loading { position: fixed; inset: 0; display: flex; flex-direction: column;
+             align-items: center; justify-content: center; gap: 14px; pointer-events: none; }
+  #loading h1 { margin: 0; font-size: 28px; letter-spacing: 2px; color: #be78ff; }
+  #bar { width: min(320px, 70vw); height: 6px; background: #1a1a38; border-radius: 3px; overflow: hidden; }
+  #fill { width: 0; height: 100%; background: #6cc4ff; transition: width .15s; }
+  #status { font-size: 14px; opacity: .8; }
+  #hint { position: fixed; bottom: 8px; left: 0; right: 0; text-align: center; font-size: 12px; opacity: .45; pointer-events: none; }
+</style>
+</head>
+<body>
+<div id="stage"><canvas id="canvas" tabindex="-1" oncontextmenu="event.preventDefault()"></canvas></div>
+<div id="loading"><h1>SPACE INVADER 3D</h1><div id="bar"><div id="fill"></div></div><div id="status">Loading...</div></div>
+<div id="hint">Click the game once so it gets the keyboard. Move: A / D or arrows, Fire: Space, Mute: M. Needs a keyboard.</div>
+<script>
+  var Module = {
+    canvas: document.getElementById('canvas'),
+    print: function (t) { console.log(t); },
+    printErr: function (t) { console.warn(t); },
+    setStatus: function (text) {
+      var m = /(\d+)\/(\d+)/.exec(text || '');
+      if (m) { document.getElementById('fill').style.width = (100 * m[1] / m[2]) + '%'; }
+      if (!text) { document.getElementById('loading').style.display = 'none'; }
+      else { document.getElementById('status').textContent = text; }
+    },
+    monitorRunDependencies: function () {}
+  };
+  // Browsers only let a page play sound after the player has interacted with
+  // it. Clicking the canvas gives the keyboard focus to the game as well.
+  document.getElementById('canvas').addEventListener('mousedown', function () { window.focus(); });
+  // Stop the arrow keys and Space from scrolling the page.
+  window.addEventListener('keydown', function (e) {
+    if (['ArrowLeft','ArrowRight','ArrowUp','ArrowDown',' '].indexOf(e.key) >= 0) { e.preventDefault(); }
+  }, { passive: false });
+</script>
+{{{ SCRIPT }}}
+</body>
+</html>
