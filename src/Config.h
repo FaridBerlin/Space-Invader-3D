@@ -80,6 +80,24 @@ constexpr int   kLevelStartScore[kLevelCount] = {0, 10000, 20000};
 constexpr float kLevelShotSpeed[kLevelCount]  = {11.0f, 15.0f, 19.0f};
 constexpr float kLevelBannerTime = 2.0f;       // seconds the "LEVEL 2" banner stays on screen
 
+// ---- Bombs ---------------------------------------------------------------------------
+// Numbers from the 2D game: one bomb every 5 s; faster, bigger and redder per level.
+constexpr float kBombInterval  = 5.0f;     // seconds between bombs
+constexpr float kBombSpawnZ    = -42.0f;   // far end of the field, behind the invaders
+constexpr float kBombSpawnY    = 9.0f;     // starts high up ...
+constexpr float kBombLevelOutZ = -16.0f;   // ... and has sunk to cruise height by here
+constexpr float kBombCruiseY   = 1.0f;     // the height at which rockets can hit it
+constexpr float kBombDespawnZ  = 6.0f;     // flew past the ship
+constexpr float kBombAimSpread = 3.0f;     // aimed at the ship's X, give or take this much
+constexpr float kLevelBombSpeed[kLevelCount]  = {9.0f, 12.0f, 15.0f};   // units per second
+constexpr float kLevelBombRadius[kLevelCount] = {0.9f, 1.2f, 1.5f};     // 2D: 30 / 40 / 50 px
+constexpr int   kScorePerBomb  = 500;
+constexpr int   kBombExplosionCount = 130;
+constexpr float kBombExplosionSpeed = 14.0f;
+constexpr float kBombExplosionLife  = 1.3f;
+constexpr float kBombExplosionSize  = 0.4f;
+constexpr float kBombGlowFactor     = 4.5f;   // glow square width = radius * this
+
 // ---- Starfield ------------------------------------------------------------------
 constexpr int   kStarCount     = 260;
 constexpr float kStarHalfWidth = 70.0f;    // stars spread from X = -70 to +70

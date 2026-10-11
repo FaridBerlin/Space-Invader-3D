@@ -7,6 +7,7 @@
 
 #include <vector>
 
+#include "Bomb.h"
 #include "GlowRenderer.h"
 #include "InvaderGrid.h"
 #include "InvaderShot.h"
@@ -46,6 +47,7 @@ private:
     InvaderGrid invaders_;
     std::vector<Rocket>       rockets_;
     std::vector<InvaderShot>  invaderShots_;
+    std::vector<Bomb>         bombs_;
     ParticleSystem            particles_;
     Starfield                 stars_;
     GlowRenderer              glow_;      // owns the shader; see GlowRenderer.h
@@ -60,5 +62,7 @@ private:
     float levelBannerTimer_ = 0.0f;  // seconds left to show the "LEVEL n" banner
     float fireCooldown_    = 0.0f;   // seconds until the next rocket may be fired
     float invaderShotTimer_ = 0.0f;  // seconds until the wave fires its next shot
+    float bombTimer_       = 0.0f;   // seconds until the next bomb appears
+    float time_            = 0.0f;   // seconds since the program started, for animations
     float respawnTimer_    = 0.0f;   // counts down after a wave is destroyed
 };
