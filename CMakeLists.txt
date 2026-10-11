@@ -38,10 +38,18 @@ add_executable(space-invader-3d
     src/Starfield.cpp
     src/GlowRenderer.cpp
     src/Bomb.cpp
+    src/Audio.cpp
 )
 
 # Link against raylib (this also gives us its header files).
 target_link_libraries(space-invader-3d PRIVATE raylib)
+
+# Copy the assets folder (sounds, ...) next to the finished program. The game
+# looks for "assets/..." in the folder of its own executable, so it finds
+# its files wherever you start it from. This runs after every build.
+add_custom_command(TARGET space-invader-3d POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_directory
+            ${CMAKE_SOURCE_DIR}/assets $<TARGET_FILE_DIR:space-invader-3d>/assets)
 
 # Treat raylib's headers as "system headers": compilers then stay quiet about
 # warnings INSIDE them (raymath.h is stricter than our warning flags), while we

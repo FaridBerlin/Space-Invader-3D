@@ -16,6 +16,9 @@ struct PlayerInput {
     // different from "fire": holding Enter must not restart the game 60 times
     // per second. (Raylib: IsKeyDown = held, IsKeyPressed = just went down.)
     bool  confirm = false;
+
+    // True ONLY in the frame the mute key (M) was pressed.
+    bool  toggleMute = false;
 };
 
 // Reads the keyboard and returns what the player wants right now.

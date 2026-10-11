@@ -35,7 +35,7 @@ Each milestone ends with something you can run, and a short note on what it teac
 - [x] Bombs (+500, big explosion)
 - [x] 3 levels with the 2D difficulty rules (shot speed, bomb speed, size and colour)
 - [x] Menu, HUD (level + banner), Game Over, restart
-- [ ] All sounds
+- [x] All sounds
 - [ ] Learn: state machines, audio
 
 ## M6 - Ship it

@@ -7,6 +7,7 @@
 
 #include <vector>
 
+#include "Audio.h"
 #include "Bomb.h"
 #include "GlowRenderer.h"
 #include "InvaderGrid.h"
@@ -50,6 +51,7 @@ private:
     std::vector<Bomb>         bombs_;
     ParticleSystem            particles_;
     Starfield                 stars_;
+    Audio                     audio_;     // sound effects, see Audio.h
     GlowRenderer              glow_;      // owns the shader; see GlowRenderer.h
 
     GameState state_       = GameState::Menu;
