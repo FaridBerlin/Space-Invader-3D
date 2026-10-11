@@ -1,0 +1,57 @@
+# Builds the web version with Emscripten and publishes it on GitHub Pages.
+# One-time setup in the repository: Settings > Pages > Source: "GitHub Actions".
+
+name: Deploy web build
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Emscripten
+        uses: mymindstorm/setup-emsdk@v14
+        with:
+          version: 3.1.74          # pinned, so the build does not change by surprise
+          actions-cache-folder: emsdk-cache
+
+      - name: Configure
+        run: emcmake cmake -B build-web -DPLATFORM=Web -DCMAKE_BUILD_TYPE=Release
+
+      - name: Build
+        run: cmake --build build-web --parallel
+
+      # Publish only the four files the browser needs, not the CMake leftovers.
+      - name: Collect site files
+        run: |
+          mkdir site
+          cp build-web/index.html build-web/index.js build-web/index.wasm build-web/index.data site/
+
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: site
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

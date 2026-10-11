@@ -1,0 +1,92 @@
+# Builds the game for Linux and Windows on every push and pull request.
+# When you push a tag like v0.1.0, it also publishes the downloads as a GitHub Release.
+
+name: Build
+
+on:
+  push:
+    branches: [main]
+    tags: ["v*"]
+  pull_request:
+  workflow_dispatch:        # adds a "Run workflow" button on the Actions page
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Build (${{ matrix.name }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false      # if Windows breaks, still finish Linux (and the other way round)
+      matrix:
+        include:
+          - name: Linux
+            os: ubuntu-latest
+            archive: space-invader-3d-linux.tar.gz
+          - name: Windows
+            os: windows-latest
+            archive: space-invader-3d-windows.zip
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Linux libraries
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libx11-dev libxrandr-dev libxinerama-dev \
+            libxcursor-dev libxi-dev libgl1-mesa-dev libasound2-dev
+
+      - name: Configure
+        run: cmake -B build -DCMAKE_BUILD_TYPE=Release
+
+      - name: Build
+        run: cmake --build build --config Release --parallel
+
+      # A download = the program + the assets folder, in one folder.
+      - name: Package (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          mkdir -p dist/space-invader-3d
+          cp build/space-invader-3d dist/space-invader-3d/
+          cp -r assets dist/space-invader-3d/
+          cd dist
+          cmake -E tar czf ../${{ matrix.archive }} -- space-invader-3d
+
+      - name: Package (Windows)
+        if: runner.os == 'Windows'
+        shell: bash
+        run: |
+          mkdir -p dist/space-invader-3d
+          cp build/Release/space-invader-3d.exe dist/space-invader-3d/
+          cp -r assets dist/space-invader-3d/
+          cd dist
+          cmake -E tar cf ../${{ matrix.archive }} --format=zip -- space-invader-3d
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.archive }}
+          path: ${{ matrix.archive }}
+
+  release:
+    name: Publish release
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write       # needed to create a release
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: downloads
+          merge-multiple: true
+
+      - name: Create GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "${{ github.ref_name }}" downloads/* \
+            --repo "${{ github.repository }}" \
+            --title "Space Invader 3D ${{ github.ref_name }}" \
+            --generate-notes

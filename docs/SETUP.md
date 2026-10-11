@@ -39,13 +39,43 @@ git push -u origin main
 Replace `<your-username>` with your GitHub name. If GitHub asks for a password, use a
 personal access token or sign in with the GitHub CLI (`gh auth login`).
 
-## 4. Build (once the code exists)
+## 4. Build
 
 ```bash
 cmake -B build
 cmake --build build
 ./build/space-invader-3d
 ```
+
+## 5. Publish: web version and downloads
+
+The workflows in `.github/workflows/` do the work. You set it up once on github.com:
+
+**Switch on GitHub Pages (once):**
+1. Open the repository on github.com, then **Settings** (top row of tabs).
+2. In the left menu click **Pages**.
+3. Under **Build and deployment**, set **Source** to **GitHub Actions**. (There is no Save button; it applies at once.)
+4. Merge to `main` (or open the **Actions** tab, pick **Deploy web build**, click **Run workflow**).
+   After a few minutes the game is live at `https://<your-username>.github.io/Space-Invader-3D/`.
+
+**What runs when:**
+
+| Workflow | Runs on | Result |
+|---|---|---|
+| `build.yml` | every push and pull request | Linux and Windows builds, downloadable under the run's **Artifacts** |
+| `pages.yml` | every push to `main` | the web version is published on GitHub Pages |
+| `build.yml` (release job) | when you push a tag `v...` | a GitHub **Release** with the Windows and Linux downloads |
+
+**Make a release:**
+```bash
+git switch main && git pull
+git tag v0.1.0
+git push origin v0.1.0
+```
+Wait for the **Build** workflow to finish. The release appears under **Releases** (right side of the repository's main page).
+
+**If a workflow fails (red cross):** open the **Actions** tab, click the failed run, click the red step and read the log.
+The error is usually in the last lines.
 
 ## Git habits
 

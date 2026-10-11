@@ -2,6 +2,19 @@ cmake_minimum_required(VERSION 3.16)
 
 project(space-invader-3d LANGUAGES C CXX)
 
+# Default to an optimised "Release" build when nobody chose one. (For debugging with
+# gdb / a debugger use:  cmake -B build -DCMAKE_BUILD_TYPE=Debug )
+if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
+    set(CMAKE_BUILD_TYPE Release CACHE STRING "Build type" FORCE)
+endif()
+
+# Windows (Visual Studio): link the C++ runtime INTO the .exe. Otherwise the game
+# only starts on PCs that have the "Visual C++ Redistributable" installed, which
+# defeats one-click play. This must be set before any target (raylib included) exists.
+if(MSVC)
+    set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
+endif()
+
 # Use modern C++ (C++17). "REQUIRED" makes the build fail if the compiler can't do it.
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -80,6 +93,11 @@ target_include_directories(space-invader-3d SYSTEM PRIVATE ${RAYLIB_INCLUDE_DIRS
 # Turn on useful compiler warnings: they catch many beginner mistakes early.
 if(MSVC)
     target_compile_options(space-invader-3d PRIVATE /W4)
+    # Release build: a normal window without the black console behind it.
+    # (The program still starts in main(), hence the ENTRY setting.)
+    target_link_options(space-invader-3d PRIVATE
+        "$<$<CONFIG:Release>:/SUBSYSTEM:WINDOWS>"
+        "$<$<CONFIG:Release>:/ENTRY:mainCRTStartup>")
 else()
     target_compile_options(space-invader-3d PRIVATE -Wall -Wextra -Wpedantic)
 endif()

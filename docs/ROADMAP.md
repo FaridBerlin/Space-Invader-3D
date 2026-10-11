@@ -39,9 +39,10 @@ Each milestone ends with something you can run, and a short note on what it teac
 - [ ] Learn: state machines, audio
 
 ## M6 - Ship it
-- [ ] Windows + Linux builds from GitHub Actions
-- [ ] Web build on GitHub Pages
-- [ ] Trim large assets for web, README with play link and screenshots
+- [x] Windows + Linux builds from GitHub Actions
+- [x] Web build (Emscripten), see docs/WEB.md
+- [x] Web build published on GitHub Pages (workflow ready; switch on Pages, see SETUP.md)
+- [x] Trim large assets for web, README with play link and screenshots
 
 ## M7 - Android (later)
 - [ ] Android NDK build
