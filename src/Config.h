@@ -40,10 +40,16 @@ constexpr float   kCameraFovDegrees = 60.0f;   // vertical field of view
 // DrawGround() in Game.cpp. Outside the field you see open space. Lines must stay IN FRONT
 // of the camera (it sits at Z = 14): lines that cross the camera's position are clipped by
 // the GPU, and some browsers get that wrong. The field ends at Z = 0, so we are safe.
+//
+// Colours are {red, green, blue, alpha}. The LAST number is the opacity: 255 = solid,
+// 0 = invisible. Lower it to make a line fainter.
+constexpr Color kGridLineColor   {130, 130, 155, 0};    // the thin grid lines
+constexpr Color kGridCenterColor {255, 255, 255, 0};   // the white line down the middle
+constexpr Color kFieldBorderColor{135, 206, 235, 0};   // the light-blue border (sky blue)
 
 // ---- Glass floor --------------------------------------------------------------------------
 // A see-through tinted pane over the play field. Stars below it shine through.
-constexpr Color kGlassColor{40, 110, 190, 55};   // blue tint, alpha 55 of 255 (see-through)
+constexpr Color kGlassColor{40, 110, 190, 0};   // blue tint, alpha 55 of 255 (see-through)
 
 // ---- Player ship --------------------------------------------------------------
 constexpr float kPlayerSpeed          = 14.0f;  // top sideways speed, units per second

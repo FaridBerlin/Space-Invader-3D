@@ -55,8 +55,8 @@ ExplosionStyle BombExplosion(Color base) {
 // running into the distance (along Z) and lines running across (along X),
 // one every unit. All lines stay in front of the camera (see Config.h).
 void DrawGround() {
-    const Color lineColor{130, 130, 155, 255};
-    const Color centerColor{255, 255, 255, 255};
+    const Color lineColor   = config::kGridLineColor;
+    const Color centerColor = config::kGridCenterColor;
     const int   halfWidth = static_cast<int>(config::kFieldHalfWidth);
     const int   length    = static_cast<int>(config::kFieldLength);
     const float w = config::kFieldHalfWidth;
@@ -340,10 +340,11 @@ void Game::Draw() const {
         // Outline of the play field on the ground (y = 0).
         const float w = config::kFieldHalfWidth;
         const float l = config::kFieldLength;
-        DrawLine3D(Vector3{-w, 0, 0},  Vector3{-w, 0, -l}, SKYBLUE);  // left edge
-        DrawLine3D(Vector3{ w, 0, 0},  Vector3{ w, 0, -l}, SKYBLUE);  // right edge
-        DrawLine3D(Vector3{-w, 0, -l}, Vector3{ w, 0, -l}, SKYBLUE);  // far edge
-        DrawLine3D(Vector3{-w, 0, 0},  Vector3{ w, 0, 0},  SKYBLUE);  // near edge
+        const Color border = config::kFieldBorderColor;
+        DrawLine3D(Vector3{-w, 0, 0},  Vector3{-w, 0, -l}, border);  // left edge
+        DrawLine3D(Vector3{ w, 0, 0},  Vector3{ w, 0, -l}, border);  // right edge
+        DrawLine3D(Vector3{-w, 0, -l}, Vector3{ w, 0, -l}, border);  // far edge
+        DrawLine3D(Vector3{-w, 0, 0},  Vector3{ w, 0, 0},  border);  // near edge
 
         if (playerAlive_) {
             player_.Draw();
