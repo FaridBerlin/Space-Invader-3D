@@ -47,23 +47,28 @@ ExplosionStyle BombExplosion(Color base) {
     };
 }
 
-// The floor grid. raylib has DrawGrid(), but its lines run through the camera's
-// position, which breaks in some browsers (see Config.h). Our own version is
-// just two loops: lines running into the distance (along Z) and lines running
-// across (along X), one every unit.
+// The floor grid, cut to the play field: it covers exactly the area inside the
+// blue border (X from -kFieldHalfWidth to +kFieldHalfWidth, Z from 0 to
+// -kFieldLength). Outside it there is no floor, only space and stars.
+// raylib has DrawGrid(), but we draw our own: it is just two loops, lines
+// running into the distance (along Z) and lines running across (along X),
+// one every unit. All lines stay in front of the camera (see Config.h).
 void DrawGround() {
     const Color lineColor{130, 130, 155, 255};
     const Color centerColor{255, 255, 255, 255};
-    const float half = static_cast<float>(config::kGridHalfWidth);
+    const int   halfWidth = static_cast<int>(config::kFieldHalfWidth);
+    const int   length    = static_cast<int>(config::kFieldLength);
+    const float w = config::kFieldHalfWidth;
+    const float l = config::kFieldLength;
 
-    for (int x = -config::kGridHalfWidth; x <= config::kGridHalfWidth; ++x) {
+    for (int x = -halfWidth; x <= halfWidth; ++x) {
         const float fx = static_cast<float>(x);
-        DrawLine3D(Vector3{fx, 0.0f, config::kGridFarZ}, Vector3{fx, 0.0f, config::kGridNearZ},
+        DrawLine3D(Vector3{fx, 0.0f, -l}, Vector3{fx, 0.0f, 0.0f},
                    x == 0 ? centerColor : lineColor);
     }
-    for (int z = static_cast<int>(config::kGridFarZ); z <= static_cast<int>(config::kGridNearZ); ++z) {
+    for (int z = -length; z <= 0; ++z) {
         const float fz = static_cast<float>(z);
-        DrawLine3D(Vector3{-half, 0.0f, fz}, Vector3{half, 0.0f, fz},
+        DrawLine3D(Vector3{-w, 0.0f, fz}, Vector3{w, 0.0f, fz},
                    z == 0 ? centerColor : lineColor);
     }
 }
