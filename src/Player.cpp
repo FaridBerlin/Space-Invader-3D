@@ -4,6 +4,8 @@
 
 #include <algorithm>   // std::min, std::max
 #include <cmath>       // std::exp, std::sin
+#include <cstddef>     // std::size_t
+#include <iterator>    // std::size
 
 #include "Config.h"
 #include "raylib.h"
@@ -59,6 +61,28 @@ Vector3 Mid(Vector3 a, Vector3 b, Vector3 c) {
     return Vector3Scale(Vector3Add(Vector3Add(a, b), c), 1.0f / 3.0f);
 }
 
+// How one upgrade tier of the ship looks. Colours are {red, green, blue, alpha}.
+struct ShipStyle {
+    Color hull;
+    Color wing;
+    Color trim;          // the bright neon lines and fins
+    Color canopy;        // the cockpit glass
+    Color flameOuter;    // engine flame, outer part
+    Color flameCore;     // engine flame, bright centre
+    float flameLength;   // 1.0 = normal; bigger tiers have longer flames
+};
+
+// One entry per tier = per level. The ship starts blue-grey with lime trim and
+// ends crimson and gold. The engine flames are orange, then red-orange, then red.
+constexpr ShipStyle kStyles[] = {
+    // hull               wing                trim                canopy              flame outer         flame core          length
+    {{190, 205, 230, 255}, {125, 155, 225, 255}, {170, 255,  70, 255}, { 60, 190, 255, 255}, {255, 120,  20, 255}, {255, 230, 120, 255}, 1.00f},
+    {{225, 230, 242, 255}, {150, 105, 225, 255}, { 90, 230, 255, 255}, {110, 240, 255, 255}, {255,  70,  20, 255}, {255, 200,  80, 255}, 1.15f},
+    {{150, 152, 178, 255}, {215,  60,  85, 255}, {255, 210,  70, 255}, {255, 200,  80, 255}, {255,  40,  40, 255}, {255, 255, 200, 255}, 1.35f},
+};
+static_assert(std::size(kStyles) == static_cast<std::size_t>(config::kLevelCount),
+              "one ship style per level");
+
 }  // namespace
 
 Player::Player() = default;   // all members already have starting values in Player.h
@@ -81,7 +105,7 @@ void Player::Update(float dt, const PlayerInput& input) {
     x_ += velocityX_ * dt;
 
     // 4. Stay inside the play field. If we hit the wall, stop dead there.
-    const float limit = config::kFieldHalfWidth - config::kPlayerHalfWidth;
+    const float limit = config::kFieldHalfWidth - HalfWidth();
     if (x_ > limit) {
         x_ = limit;
         velocityX_ = 0.0f;
@@ -89,6 +113,15 @@ void Player::Update(float dt, const PlayerInput& input) {
         x_ = -limit;
         velocityX_ = 0.0f;
     }
+}
+
+void Player::SetTier(int tier) {
+    // Keep the tier inside the table, whatever the caller passes.
+    tier_ = std::clamp(tier, 0, config::kLevelCount - 1);
+}
+
+float Player::HalfWidth() const {
+    return config::kPlayerHalfWidth * config::kTierScale[tier_];
 }
 
 Vector3 Player::Position() const {
@@ -114,12 +147,15 @@ void Player::Draw() const {
     rlPushMatrix();
     rlTranslatef(x_, config::kPlayerHeight, 0.0f);
     rlRotatef(bankDegrees, 0.0f, 0.0f, 1.0f);
+    const float scale = config::kTierScale[tier_];
+    rlScalef(scale, scale, scale);   // bigger ship at higher tiers (x, y, z factors)
 
-    // Palette: a metallic blue-grey body, darker wings, lime-green trim, glowing cyan.
-    const Color hullColor{190, 205, 230, 255};
-    const Color wingColor{125, 155, 225, 255};
-    const Color trimColor{170, 255,  70, 255};   // lime green: eye-catching neon edges
-    const Color darkColor{ 48,  56,  80, 255};
+    // The colours of the current tier (see the table at the top of this file).
+    const ShipStyle& style = kStyles[tier_];
+    const Color hullColor = style.hull;
+    const Color wingColor = style.wing;
+    const Color trimColor = style.trim;
+    const Color darkColor{48, 56, 80, 255};
 
     // Local space: the nose points to -Z, the tail to +Z, Y is up, X is left/right.
 
@@ -175,26 +211,52 @@ void Player::Draw() const {
         DrawSphereEx(Vector3{sign * 0.95f, 0.18f, -1.0f}, 0.1f, 8, 8, Color{120, 230, 255, 255});
     }
 
+    // ---- Extra parts that come with the upgrades -----------------------------------
+    if (tier_ >= 1) {
+        // Small "canard" wings next to the nose.
+        for (const float sign : {-1.0f, 1.0f}) {
+            const Vector3 front{sign * 0.45f, 0.10f, -1.35f};
+            const Vector3 out  {sign * 0.95f, 0.10f, -0.65f};
+            const Vector3 back {sign * 0.50f, 0.10f, -0.55f};
+            DrawFace(front, out, back, trimColor, Vector3{0.0f, 1.0f, 0.0f});
+            DrawFace(Vector3Add(front, Vector3{0.0f, -0.06f, 0.0f}),
+                     Vector3Add(out,   Vector3{0.0f, -0.06f, 0.0f}),
+                     Vector3Add(back,  Vector3{0.0f, -0.06f, 0.0f}),
+                     darkColor, Vector3{0.0f, -1.0f, 0.0f});
+        }
+    }
+    if (tier_ >= 2) {
+        // A tall tail fin on the back of the ship.
+        DrawFace(Vector3{0.0f, 0.45f, 0.1f}, Vector3{0.0f, 1.15f, 1.15f}, Vector3{0.0f, 0.45f, 1.1f},
+                 trimColor, Vector3{-1.0f, 0.0f, 0.0f});
+        DrawLine3D(Vector3{0.0f, 0.45f, 0.1f}, Vector3{0.0f, 1.15f, 1.15f}, hullColor);
+    }
+
     // ---- Cockpit: a squashed glass sphere with a small shine on it -----------------
     rlPushMatrix();
     rlTranslatef(0.0f, 0.38f, -0.35f);
     rlScalef(0.45f, 0.4f, 1.0f);   // squash the ball into an egg shape (x, y, z factors)
-    DrawSphereEx(Vector3{0.0f, 0.0f, 0.0f}, 0.5f, 14, 14, Color{60, 190, 255, 255});
+    DrawSphereEx(Vector3{0.0f, 0.0f, 0.0f}, 0.5f, 14, 14, style.canopy);
     rlPopMatrix();
     DrawSphereEx(Vector3{-0.07f, 0.56f, -0.62f}, 0.07f, 6, 6, Color{235, 250, 255, 255});
 
-    // ---- Two engines with a flickering blue-white flame ---------------------------
-    for (const float sign : {-1.0f, 1.0f}) {
-        const float x = sign * 0.32f;
-        DrawCylinderEx(Vector3{x, -0.05f, 0.85f}, Vector3{x, -0.05f, 1.35f}, 0.22f, 0.26f, 10, darkColor);
+    // ---- Engines with a flickering flame (the top tier has a third, central one) --------
+    const int   engineCount = (tier_ >= 2) ? 3 : 2;
+    const float engineSpacing = (tier_ >= 2) ? 0.40f : 0.32f;
+    for (int i = 0; i < engineCount; ++i) {
+        // Two engines sit at -spacing and +spacing; three at -spacing, 0, +spacing.
+        const float x = (engineCount == 2) ? (i == 0 ? -engineSpacing : engineSpacing)
+                                           : (static_cast<float>(i) - 1.0f) * engineSpacing;
+        DrawCylinderEx(Vector3{x, -0.05f, 0.85f}, Vector3{x, -0.05f, 1.35f}, 0.20f, 0.24f, 10, darkColor);
 
-        // A different phase per engine, so the two flames do not flicker in step.
-        const float flameLength = 0.9f + 0.25f * std::sin(time_ * 40.0f + sign * 1.7f);
+        // A different phase per engine, so the flames do not flicker in step.
+        const float flameLength =
+            (0.9f + 0.25f * std::sin(time_ * 40.0f + static_cast<float>(i) * 1.7f)) * style.flameLength;
         const Vector3 start{x, -0.05f, 1.35f};
-        DrawCylinderEx(start, Vector3{x, -0.05f, 1.35f + flameLength}, 0.2f, 0.0f, 10,
-                       Color{60, 160, 255, 255});                                  // outer: blue
-        DrawCylinderEx(start, Vector3{x, -0.05f, 1.35f + flameLength * 0.6f}, 0.11f, 0.0f, 10,
-                       Color{220, 250, 255, 255});                                 // core: white
+        DrawCylinderEx(start, Vector3{x, -0.05f, 1.35f + flameLength}, 0.19f, 0.0f, 10,
+                       style.flameOuter);                                  // outer flame
+        DrawCylinderEx(start, Vector3{x, -0.05f, 1.35f + flameLength * 0.6f}, 0.10f, 0.0f, 10,
+                       style.flameCore);                                   // bright core
     }
 
     rlPopMatrix();
