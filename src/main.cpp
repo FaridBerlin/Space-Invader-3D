@@ -14,6 +14,7 @@
 #include <algorithm>   // std::min
 
 #include "Config.h"
+#include "Display.h"
 #include "Game.h"
 #include "raylib.h"
 
@@ -47,11 +48,8 @@ void FrameForBrowser(void* gamePointer) {
 }  // namespace
 
 int main() {
-    // MSAA = multi-sample anti-aliasing: smooths jagged edges of 3D shapes.
-    // This flag must be set BEFORE the window is created.
-    SetConfigFlags(FLAG_MSAA_4X_HINT);
-
-    InitWindow(config::kScreenWidth, config::kScreenHeight, "Space Invader 3D");
+    // Opens a resizable window sized for your monitor (see Display.cpp).
+    display::OpenWindow("Space Invader 3D");
 
 #if !defined(__EMSCRIPTEN__)
     SetTargetFPS(60);   // in the browser, the screen refresh already sets the pace
