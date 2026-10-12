@@ -53,6 +53,8 @@ add_executable(space-invader-3d
     src/Bomb.cpp
     src/Audio.cpp
     src/Display.cpp
+    src/LowPoly.cpp
+    src/AlienModels.cpp
 )
 
 # Link against raylib (this also gives us its header files).

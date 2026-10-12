@@ -20,6 +20,11 @@ CMakeUserPresets.json
 *.dll
 *.wasm
 
+# Local 3D models (not published: we are not sure about their license).
+# Put commander.glb into assets/models/ on your own computer; without it the
+# game uses the built-in look for that alien.
+assets/models/*.glb
+
 # OS
 .DS_Store
 Thumbs.db

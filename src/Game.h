@@ -7,6 +7,7 @@
 
 #include <vector>
 
+#include "AlienModels.h"
 #include "Audio.h"
 #include "Bomb.h"
 #include "GlowRenderer.h"
@@ -57,6 +58,7 @@ private:
     Starfield                 stars_;
     Audio                     audio_;     // sound effects, see Audio.h
     GlowRenderer              glow_;      // owns the shader; see GlowRenderer.h
+    AlienModels               alienModels_;   // optional 3D model files, see AlienModels.h
 
     GameState state_       = GameState::Menu;
     bool  playerAlive_     = true;     // false once the ship is destroyed (it is then not drawn)
