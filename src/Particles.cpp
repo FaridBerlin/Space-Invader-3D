@@ -91,6 +91,9 @@ void ParticleSystem::Draw() const {
         DrawCube(p.position, size, size, size, Fade(p.color, t));
     }
 
-    rlEnableDepthMask();
+    // Order matters: EndBlendMode() first SENDS the collected particles to the GPU
+    // (raylib draws in batches), while depth writing is still off. Only then do
+    // we switch depth writing back on.
     EndBlendMode();
+    rlEnableDepthMask();
 }
