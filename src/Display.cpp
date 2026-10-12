@@ -12,6 +12,13 @@ namespace display {
 namespace {
 
 #if !defined(__EMSCRIPTEN__)
+// Our own fullscreen state. We remember where the window was and how big it
+// was, so leaving fullscreen puts it back exactly there.
+bool fullscreen = false;
+Vector2 savedPosition{0.0f, 0.0f};
+int savedWidth  = 0;
+int savedHeight = 0;
+
 // Puts the window in the middle of the monitor it is on.
 void CenterWindow() {
     const int monitor = GetCurrentMonitor();
@@ -48,6 +55,10 @@ void OpenWindow(const char* title) {
     SetConfigFlags(FLAG_MSAA_4X_HINT | FLAG_WINDOW_RESIZABLE | FLAG_WINDOW_HIDDEN);
     InitWindow(config::kScreenWidth, config::kScreenHeight, title);
 
+    // raylib closes the window when Esc is pressed. We switch that off and handle
+    // Esc ourselves (see Game::Update): first it leaves fullscreen, then it quits.
+    SetExitKey(KEY_NULL);
+
     // The biggest preset that uses at most kWindowStartShare of the monitor.
     // (The presets go from small to big, so the last one that fits wins.)
     int chosen = 0;
@@ -77,22 +88,70 @@ void ApplyPreset(int index) {
     }
 
     // Leave fullscreen or "maximized" first, otherwise the new size is ignored.
-    if (IsWindowState(FLAG_BORDERLESS_WINDOWED_MODE)) {
-        ToggleBorderlessWindowed();
+    if (fullscreen) {
+        ExitFullscreen();
     }
     if (IsWindowState(FLAG_WINDOW_MAXIMIZED)) {
-        ClearWindowState(FLAG_WINDOW_MAXIMIZED);
+        RestoreWindow();
     }
     SetWindowSize(width, height);
     CenterWindow();
+    SetWindowFocused();
+    TraceLog(LOG_INFO, "DISPLAY: window size %d x %d", width, height);
+#endif
+}
+
+// Our fullscreen is a normal window WITHOUT a frame ("undecorated") that covers
+// the whole monitor. We do not use the operating system's real fullscreen mode:
+// on some Linux desktops it can steal the keyboard focus or ignore later size
+// changes, and then the game no longer reacts to keys.
+void EnterFullscreen() {
+#if !defined(__EMSCRIPTEN__)
+    if (fullscreen) return;
+    savedPosition = GetWindowPosition();
+    savedWidth    = GetScreenWidth();
+    savedHeight   = GetScreenHeight();
+
+    if (IsWindowState(FLAG_WINDOW_MAXIMIZED)) {
+        RestoreWindow();
+    }
+    const int monitor = GetCurrentMonitor();
+    const Vector2 origin = GetMonitorPosition(monitor);
+    SetWindowState(FLAG_WINDOW_UNDECORATED);   // no title bar, no border
+    SetWindowPosition(static_cast<int>(origin.x), static_cast<int>(origin.y));
+    SetWindowSize(GetMonitorWidth(monitor), GetMonitorHeight(monitor));
+    SetWindowFocused();                        // make sure the keys still come to us
+    fullscreen = true;
+    TraceLog(LOG_INFO, "DISPLAY: fullscreen on monitor %d (%d x %d), press F or Esc to leave",
+             monitor, GetMonitorWidth(monitor), GetMonitorHeight(monitor));
+#endif
+}
+
+void ExitFullscreen() {
+#if !defined(__EMSCRIPTEN__)
+    if (!fullscreen) return;
+    ClearWindowState(FLAG_WINDOW_UNDECORATED);   // the title bar comes back
+    SetWindowSize(savedWidth, savedHeight);
+    SetWindowPosition(static_cast<int>(savedPosition.x), static_cast<int>(savedPosition.y));
+    SetWindowFocused();
+    fullscreen = false;
+    TraceLog(LOG_INFO, "DISPLAY: fullscreen off, back to %d x %d", savedWidth, savedHeight);
 #endif
 }
 
 void ToggleFullscreen() {
-#if !defined(__EMSCRIPTEN__)
-    // "Borderless windowed" = a window without a frame that covers the whole
-    // monitor. It switches instantly and does not change the screen resolution.
-    ToggleBorderlessWindowed();
+    if (IsFullscreen()) {
+        ExitFullscreen();
+    } else {
+        EnterFullscreen();
+    }
+}
+
+bool IsFullscreen() {
+#if defined(__EMSCRIPTEN__)
+    return false;
+#else
+    return fullscreen;
 #endif
 }
 

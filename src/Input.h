@@ -23,6 +23,9 @@ struct PlayerInput {
     // True ONLY in the frame the fullscreen key (F) was pressed.
     bool  toggleFullscreen = false;
 
+    // True ONLY in the frame Esc was pressed: leave fullscreen, or quit the game.
+    bool  back = false;
+
     // Which window size the player chose with the keys 1 .. 5 (counted from 0),
     // or -1 when no such key was pressed in this frame.
     int   windowPreset = -1;

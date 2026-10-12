@@ -19,8 +19,11 @@ void OpenWindow(const char* title);
 // Sizes that do not fit on this monitor are ignored. Desktop only.
 void ApplyPreset(int index);
 
-// Borderless fullscreen on / off. Desktop only.
+// Fullscreen on / off (a frameless window covering the monitor). Desktop only.
 void ToggleFullscreen();
+void EnterFullscreen();
+void ExitFullscreen();
+bool IsFullscreen();
 
 // How much bigger than the 720-pixel-high original the window is right now.
 float UiScale();

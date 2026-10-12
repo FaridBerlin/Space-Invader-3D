@@ -167,6 +167,15 @@ void Game::Update(float dt) {
     if (input.toggleFullscreen) {
         display::ToggleFullscreen();
     }
+    // Esc: first step out of fullscreen; if we are not in fullscreen, quit.
+    // These window keys work in EVERY state: menu, playing and game over.
+    if (input.back) {
+        if (display::IsFullscreen()) {
+            display::ExitFullscreen();
+        } else {
+            quitRequested_ = true;
+        }
+    }
     if (input.windowPreset >= 0) {
         display::ApplyPreset(input.windowPreset);
     }
@@ -413,7 +422,7 @@ void Game::Draw() const {
     DrawText("Move: A / D or arrows     Fire: Space (hold)     Mute: M",
              Px(20), Px(56), Px(20), LIGHTGRAY);
 #else
-    DrawText("Move: A / D or arrows     Fire: Space (hold)     Mute: M     Fullscreen: F     Window size: 1-5",
+    DrawText("Move: A / D or arrows     Fire: Space (hold)     Mute: M     Fullscreen: F     Window size: 1-5     Quit: Esc",
              Px(20), Px(56), Px(20), LIGHTGRAY);
 #endif
     DrawText(TextFormat("%d FPS", GetFPS()), Px(20), Px(84), Px(20), GREEN);
@@ -454,6 +463,9 @@ void Game::DrawGameOver() const {
     drawCentered(gameOverReason_, middle - Px(30), Px(30), RAYWHITE);
     drawCentered(TextFormat("Final score: %06d", score_), middle + Px(20), Px(36), YELLOW);
     drawCentered("Press ENTER to play again", middle + Px(90), Px(26), LIGHTGRAY);
+#if !defined(__EMSCRIPTEN__)
+    drawCentered("Esc to quit", middle + Px(130), Px(22), GRAY);
+#endif
 }
 
 void Game::DrawMenu() const {
@@ -476,7 +488,7 @@ void Game::DrawMenu() const {
     drawCentered("Press ENTER to start", Px(330), Px(32), Fade(RAYWHITE, pulse));
     drawCentered("Move: A / D or arrows     Fire: Space (hold)", Px(380), Px(22), LIGHTGRAY);
 #if !defined(__EMSCRIPTEN__)
-    drawCentered("Fullscreen: F     Window size: 1 - 5", Px(415), Px(22), LIGHTGRAY);
+    drawCentered("Fullscreen: F     Window size: 1 - 5     Quit: Esc", Px(415), Px(22), LIGHTGRAY);
 #endif
 }
 
