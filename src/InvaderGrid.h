@@ -9,8 +9,16 @@
 #include <optional>
 #include <vector>
 
+#include "AlienModels.h"
 #include "Invader.h"
 #include "raylib.h"
+
+// What happened when a rocket hit an alien.
+struct InvaderHit {
+    Vector3   position;    // where the alien is (or was)
+    AlienType type;
+    bool      destroyed;   // false = it took damage but is still alive
+};
 
 class InvaderGrid {
 public:
@@ -18,12 +26,12 @@ public:
 
     void Respawn();            // creates a fresh wave of random size
     void Update(float dt);
-    void Draw() const;
+    void Draw(const AlienModels& models) const;
 
     // Is there an invader touching the sphere (centre, radius)?
-    // If yes: that invader is destroyed and we return WHERE it was (so the
-    // caller can spawn an explosion there). If not: an empty optional.
-    std::optional<Vector3> TryHit(Vector3 center, float radius);
+    // If yes: that invader loses one hit point (and is removed when it has none
+    // left), and we report what happened. If not: an empty optional.
+    std::optional<InvaderHit> TryHit(Vector3 center, float radius);
 
     bool Empty() const { return invaders_.empty(); }
 

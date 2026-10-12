@@ -8,6 +8,7 @@
 #include <iterator>    // std::size
 
 #include "Config.h"
+#include "LowPoly.h"
 #include "raylib.h"
 #include "raymath.h"   // Vector3 maths: cross product, normalize, ...
 #include "rlgl.h"  // raylib's low-level matrix functions (rlPushMatrix, ...)
@@ -16,50 +17,11 @@
 // An anonymous namespace makes everything in it local to this .cpp file.
 namespace {
 
-// The ship has no real lighting, so we fake it: every flat face is darkened or
-// brightened depending on how much it points toward an imaginary lamp. That one
-// trick turns plain triangles into a shape with visible volume ("flat shading").
-//
-//   a, b, c  the three corners of the triangle
-//   base     the colour of the face when it is lit "normally"
-//   outward  a direction that points AWAY from the ship's inside. A triangle has
-//            two sides; this tells us which one is the outside (see below).
-void DrawFace(Vector3 a, Vector3 b, Vector3 c, Color base, Vector3 outward) {
-    // The "normal" is the direction the face points to: the cross product of
-    // two of its edges is perpendicular to the face.
-    Vector3 normal = Vector3Normalize(
-        Vector3CrossProduct(Vector3Subtract(b, a), Vector3Subtract(c, a)));
-    if (Vector3DotProduct(normal, outward) < 0.0f) {
-        normal = Vector3Negate(normal);   // it pointed inside: turn it around
-    }
-
-    // The lamp: above, a bit to the left, and behind the ship (where our camera is).
-    const Vector3 lamp = Vector3Normalize(Vector3{-0.35f, 0.85f, 0.45f});
-    const float lit = std::max(0.0f, Vector3DotProduct(normal, lamp));   // 0 .. 1
-    const float k = 0.35f + 0.75f * lit;   // 0.35 (in shadow) .. 1.10 (facing the lamp)
-
-    auto shade = [k](unsigned char channel) {
-        return static_cast<unsigned char>(std::min(255.0f, channel * k));
-    };
-    const Color shaded{shade(base.r), shade(base.g), shade(base.b), 255};
-
-    // raylib only draws a triangle from one side. We draw it from both, so we
-    // never have to worry about the order of the corners.
-    DrawTriangle3D(a, b, c, shaded);
-    DrawTriangle3D(a, c, b, shaded);
-}
-
-// A four-cornered face, as two triangles. Corners must go around the edge in order.
-void DrawQuadFace(Vector3 a, Vector3 b, Vector3 c, Vector3 d, Color base, Vector3 outward) {
-    DrawFace(a, b, c, base, outward);
-    DrawFace(a, c, d, base, outward);
-}
-
-// The middle of a triangle or quad, used as the "outward" hint for the hull,
-// because the hull is built around the ship's centre (the origin).
-Vector3 Mid(Vector3 a, Vector3 b, Vector3 c) {
-    return Vector3Scale(Vector3Add(Vector3Add(a, b), c), 1.0f / 3.0f);
-}
+// The flat-shading helpers live in LowPoly.h; "using" lets us write DrawFace
+// instead of lowpoly::DrawFace.
+using lowpoly::DrawFace;
+using lowpoly::DrawQuadFace;
+using lowpoly::Mid;
 
 // How one upgrade tier of the ship looks. Colours are {red, green, blue, alpha}.
 struct ShipStyle {

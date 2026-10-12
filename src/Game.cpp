@@ -20,9 +20,25 @@ ExplosionStyle InvaderExplosion() {
     return ExplosionStyle{
         config::kInvaderExplosionCount, config::kInvaderExplosionSpeed,
         config::kInvaderExplosionLife,  config::kInvaderExplosionSize,
-        Color{190, 120, 255, 255},   // light purple (the invader's colour)
-        Color{255, 210, 255, 255},   // hot pink-white
+        Color{140,  90, 220, 255},   // violet (the Scarab's shell)
+        Color{170, 255,  90, 255},   // lime (its glowing lines)
     };
+}
+
+// A commander bursts in its gold colours, bigger than a normal alien.
+ExplosionStyle CommanderExplosion() {
+    return ExplosionStyle{
+        config::kInvaderExplosionCount * 2, config::kInvaderExplosionSpeed * 1.3f,
+        config::kInvaderExplosionLife * 1.2f, config::kInvaderExplosionSize,
+        Color{255, 200, 60, 255},    // gold
+        Color{255, 255, 230, 255},   // white-hot
+    };
+}
+
+// A small spray of sparks when a commander is hit but survives.
+ExplosionStyle HitSparks() {
+    return ExplosionStyle{12, 6.0f, 0.35f, 0.2f,
+                          Color{255, 220, 120, 255}, Color{255, 255, 255, 255}};
 }
 
 ExplosionStyle PlayerExplosion() {
@@ -277,9 +293,14 @@ void Game::UpdatePlaying(float dt, const PlayerInput& input) {
     for (auto& rocket : rockets_) {
         if (const auto hit = invaders_.TryHit(rocket.position, config::kRocketRadius)) {
             rocket.alive = false;                 // the rocket is used up
-            score_ += config::kScorePerInvader;
-            particles_.Explode(*hit, InvaderExplosion());   // *hit = where the invader was
-            audio_.Play(Sfx::InvaderDestroyed);
+            const bool commander = (hit->type == AlienType::Commander);
+            if (!hit->destroyed) {
+                particles_.Explode(hit->position, HitSparks());   // damaged, not dead yet
+                continue;
+            }
+            score_ += commander ? config::kScorePerCommander : config::kScorePerInvader;
+            particles_.Explode(hit->position, commander ? CommanderExplosion() : InvaderExplosion());
+            audio_.Play(commander ? Sfx::BombExplosion : Sfx::InvaderDestroyed);
         }
     }
 
@@ -391,7 +412,7 @@ void Game::Draw() const {
         if (playerAlive_) {
             player_.Draw();
         }
-        invaders_.Draw();
+        invaders_.Draw(alienModels_);
         for (const auto& rocket : rockets_) {
             rocket.Draw();
         }

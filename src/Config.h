@@ -89,7 +89,7 @@ constexpr int   kInvaderMaxColumns = 10;
 constexpr int   kInvaderMinRows    = 2;
 constexpr int   kInvaderMaxRows    = 5;
 constexpr float kInvaderSpacingX   = 2.2f;     // distance between neighbours sideways
-constexpr float kInvaderSpacingZ   = 2.4f;     // distance between rows in depth
+constexpr float kInvaderSpacingZ   = 3.2f;     // distance between rows in depth (room to see the back rows)
 constexpr float kInvaderHalfWidth  = 0.7f;     // used to stop at the field edge
 constexpr float kInvaderRadius     = 0.8f;     // size of the collision sphere
 constexpr float kInvaderHeight     = 0.9f;     // centre above the ground
@@ -97,6 +97,19 @@ constexpr float kInvaderSpeed      = 5.0f;     // sideways speed of the whole wa
 constexpr float kInvaderStepZ      = 1.0f;     // how far the wave steps toward you at an edge
 constexpr float kInvaderStartZ     = -30.0f;   // Z of the front row when a wave spawns
 constexpr float kInvaderReachZ     = -2.5f;    // an invader this close to the ship = game over
+
+// ---- Alien types -----------------------------------------------------------------
+// Most aliens are Scarabs (one hit). Commanders sit in the back row: bigger,
+// three hits, more points. A commander is drawn with a 3D model file when
+// assets/models/commander.glb exists, otherwise with a built-in look.
+constexpr int   kScorePerCommander   = 500;
+constexpr int   kCommanderHitPoints  = 3;
+constexpr int   kCommandersPerWave   = 2;       // when the wave is wide enough, else 1
+constexpr float kCommanderRadius     = 1.05f;   // collision sphere (Scarab: kInvaderRadius)
+constexpr float kHitFlashTime        = 0.15f;   // seconds an alien lights up after a hit
+constexpr const char* kCommanderModelFile = "models/commander.glb";
+constexpr float kCommanderModelScale = 2.0f;    // the model is about 1 unit big
+constexpr float kCommanderHover      = 0.6f;    // drawn this much higher, to peek over the rows in front
 
 // ---- Invader shots --------------------------------------------------------------
 // The 2D game fired one shot every ~8 seconds. In 3D you can see shots coming and

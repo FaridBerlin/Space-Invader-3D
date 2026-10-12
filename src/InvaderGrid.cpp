@@ -23,14 +23,26 @@ void InvaderGrid::Respawn() {
     // Centre the wave on X = 0. The leftmost column starts at -(half the total width).
     const float startX = -0.5f * static_cast<float>(columns - 1) * config::kInvaderSpacingX;
 
+    // Commanders sit in the middle of the back row: one, or two when the wave
+    // is wide enough. For 7 columns, two commanders go to columns 2 and 4.
+    const int commanders = (columns >= 6) ? config::kCommandersPerWave : 1;
+    const int middle = columns / 2;
+    auto isCommanderColumn = [&](int col) {
+        if (commanders == 1) return col == middle;
+        return col == middle - 1 || col == middle + 1;
+    };
+
     for (int row = 0; row < rows; ++row) {
         for (int col = 0; col < columns; ++col) {
             const float x = startX + static_cast<float>(col) * config::kInvaderSpacingX;
             // Row 0 is the front row. Further rows are further away (more negative Z).
             const float z = config::kInvaderStartZ - static_cast<float>(row) * config::kInvaderSpacingZ;
 
+            const bool backRow = (row == rows - 1);
+            const AlienType type = (backRow && isCommanderColumn(col)) ? AlienType::Commander
+                                                                       : AlienType::Scarab;
             // emplace_back builds the Invader directly inside the vector.
-            invaders_.emplace_back(Vector3{x, config::kInvaderHeight, z});
+            invaders_.emplace_back(Vector3{x, config::kInvaderHeight, z}, type);
         }
     }
 }
@@ -44,6 +56,7 @@ void InvaderGrid::Update(float dt) {
     const float dx = direction_ * config::kInvaderSpeed * dt;
     for (auto& invader : invaders_) {
         invader.position.x += dx;
+        invader.Update(dt);   // the hit flash fades
     }
 
     // 2. Where is the wave now? Measuring the invaders that are left (and not the
@@ -77,9 +90,9 @@ void InvaderGrid::Update(float dt) {
     }
 }
 
-void InvaderGrid::Draw() const {
+void InvaderGrid::Draw(const AlienModels& models) const {
     for (const auto& invader : invaders_) {
-        invader.Draw(time_);
+        invader.Draw(time_, models.Commander());
     }
 }
 
@@ -99,14 +112,20 @@ float InvaderGrid::FrontZ() const {
     return front;
 }
 
-std::optional<Vector3> InvaderGrid::TryHit(Vector3 center, float radius) {
+std::optional<InvaderHit> InvaderGrid::TryHit(Vector3 center, float radius) {
     // We use an iterator (it) so we can erase the element we found.
     for (auto it = invaders_.begin(); it != invaders_.end(); ++it) {
-        if (CheckCollisionSpheres(it->position, config::kInvaderRadius, center, radius)) {
-            const Vector3 where = it->position;   // remember it BEFORE erasing
-            invaders_.erase(it);
-            return where;   // we leave the function right away, so the erased
-                            // element can never be used again: this is safe.
+        if (CheckCollisionSpheres(it->position, it->Radius(), center, radius)) {
+            // Remember everything BEFORE a possible erase: afterwards "it" is invalid.
+            const InvaderHit hit{it->position, it->type, it->hitPoints <= 1};
+            if (hit.destroyed) {
+                invaders_.erase(it);
+            } else {
+                it->hitPoints -= 1;
+                it->flash = config::kHitFlashTime;   // light up to show the hit
+            }
+            return hit;   // we leave the function right away, so the erased
+                          // element can never be used again: this is safe.
         }
     }
     return std::nullopt;
