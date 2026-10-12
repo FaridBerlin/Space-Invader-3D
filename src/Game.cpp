@@ -10,7 +10,7 @@
 #include "Input.h"
 #include "Random.h"
 #include "Util.h"
-#include "rlgl.h"      // rlDisableDepthMask (the glass must not hide what is behind it)
+#include "rlgl.h"      // rlDisableDepthMask, rlDrawRenderBatchActive (see Game::Draw)
 
 namespace {
 
@@ -63,23 +63,35 @@ void DrawGround() {
     const float w = config::kFieldHalfWidth;
     const float l = config::kFieldLength;
 
+    // An invisible line (alpha 0) is not drawn at all. Drawing it would still
+    // cost time, and (if depth writing were on) cut holes into the glow.
+    auto drawLine = [](Vector3 from, Vector3 to, Color color) {
+        if (color.a > 0) DrawLine3D(from, to, color);
+    };
     for (int x = -halfWidth; x <= halfWidth; ++x) {
         const float fx = static_cast<float>(x);
-        DrawLine3D(Vector3{fx, 0.0f, -l}, Vector3{fx, 0.0f, 0.0f},
-                   x == 0 ? centerColor : lineColor);
+        drawLine(Vector3{fx, 0.0f, -l}, Vector3{fx, 0.0f, 0.0f},
+                 x == 0 ? centerColor : lineColor);
     }
     for (int z = -length; z <= 0; ++z) {
         const float fz = static_cast<float>(z);
-        DrawLine3D(Vector3{-w, 0.0f, fz}, Vector3{w, 0.0f, fz},
-                   z == 0 ? centerColor : lineColor);
+        drawLine(Vector3{-w, 0.0f, fz}, Vector3{w, 0.0f, fz},
+                 z == 0 ? centerColor : lineColor);
     }
+
+    // Outline of the play field.
+    const Color border = config::kFieldBorderColor;
+    drawLine(Vector3{-w, 0, 0},  Vector3{-w, 0, -l}, border);  // left edge
+    drawLine(Vector3{ w, 0, 0},  Vector3{ w, 0, -l}, border);  // right edge
+    drawLine(Vector3{-w, 0, -l}, Vector3{ w, 0, -l}, border);  // far edge
+    drawLine(Vector3{-w, 0, 0},  Vector3{ w, 0, 0},  border);  // near edge
 }
 
 // A tinted glass pane over the play field. It is two triangles (a rectangle) at y = 0
-// with a see-through colour, so the stars underneath shine through it. We switch off
-// "depth writing" while drawing it: otherwise the pane would count as a solid wall
-// and anything drawn after it behind it would be cut away.
+// with a see-through colour, so the stars underneath shine through it.
 void DrawGlassFloor() {
+    if (config::kGlassColor.a == 0) return;   // fully transparent: nothing to draw
+
     const float w = config::kFieldHalfWidth;
     const float l = config::kFieldLength;
     const Vector3 a{-w, 0.0f, 0.0f};    // near left
@@ -87,12 +99,10 @@ void DrawGlassFloor() {
     const Vector3 c{ w, 0.0f, -l};      // far right
     const Vector3 d{-w, 0.0f, -l};      // far left
 
-    rlDisableDepthMask();
     // Triangles are only drawn when their corners go counter-clockwise as seen
     // from the camera (above the floor), so the order a, b, c / a, c, d matters.
     DrawTriangle3D(a, b, c, config::kGlassColor);
     DrawTriangle3D(a, c, d, config::kGlassColor);
-    rlEnableDepthMask();
 }
 
 // Which level belongs to this score? Walk the thresholds, keep the highest one reached.
@@ -362,17 +372,21 @@ void Game::Draw() const {
         // Draw order matters: far things first, see-through effects last.
         stars_.Draw();
 
+        // The floor (glass pane, grid, border) is decoration lying flat at y = 0.
+        // It must NOT write into the depth buffer, the GPU's memory of "what is
+        // in front": otherwise the glow squares, which reach below y = 0, get
+        // cut off along the floor and along every grid line.
+        //
+        // Careful: raylib collects draw calls in a "batch" and sends them to the
+        // GPU later. rlDisableDepthMask() acts IMMEDIATELY. So we first send
+        // everything collected so far (rlDrawRenderBatchActive), switch depth
+        // writing off, draw the floor, send THAT, and only then switch it back on.
+        rlDrawRenderBatchActive();
+        rlDisableDepthMask();
         DrawGlassFloor();   // after the stars (they shine through), before the grid lines
         DrawGround();
-
-        // Outline of the play field on the ground (y = 0).
-        const float w = config::kFieldHalfWidth;
-        const float l = config::kFieldLength;
-        const Color border = config::kFieldBorderColor;
-        DrawLine3D(Vector3{-w, 0, 0},  Vector3{-w, 0, -l}, border);  // left edge
-        DrawLine3D(Vector3{ w, 0, 0},  Vector3{ w, 0, -l}, border);  // right edge
-        DrawLine3D(Vector3{-w, 0, -l}, Vector3{ w, 0, -l}, border);  // far edge
-        DrawLine3D(Vector3{-w, 0, 0},  Vector3{ w, 0, 0},  border);  // near edge
+        rlDrawRenderBatchActive();
+        rlEnableDepthMask();
 
         if (playerAlive_) {
             player_.Draw();
