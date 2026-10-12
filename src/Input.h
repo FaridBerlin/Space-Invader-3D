@@ -19,6 +19,13 @@ struct PlayerInput {
 
     // True ONLY in the frame the mute key (M) was pressed.
     bool  toggleMute = false;
+
+    // True ONLY in the frame the fullscreen key (F) was pressed.
+    bool  toggleFullscreen = false;
+
+    // Which window size the player chose with the keys 1 .. 5 (counted from 0),
+    // or -1 when no such key was pressed in this frame.
+    int   windowPreset = -1;
 };
 
 // Reads the keyboard and returns what the player wants right now.

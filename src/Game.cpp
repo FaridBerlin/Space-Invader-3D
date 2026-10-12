@@ -6,6 +6,7 @@
 #include <cmath>       // sinf
 
 #include "Config.h"
+#include "Display.h"
 #include "Input.h"
 #include "Random.h"
 #include "Util.h"
@@ -162,6 +163,12 @@ void Game::Update(float dt) {
     const PlayerInput input = ReadInput();
     if (input.toggleMute) {
         audio_.ToggleMute();
+    }
+    if (input.toggleFullscreen) {
+        display::ToggleFullscreen();
+    }
+    if (input.windowPreset >= 0) {
+        display::ApplyPreset(input.windowPreset);
     }
 
     // The background and the explosions keep moving in EVERY state, so the
@@ -398,17 +405,26 @@ void Game::Draw() const {
     }
 
     // 2D text on top of the 3D picture (the HUD = "heads-up display").
-    DrawText(TextFormat("SCORE  %06d", score_), 20, 16, 32, RAYWHITE);
-    DrawText("Move: A / D or arrows     Fire: Space (hold)     Mute: M", 20, 56, 20, LIGHTGRAY);
+    // Px() scales every size and position with the window height, so the text
+    // stays the same size relative to the picture in a small and in a huge window.
+    using display::Px;
+    DrawText(TextFormat("SCORE  %06d", score_), Px(20), Px(16), Px(32), RAYWHITE);
+#if defined(__EMSCRIPTEN__)
+    DrawText("Move: A / D or arrows     Fire: Space (hold)     Mute: M",
+             Px(20), Px(56), Px(20), LIGHTGRAY);
+#else
+    DrawText("Move: A / D or arrows     Fire: Space (hold)     Mute: M     Fullscreen: F     Window size: 1-5",
+             Px(20), Px(56), Px(20), LIGHTGRAY);
+#endif
+    DrawText(TextFormat("%d FPS", GetFPS()), Px(20), Px(84), Px(20), GREEN);
     if (audio_.Muted()) {
-        DrawText("SOUND OFF", 20, 112, 20, ORANGE);
+        DrawText("SOUND OFF", Px(20), Px(112), Px(20), ORANGE);
     }
-    DrawFPS(20, 84);
 
     // Level in the top right corner, right-aligned: measure the text, then
     // start that far left of the screen edge.
     const char* levelText = TextFormat("LEVEL %d", level_ + 1);
-    DrawText(levelText, GetScreenWidth() - 20 - MeasureText(levelText, 32), 16, 32, SKYBLUE);
+    DrawText(levelText, GetScreenWidth() - Px(20) - MeasureText(levelText, Px(32)), Px(16), Px(32), SKYBLUE);
 
     if (state_ == GameState::Playing && levelBannerTimer_ > 0.0f) {
         DrawLevelBanner();
@@ -432,11 +448,12 @@ void Game::DrawGameOver() const {
         DrawText(text, (screenW - width) / 2, y, fontSize, color);
     };
 
+    using display::Px;
     const int middle = screenH / 2;
-    drawCentered("GAME OVER", middle - 120, 80, RED);
-    drawCentered(gameOverReason_, middle - 30, 30, RAYWHITE);
-    drawCentered(TextFormat("Final score: %06d", score_), middle + 20, 36, YELLOW);
-    drawCentered("Press ENTER to play again", middle + 90, 26, LIGHTGRAY);
+    drawCentered("GAME OVER", middle - Px(120), Px(80), RED);
+    drawCentered(gameOverReason_, middle - Px(30), Px(30), RAYWHITE);
+    drawCentered(TextFormat("Final score: %06d", score_), middle + Px(20), Px(36), YELLOW);
+    drawCentered("Press ENTER to play again", middle + Px(90), Px(26), LIGHTGRAY);
 }
 
 void Game::DrawMenu() const {
@@ -453,17 +470,21 @@ void Game::DrawMenu() const {
     // we turn that into an opacity between 0.4 and 1.
     const float pulse = 0.7f + 0.3f * sinf(static_cast<float>(GetTime()) * 4.0f);
 
-    drawCentered("SPACE INVADER", 70, 90, Color{190, 120, 255, 255});
-    drawCentered("3D", 160, 90, SKYBLUE);
-    drawCentered("Press ENTER to start", 330, 32, Fade(RAYWHITE, pulse));
-    drawCentered("Move: A / D or arrows     Fire: Space (hold)", 380, 22, LIGHTGRAY);
+    using display::Px;
+    drawCentered("SPACE INVADER", Px(70), Px(90), Color{190, 120, 255, 255});
+    drawCentered("3D", Px(160), Px(90), SKYBLUE);
+    drawCentered("Press ENTER to start", Px(330), Px(32), Fade(RAYWHITE, pulse));
+    drawCentered("Move: A / D or arrows     Fire: Space (hold)", Px(380), Px(22), LIGHTGRAY);
+#if !defined(__EMSCRIPTEN__)
+    drawCentered("Fullscreen: F     Window size: 1 - 5", Px(415), Px(22), LIGHTGRAY);
+#endif
 }
 
 void Game::DrawLevelBanner() const {
     // Fade out during the last half second of the banner time.
     const float alpha = levelBannerTimer_ > 0.5f ? 1.0f : levelBannerTimer_ / 0.5f;
     const char* text = TextFormat("LEVEL %d", level_ + 1);
-    const int fontSize = 70;
+    const int fontSize = display::Px(70);
     DrawText(text, (GetScreenWidth() - MeasureText(text, fontSize)) / 2,
              GetScreenHeight() / 4, fontSize, Fade(SKYBLUE, alpha));
 }

@@ -22,5 +22,12 @@ PlayerInput ReadInput() {
     // IsKeyPressed is true for exactly one frame per key press.
     input.confirm = IsKeyPressed(KEY_ENTER) || IsKeyPressed(KEY_KP_ENTER);
     input.toggleMute = IsKeyPressed(KEY_M);
+    input.toggleFullscreen = IsKeyPressed(KEY_F);
+
+    // Keys 1 .. 5 pick a window size. KEY_ONE .. KEY_FIVE are consecutive numbers,
+    // so one loop covers them all.
+    for (int i = 0; i < 5; ++i) {
+        if (IsKeyPressed(KEY_ONE + i)) input.windowPreset = i;
+    }
     return input;
 }

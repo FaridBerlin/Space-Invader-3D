@@ -12,8 +12,27 @@
 namespace config {
 
 // ---- Window ---------------------------------------------------------------
+// The window opens at a size chosen for your monitor (see Display.cpp), and you can
+// resize it. This size is only the starting size before that, and the size of the
+// web version's canvas.
 constexpr int kScreenWidth  = 1280;
 constexpr int kScreenHeight = 720;
+
+// Window sizes you can pick with the keys 1 .. 5, small to big (all 16:9).
+constexpr int kWindowPresetCount = 5;
+constexpr int kWindowPresets[kWindowPresetCount][2] = {
+    {1280,  720},
+    {1600,  900},
+    {1920, 1080},
+    {2560, 1440},
+    {3200, 1800},
+};
+constexpr float kWindowStartShare = 0.80f;   // at start: the biggest size using <= 80% of the monitor
+constexpr float kWindowMaxShare   = 0.97f;   // keys 1-5: sizes up to 97% of the monitor are allowed
+
+// The 2D text is designed for a window 720 pixels high. At other heights it is
+// scaled by (height / 720), see display::Px().
+constexpr float kUiReferenceHeight = 720.0f;
 
 // Longest time step we allow, in seconds. If the game stalls (window dragged,
 // slow computer), dt can become huge and fast objects would jump straight

@@ -20,7 +20,7 @@ real-time 3D graphics work, built one small, reviewed step at a time.
 | **Windows / Linux** | Download the latest zip / tar.gz from [Releases](../../releases), unpack it and start `space-invader-3d`. |
 | **From source** | See [Build it yourself](#build-it-yourself). |
 
-**Controls:** `A`/`D` or arrow keys to move, `Space` to shoot (hold for rapid fire), `Enter` to start / restart, `M` to mute.
+**Controls:** `A`/`D` or arrow keys to move, `Space` to shoot (hold for rapid fire), `Enter` to start / restart, `M` to mute. On desktop also `F` for fullscreen and `1`-`5` to pick the window size (you can drag the window edges too).
 
 ## The game
 
