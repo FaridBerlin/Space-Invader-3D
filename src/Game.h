@@ -34,6 +34,10 @@ public:
     void Update(float dt);
     void Draw() const;
 
+    // True once the player asked to quit (Esc outside fullscreen). main.cpp
+    // then ends the loop and closes the window.
+    bool QuitRequested() const { return quitRequested_; }
+
 private:
     void Restart();                       // back to a fresh game
     void EndGame(const char* reason);     // switch to GameOver
@@ -67,4 +71,5 @@ private:
     float bombTimer_       = 0.0f;   // seconds until the next bomb appears
     float time_            = 0.0f;   // seconds since the program started, for animations
     float respawnTimer_    = 0.0f;   // counts down after a wave is destroyed
+    bool  quitRequested_   = false;
 };

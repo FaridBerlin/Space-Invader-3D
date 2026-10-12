@@ -67,7 +67,9 @@ int main() {
         // browser decide), and "simulate infinite loop" (1 = do not return from main).
         emscripten_set_main_loop_arg(FrameForBrowser, &game, 0, 1);
 #else
-        while (!WindowShouldClose()) {
+        // WindowShouldClose() is true when the window's close button (X) is
+        // clicked; QuitRequested() when the player pressed Esc.
+        while (!WindowShouldClose() && !game.QuitRequested()) {
             Frame(game);
         }
 #endif
