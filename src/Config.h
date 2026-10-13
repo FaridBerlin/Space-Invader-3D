@@ -157,6 +157,30 @@ constexpr Color kTierShotColor[kLevelCount] = {
     {255,  80, 200, 255},   // hot pink
 };
 
+// ---- Divers ------------------------------------------------------------------------
+// Now and then an alien leaves the formation and swoops at the player in an
+// S-curve. If it misses, it comes back from the far end into its place.
+constexpr float kDiveInterval[kLevelCount] = {5.0f, 3.5f, 2.5f};   // seconds between dives
+constexpr int   kMaxDivers[kLevelCount]    = {1, 2, 3};            // at the same time
+constexpr float kDiveDuration   = 3.2f;    // seconds from the formation to past the player
+constexpr float kDiveEndZ       = 9.0f;    // the dive ends here, behind the player
+constexpr float kDiveSwing      = 4.0f;    // how far the S-curve swings sideways
+constexpr float kDiveMaxRoll    = 35.0f;   // degrees the alien tilts in the curve
+constexpr float kReturnStartZ   = -62.0f;  // a diver that missed re-enters from here ...
+constexpr float kReturnDuration = 1.8f;    // ... and takes this long to reach its place
+
+// ---- Power-ups -----------------------------------------------------------------------
+// A destroyed alien sometimes drops a capsule that drifts toward the player.
+constexpr float kPowerUpDropChance = 0.08f;   // 8% per alien; commanders always drop one
+constexpr int   kMaxPowerUps       = 2;       // capsules on the field at the same time
+constexpr float kPowerUpSpeed      = 7.0f;    // units per second toward the player
+constexpr float kPowerUpRadius     = 0.7f;
+constexpr float kPowerUpDespawnZ   = 6.0f;
+constexpr float kShieldDuration    = 20.0f;   // the shield also ends after absorbing one hit
+constexpr float kRapidFireDuration = 8.0f;
+constexpr float kRapidFireInterval = 0.1f;    // normal: kRocketFireInterval (0.2)
+constexpr float kPickupBannerTime  = 1.5f;    // the "SHIELD!" text after a pickup
+
 // ---- Bombs ---------------------------------------------------------------------------
 // Numbers from the 2D game: one bomb every 5 s; faster, bigger and redder per level.
 constexpr float kBombInterval  = 5.0f;     // seconds between bombs

@@ -16,11 +16,27 @@ enum class AlienType {
     Commander,   // 1-2 per wave in the back row: bigger, takes several hits
 };
 
+// What an alien is doing right now. Divers leave the formation (see InvaderGrid).
+enum class DiveState {
+    InFormation,   // moving with the wave
+    Diving,        // swooping at the player in an S-curve
+    Returning,     // missed: flying back from the far end into its place
+};
+
 struct Invader {
     Vector3   position;    // centre of the alien in world space
     AlienType type;
     int       hitPoints;   // how many rocket hits it can still take
     float     flash = 0.0f;   // > 0 right after a hit: the alien lights up briefly
+
+    // Diving. Only InvaderGrid changes these.
+    DiveState dive      = DiveState::InFormation;
+    float     diveTime  = 0.0f;    // seconds since the dive (or the return) started
+    Vector3   diveStart{};         // where the dive (or the return) started
+    float     diveTargetX = 0.0f;  // the player's X when the dive started
+    float     diveSide  = 1.0f;    // +1 or -1: which way the S-curve swings first
+    Vector3   slot{};              // its place in the formation, relative to the wave
+    float     roll      = 0.0f;    // tilt in degrees while diving
 
     Invader(Vector3 start, AlienType alienType);
 

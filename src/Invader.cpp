@@ -354,6 +354,7 @@ void Invader::Draw(float time, const Model* commanderModel) const {
 
     rlPushMatrix();
     rlTranslatef(position.x, position.y + bob + hover, position.z);
+    rlRotatef(roll, 0.0f, 0.0f, 1.0f);   // divers tilt into their curve
 
     if (type == AlienType::Commander && commanderModel != nullptr) {
         // The model's detailed side faces -Z and its nose points up (+Y). Turning it

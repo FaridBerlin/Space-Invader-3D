@@ -2,11 +2,14 @@
 
 #include "InvaderGrid.h"
 
-#include <algorithm>   // std::min, std::max
+#include <algorithm>   // std::min, std::max, std::clamp
+#include <cmath>       // std::sin, std::cos
 #include <cstddef>     // std::size_t
 #include <limits>
 
 #include "Config.h"
+#include "Random.h"
+#include "raymath.h"   // Vector3Add, Vector3Lerp, ...
 
 InvaderGrid::InvaderGrid() {
     Respawn();
@@ -14,7 +17,9 @@ InvaderGrid::InvaderGrid() {
 
 void InvaderGrid::Respawn() {
     invaders_.clear();
-    direction_ = 1.0f;
+    direction_   = 1.0f;
+    waveOffset_  = Vector3{0.0f, 0.0f, 0.0f};
+    diveTimer_   = config::kDiveInterval[0];   // a short calm start for every wave
 
     // GetRandomValue(a, b) gives a random whole number from a to b, both included.
     const int columns = GetRandomValue(config::kInvaderMinColumns, config::kInvaderMaxColumns);
@@ -54,23 +59,38 @@ void InvaderGrid::Respawn() {
     }
 }
 
-void InvaderGrid::Update(float dt) {
+void InvaderGrid::Update(float dt, int level, float playerX) {
     time_ += dt;
     if (invaders_.empty()) return;
 
-    // 1. Move everybody sideways. "auto&" = a reference to each element, so we
-    //    change the real invader and not a copy.
-    const float dx = direction_ * config::kInvaderSpeed * dt;
     for (auto& invader : invaders_) {
-        invader.position.x += dx;
         invader.Update(dt);   // the hit flash fades
     }
+    MoveFormation(dt);
+    UpdateDivers(dt, level, playerX);
+}
+
+void InvaderGrid::MoveFormation(float dt) {
+    // 1. Move everybody in formation sideways. "auto&" = a reference to each
+    //    element, so we change the real invader and not a copy. We also keep
+    //    track of the whole wave's movement in waveOffset_: a diver needs it to
+    //    find its way back to its place, which has moved on in the meantime.
+    const float dx = direction_ * config::kInvaderSpeed * dt;
+    waveOffset_.x += dx;
+    bool anyInFormation = false;
+    for (auto& invader : invaders_) {
+        if (invader.dive != DiveState::InFormation) continue;
+        invader.position.x += dx;
+        anyInFormation = true;
+    }
+    if (!anyInFormation) return;
 
     // 2. Where is the wave now? Measuring the invaders that are left (and not the
     //    original rectangle) means the wave gets wider room as the edge columns die.
     float minX = std::numeric_limits<float>::max();
     float maxX = std::numeric_limits<float>::lowest();
     for (const auto& invader : invaders_) {
+        if (invader.dive != DiveState::InFormation) continue;
         minX = std::min(minX, invader.position.x);
         maxX = std::max(maxX, invader.position.x);
     }
@@ -90,9 +110,86 @@ void InvaderGrid::Update(float dt) {
 
         // Move back inside the field and step one notch toward the player.
         // Game checks FrontZ() and ends the game when we get too close.
+        waveOffset_.x += correction;
+        waveOffset_.z += config::kInvaderStepZ;
         for (auto& invader : invaders_) {
+            if (invader.dive != DiveState::InFormation) continue;
             invader.position.x += correction;
             invader.position.z += config::kInvaderStepZ;
+        }
+    }
+}
+
+void InvaderGrid::UpdateDivers(float dt, int level, float playerX) {
+    // ---- 1. Is it time for a new diver? ---------------------------------------------
+    int divers = 0;
+    for (const auto& invader : invaders_) {
+        if (invader.dive != DiveState::InFormation) ++divers;
+    }
+    diveTimer_ -= dt;
+    if (diveTimer_ <= 0.0f && divers < config::kMaxDivers[level]) {
+        // Collect who may dive (aliens in formation, but no commanders) and pick one.
+        std::vector<Invader*> candidates;
+        for (auto& invader : invaders_) {
+            if (invader.dive == DiveState::InFormation && invader.type != AlienType::Commander) {
+                candidates.push_back(&invader);   // a pointer: "where that invader lives"
+            }
+        }
+        if (!candidates.empty()) {
+            const int pick = GetRandomValue(0, static_cast<int>(candidates.size()) - 1);
+            Invader& diver = *candidates[static_cast<std::size_t>(pick)];
+            diver.dive        = DiveState::Diving;
+            diver.diveTime    = 0.0f;
+            diver.diveStart   = diver.position;
+            diver.diveTargetX = playerX;                        // aim at the ship
+            diver.diveSide    = (GetRandomValue(0, 1) == 0) ? -1.0f : 1.0f;
+            diver.slot        = Vector3Subtract(diver.position, waveOffset_);   // its place
+        }
+        // Not like a clock: a bit random, so the player cannot count along.
+        diveTimer_ = config::kDiveInterval[level] * RandomFloat(0.7f, 1.3f);
+    }
+
+    // ---- 2. Move the divers along their paths -----------------------------------------
+    const float limit = config::kFieldHalfWidth - config::kInvaderHalfWidth;
+    for (auto& invader : invaders_) {
+        if (invader.dive == DiveState::Diving) {
+            invader.diveTime += dt;
+            const float t = std::min(1.0f, invader.diveTime / config::kDiveDuration);   // 0 .. 1
+
+            // Forward: straight from the start to behind the player.
+            // Sideways: from the start toward the player's X ("smoothstep" makes the
+            // turn soft: slow, faster, slow), plus an S-shaped swing: sin() goes
+            // up and down once while t goes from 0 to 1.
+            const float smooth = t * t * (3.0f - 2.0f * t);
+            const float swing  = invader.diveSide * config::kDiveSwing * std::sin(2.0f * PI * t);
+            const float x = invader.diveStart.x + (invader.diveTargetX - invader.diveStart.x) * smooth + swing;
+            invader.position.x = std::clamp(x, -limit, limit);
+            invader.position.z = invader.diveStart.z + (config::kDiveEndZ - invader.diveStart.z) * t;
+            invader.position.y = invader.diveStart.y + (config::kPlayerHeight - invader.diveStart.y) * smooth;
+
+            // Tilt into the curve, like a plane: most where the swing changes fastest.
+            invader.roll = -invader.diveSide * config::kDiveMaxRoll * std::cos(2.0f * PI * t);
+
+            if (t >= 1.0f) {
+                // Missed: jump far behind the wave and fly back into its place.
+                invader.dive      = DiveState::Returning;
+                invader.diveTime  = 0.0f;
+                invader.position  = Vector3Add(invader.slot, waveOffset_);
+                invader.position.z = config::kReturnStartZ;
+                invader.diveStart = invader.position;
+                invader.roll      = 0.0f;
+            }
+        } else if (invader.dive == DiveState::Returning) {
+            invader.diveTime += dt;
+            const float t = std::min(1.0f, invader.diveTime / config::kReturnDuration);
+            const float smooth = t * t * (3.0f - 2.0f * t);
+            // The place keeps moving with the wave, so we aim at where it is NOW.
+            const Vector3 place = Vector3Add(invader.slot, waveOffset_);
+            invader.position = Vector3Lerp(invader.diveStart, place, smooth);
+            if (t >= 1.0f) {
+                invader.position = place;
+                invader.dive = DiveState::InFormation;
+            }
         }
     }
 }
@@ -126,9 +223,22 @@ std::optional<Vector3> InvaderGrid::PickShooterPosition() const {
 float InvaderGrid::FrontZ() const {
     float front = std::numeric_limits<float>::lowest();
     for (const auto& invader : invaders_) {
+        if (invader.dive != DiveState::InFormation) continue;   // divers fly past on purpose
         front = std::max(front, invader.position.z);
     }
     return front;
+}
+
+std::optional<InvaderHit> InvaderGrid::TryRam(Vector3 center, float radius) {
+    for (auto it = invaders_.begin(); it != invaders_.end(); ++it) {
+        if (it->dive == DiveState::Diving &&
+            CheckCollisionSpheres(it->position, it->Radius(), center, radius)) {
+            const InvaderHit hit{it->position, it->type, true};
+            invaders_.erase(it);
+            return hit;
+        }
+    }
+    return std::nullopt;
 }
 
 std::optional<InvaderHit> InvaderGrid::TryHit(Vector3 center, float radius) {

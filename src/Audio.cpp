@@ -22,6 +22,7 @@ constexpr EffectInfo kEffectInfo[] = {
     {"audio/explosion.wav", 0.70f, 4},   // InvaderDestroyed
     {"audio/laser4.wav",    0.90f, 2},   // BombExplosion
     {"audio/laser3.wav",    1.00f, 1},   // PlayerDeath
+    {"audio/powerup.wav",   0.60f, 2},   // PowerUp
 };
 
 static_assert(sizeof(kEffectInfo) / sizeof(kEffectInfo[0]) == static_cast<std::size_t>(Sfx::Count),

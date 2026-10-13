@@ -24,6 +24,7 @@ enum class Sfx {
     InvaderDestroyed,
     BombExplosion,
     PlayerDeath,
+    PowerUp,
     Count,
 };
 
