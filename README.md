@@ -25,6 +25,10 @@ real-time 3D graphics work, built one small, reviewed step at a time.
 ## The game
 
 - Waves of invaders sweep sideways and step toward you. Shoot them before they reach you. They shoot back.
+- Four alien types: **Scarabs** (100), **Reapers** (200, shoot more often), crystal **Drones** (150) and
+  **Commanders** (500, three hits). Every few seconds one alien **dives** at you in an S-curve.
+- Shot aliens sometimes drop a **power-up**: a **shield** that absorbs one hit, or **rapid fire**.
+- Your ship **upgrades** at every level: bigger, new colours, two and then three rockets per shot.
 - A glowing **bomb** flies in every few seconds. Shoot it for **+500** points, or dodge it.
 - **3 levels** (at 10,000 and 20,000 points): invader shots and bombs get faster, bombs get bigger and redder.
 - Particle explosions, a streaming starfield, glowing projectiles (a custom GLSL shader) and sound effects.

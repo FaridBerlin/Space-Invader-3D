@@ -15,6 +15,7 @@
 #include "InvaderShot.h"
 #include "Particles.h"
 #include "Player.h"
+#include "PowerUp.h"
 #include "Rocket.h"
 #include "Starfield.h"
 #include "raylib.h"
@@ -44,6 +45,11 @@ private:
     void EndGame(const char* reason);     // switch to GameOver
     void UpdatePlaying(float dt, const PlayerInput& input);
     void FireRocket();
+    void OnAlienDestroyed(const InvaderHit& hit);   // score, explosion, sound, maybe a power-up
+    void Collect(PowerUpType type);
+    // Something hit the ship. With a shield, the shield takes the hit and this
+    // returns false. Without one, the ship is destroyed and this returns true.
+    bool DamagePlayer(const char* reason);
     void DrawMenu() const;
     void DrawLevelBanner() const;
     void DrawGameOver() const;
@@ -53,6 +59,7 @@ private:
     InvaderGrid invaders_;
     std::vector<Rocket>       rockets_;
     std::vector<InvaderShot>  invaderShots_;
+    std::vector<PowerUp>      powerUps_;
     std::vector<Bomb>         bombs_;
     ParticleSystem            particles_;
     Starfield                 stars_;
@@ -73,5 +80,10 @@ private:
     float bombTimer_       = 0.0f;   // seconds until the next bomb appears
     float time_            = 0.0f;   // seconds since the program started, for animations
     float respawnTimer_    = 0.0f;   // counts down after a wave is destroyed
+    float shieldTimer_     = 0.0f;   // > 0 while the shield is up (seconds left)
+    float rapidFireTimer_  = 0.0f;   // > 0 while rapid fire is active (seconds left)
+    float pickupTimer_     = 0.0f;   // > 0 while the "SHIELD!" / "RAPID FIRE!" text shows
+    const char* pickupText_ = "";
+    Color pickupColor_{255, 255, 255, 255};
     bool  quitRequested_   = false;
 };

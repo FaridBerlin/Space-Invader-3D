@@ -2,8 +2,8 @@
 
 #include "Game.h"
 
-#include <algorithm>   // std::clamp
-#include <cmath>       // sinf
+#include <algorithm>   // std::clamp, std::min, std::max
+#include <cmath>       // sinf, std::fmod, std::ceil
 
 #include "Config.h"
 #include "Display.h"
@@ -172,6 +172,7 @@ void Game::Restart() {
     player_ = Player();            // a brand-new ship in the middle
     invaders_.Respawn();
     rockets_.clear();
+    powerUps_.clear();
     invaderShots_.clear();
     bombs_.clear();
     particles_.Clear();
@@ -187,6 +188,9 @@ void Game::Restart() {
     invaderShotTimer_ = config::kInvaderShotInterval;
     bombTimer_        = config::kBombInterval;
     respawnTimer_     = config::kWaveRespawnDelay;
+    shieldTimer_      = 0.0f;
+    rapidFireTimer_   = 0.0f;
+    pickupTimer_      = 0.0f;
 }
 
 void Game::EndGame(const char* reason) {
@@ -205,6 +209,50 @@ void Game::FireRocket() {
         rockets_.emplace_back(Vector3{player_.X() + point.x, config::kPlayerHeight, point.z}, tier);
     }
     audio_.Play(Sfx::PlayerShot);   // one sound per volley, so it does not get louder and louder
+}
+
+void Game::OnAlienDestroyed(const InvaderHit& hit) {
+    score_ += ScoreFor(hit.type);
+    particles_.Explode(hit.position, AlienExplosion(hit.type));
+    const bool commander = (hit.type == AlienType::Commander);
+    audio_.Play(commander ? Sfx::BombExplosion : Sfx::InvaderDestroyed);
+
+    // Maybe drop a power-up capsule. Commanders always drop one; the others
+    // with a small chance. RandomFloat(0, 1) < 0.08 is true 8% of the time.
+    const bool lucky = commander || RandomFloat(0.0f, 1.0f) < config::kPowerUpDropChance;
+    if (lucky && static_cast<int>(powerUps_.size()) < config::kMaxPowerUps) {
+        powerUps_.emplace_back(hit.position, PowerUp::RandomType());
+    }
+}
+
+void Game::Collect(PowerUpType type) {
+    if (type == PowerUpType::Shield) {
+        shieldTimer_ = config::kShieldDuration;
+        pickupText_  = "SHIELD!";
+    } else {
+        rapidFireTimer_ = config::kRapidFireDuration;
+        pickupText_     = "RAPID FIRE!";
+    }
+    pickupTimer_ = config::kPickupBannerTime;
+    pickupColor_ = PowerUp(Vector3{}, type).MainColor();
+    audio_.Play(Sfx::PowerUp);
+}
+
+bool Game::DamagePlayer(const char* reason) {
+    if (shieldTimer_ > 0.0f) {
+        // The shield absorbs the hit and breaks: a burst of cyan sparks.
+        shieldTimer_ = 0.0f;
+        particles_.Explode(player_.Position(),
+                           ExplosionStyle{60, 10.0f, 0.7f, 0.25f,
+                                          Color{80, 220, 255, 255}, Color{255, 255, 255, 255}});
+        audio_.Play(Sfx::InvaderDestroyed);
+        return false;
+    }
+    playerAlive_ = false;
+    particles_.Explode(player_.Position(), PlayerExplosion());
+    audio_.Play(Sfx::PlayerDeath);
+    EndGame(reason);
+    return true;
 }
 
 void Game::Update(float dt) {
@@ -261,11 +309,18 @@ void Game::UpdatePlaying(float dt, const PlayerInput& input) {
 
     // A cooldown limits the fire rate: it counts down, and we may only shoot
     // when it has reached zero. Holding the button fires every 0.2 seconds.
+    // With rapid fire the cooldown is shorter, so we shoot more often.
     fireCooldown_ -= dt;
     if (input.fire && fireCooldown_ <= 0.0f) {
         FireRocket();
-        fireCooldown_ = config::kRocketFireInterval;
+        fireCooldown_ = (rapidFireTimer_ > 0.0f) ? config::kRapidFireInterval
+                                                 : config::kRocketFireInterval;
     }
+
+    // Power-up timers run down. (std::max keeps them from going below zero.)
+    shieldTimer_    = std::max(0.0f, shieldTimer_ - dt);
+    rapidFireTimer_ = std::max(0.0f, rapidFireTimer_ - dt);
+    pickupTimer_    = std::max(0.0f, pickupTimer_ - dt);
 
     // ---- 2. The invaders fire back ------------------------------------------------
     if (!invaders_.Empty()) {
@@ -308,7 +363,10 @@ void Game::UpdatePlaying(float dt, const PlayerInput& input) {
     for (auto& bomb : bombs_) {
         bomb.Update(dt);
     }
-    invaders_.Update(dt);
+    for (auto& powerUp : powerUps_) {
+        powerUp.Update(dt);
+    }
+    invaders_.Update(dt, level_, player_.X());
 
     // ---- 4. Collisions ----------------------------------------------------------
     // 4a. Our rockets against the invaders.
@@ -319,10 +377,7 @@ void Game::UpdatePlaying(float dt, const PlayerInput& input) {
                 particles_.Explode(hit->position, HitSparks());   // damaged, not dead yet
                 continue;
             }
-            score_ += ScoreFor(hit->type);
-            particles_.Explode(hit->position, AlienExplosion(hit->type));
-            const bool commander = (hit->type == AlienType::Commander);
-            audio_.Play(commander ? Sfx::BombExplosion : Sfx::InvaderDestroyed);
+            OnAlienDestroyed(*hit);
         }
     }
 
@@ -362,13 +417,11 @@ void Game::UpdatePlaying(float dt, const PlayerInput& input) {
 
     // 4b. Invader shots against our ship.
     for (auto& shot : invaderShots_) {
-        if (CheckCollisionSpheres(shot.position, config::kInvaderShotRadius,
+        if (playerAlive_ && shot.alive &&
+            CheckCollisionSpheres(shot.position, config::kInvaderShotRadius,
                                   player_.Position(), config::kPlayerHitRadius)) {
-            shot.alive   = false;
-            playerAlive_ = false;
-            particles_.Explode(player_.Position(), PlayerExplosion());
-            audio_.Play(Sfx::PlayerDeath);
-            EndGame("Your ship was hit!");
+            shot.alive = false;
+            DamagePlayer("Your ship was hit!");
         }
     }
 
@@ -377,13 +430,32 @@ void Game::UpdatePlaying(float dt, const PlayerInput& input) {
         if (bomb.alive && playerAlive_ &&
             CheckCollisionSpheres(bomb.position, bomb.radius,
                                   player_.Position(), config::kPlayerHitRadius)) {
-            bomb.alive   = false;
-            playerAlive_ = false;
+            bomb.alive = false;
             particles_.Explode(bomb.position, BombExplosion(bomb.color));
-            particles_.Explode(player_.Position(), PlayerExplosion());
             audio_.Play(Sfx::BombExplosion);
-            audio_.Play(Sfx::PlayerDeath);
-            EndGame("A bomb destroyed your ship!");
+            DamagePlayer("A bomb destroyed your ship!");
+        }
+    }
+
+    // 4b3. A diving alien crashing into our ship. The alien is always destroyed;
+    // with a shield up we even get its points.
+    if (playerAlive_) {
+        if (const auto ram = invaders_.TryRam(player_.Position(), config::kPlayerHitRadius)) {
+            if (!DamagePlayer("An alien crashed into your ship!")) {
+                OnAlienDestroyed(*ram);
+            } else {
+                particles_.Explode(ram->position, AlienExplosion(ram->type));
+            }
+        }
+    }
+
+    // 4b4. Flying into a power-up capsule collects it.
+    for (auto& powerUp : powerUps_) {
+        if (playerAlive_ && powerUp.alive &&
+            CheckCollisionSpheres(powerUp.position, config::kPowerUpRadius,
+                                  player_.Position(), config::kPlayerHitRadius + 0.3f)) {
+            powerUp.alive = false;
+            Collect(powerUp.type);
         }
     }
 
@@ -396,6 +468,7 @@ void Game::UpdatePlaying(float dt, const PlayerInput& input) {
     RemoveDead(rockets_);
     RemoveDead(invaderShots_);
     RemoveDead(bombs_);
+    RemoveDead(powerUps_);
 
     // ---- 6. New wave ------------------------------------------------------------
     if (invaders_.Empty()) {
@@ -444,6 +517,17 @@ void Game::Draw() const {
         for (const auto& bomb : bombs_) {
             bomb.Draw(time_);
         }
+        for (const auto& powerUp : powerUps_) {
+            powerUp.Draw();
+        }
+
+        // The shield: a wire bubble around the ship. In its last 3 seconds it
+        // blinks (on for 0.15 s, off for 0.15 s) as a warning.
+        const bool shieldVisible = playerAlive_ && shieldTimer_ > 0.0f &&
+                                   (shieldTimer_ > 3.0f || std::fmod(shieldTimer_, 0.3f) > 0.15f);
+        if (shieldVisible) {
+            DrawSphereWires(player_.Position(), 1.9f, 6, 12, Fade(Color{80, 220, 255, 255}, 0.55f));
+        }
 
         // Glow around the projectiles, drawn by our custom shader. Like the
         // particles it is additive and see-through, so it comes after the solid objects.
@@ -458,6 +542,12 @@ void Game::Draw() const {
         }
         for (const auto& bomb : bombs_) {
             glow_.Draw(camera_, bomb.position, bomb.radius * config::kBombGlowFactor, bomb.color);
+        }
+        for (const auto& powerUp : powerUps_) {
+            glow_.Draw(camera_, powerUp.position, 2.6f, powerUp.MainColor());
+        }
+        if (shieldVisible) {
+            glow_.Draw(camera_, player_.Position(), 5.0f, Color{60, 160, 255, 255});
         }
         glow_.End();
 
@@ -491,6 +581,29 @@ void Game::Draw() const {
     // start that far left of the screen edge.
     const char* levelText = TextFormat("LEVEL %d", level_ + 1);
     DrawText(levelText, GetScreenWidth() - Px(20) - MeasureText(levelText, Px(32)), Px(16), Px(32), SKYBLUE);
+
+    // Active power-ups under the level, right-aligned, with the seconds left.
+    auto drawRight = [&](const char* text, int y, Color color) {
+        DrawText(text, GetScreenWidth() - Px(20) - MeasureText(text, Px(22)), y, Px(22), color);
+    };
+    int statusY = Px(84);   // below the help line
+    if (shieldTimer_ > 0.0f) {
+        drawRight(TextFormat("SHIELD %d", static_cast<int>(std::ceil(shieldTimer_))), statusY,
+                  Color{80, 220, 255, 255});
+        statusY += Px(28);
+    }
+    if (rapidFireTimer_ > 0.0f) {
+        drawRight(TextFormat("RAPID FIRE %d", static_cast<int>(std::ceil(rapidFireTimer_))), statusY,
+                  Color{255, 150, 40, 255});
+    }
+
+    // "SHIELD!" / "RAPID FIRE!" in the middle of the screen right after a pickup.
+    if (state_ == GameState::Playing && pickupTimer_ > 0.0f) {
+        const float alpha = std::min(1.0f, pickupTimer_ / 0.5f);   // fades out at the end
+        const int size = Px(46);
+        DrawText(pickupText_, (GetScreenWidth() - MeasureText(pickupText_, size)) / 2,
+                 GetScreenHeight() * 2 / 5, size, Fade(pickupColor_, alpha));   // above the ship
+    }
 
     if (state_ == GameState::Playing && levelBannerTimer_ > 0.0f) {
         DrawLevelBanner();
