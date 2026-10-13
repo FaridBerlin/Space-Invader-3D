@@ -38,9 +38,16 @@ void InvaderGrid::Respawn() {
             // Row 0 is the front row. Further rows are further away (more negative Z).
             const float z = config::kInvaderStartZ - static_cast<float>(row) * config::kInvaderSpacingZ;
 
+            // Which kind of alien goes here? Front half: Scarabs. Back row: Drones
+            // (and the commanders). In between: Reapers. With 5 rows that gives
+            // Scarab, Scarab, Reaper, Reaper, Drone (front to back).
             const bool backRow = (row == rows - 1);
-            const AlienType type = (backRow && isCommanderColumn(col)) ? AlienType::Commander
-                                                                       : AlienType::Scarab;
+            AlienType type = AlienType::Reaper;
+            if (backRow) {
+                type = isCommanderColumn(col) ? AlienType::Commander : AlienType::Drone;
+            } else if (row < rows / 2) {
+                type = AlienType::Scarab;
+            }
             // emplace_back builds the Invader directly inside the vector.
             invaders_.emplace_back(Vector3{x, config::kInvaderHeight, z}, type);
         }
@@ -100,8 +107,20 @@ std::optional<Vector3> InvaderGrid::PickShooterPosition() const {
     if (invaders_.empty()) {
         return std::nullopt;   // "no value"
     }
-    const int index = GetRandomValue(0, static_cast<int>(invaders_.size()) - 1);
-    return invaders_[static_cast<std::size_t>(index)].position;
+    // A weighted random choice: every alien gets "tickets", Reapers get more.
+    // We draw one ticket number and walk through the aliens until we reach it.
+    auto tickets = [](const Invader& invader) {
+        return invader.type == AlienType::Reaper ? config::kReaperShotWeight : 1;
+    };
+    int total = 0;
+    for (const auto& invader : invaders_) total += tickets(invader);
+
+    int ticket = GetRandomValue(0, total - 1);
+    for (const auto& invader : invaders_) {
+        ticket -= tickets(invader);
+        if (ticket < 0) return invader.position;
+    }
+    return invaders_.back().position;   // not reached; keeps the compiler happy
 }
 
 float InvaderGrid::FrontZ() const {

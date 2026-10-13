@@ -91,7 +91,7 @@ constexpr int   kInvaderMaxRows    = 5;
 constexpr float kInvaderSpacingX   = 2.2f;     // distance between neighbours sideways
 constexpr float kInvaderSpacingZ   = 3.2f;     // distance between rows in depth (room to see the back rows)
 constexpr float kInvaderHalfWidth  = 0.7f;     // used to stop at the field edge
-constexpr float kInvaderRadius     = 0.8f;     // size of the collision sphere
+constexpr float kInvaderRadius     = 0.9f;     // size of the collision sphere
 constexpr float kInvaderHeight     = 0.9f;     // centre above the ground
 constexpr float kInvaderSpeed      = 5.0f;     // sideways speed of the whole wave
 constexpr float kInvaderStepZ      = 1.0f;     // how far the wave steps toward you at an edge
@@ -102,13 +102,19 @@ constexpr float kInvaderReachZ     = -2.5f;    // an invader this close to the s
 // Most aliens are Scarabs (one hit). Commanders sit in the back row: bigger,
 // three hits, more points. A commander is drawn with a 3D model file when
 // assets/models/commander.glb exists, otherwise with a built-in look.
+constexpr int   kScorePerReaper      = 200;
+constexpr int   kScorePerDrone       = 150;
 constexpr int   kScorePerCommander   = 500;
+constexpr float kReaperScale         = 0.95f;   // drawing size of each type (1.0 = as designed)
+constexpr float kDroneScale          = 1.05f;
+constexpr float kDroneRadius         = 0.75f;   // collision sphere of a Drone
+constexpr int   kReaperShotWeight    = 3;       // a Reaper is 3x as likely to be the next shooter
 constexpr int   kCommanderHitPoints  = 3;
 constexpr int   kCommandersPerWave   = 2;       // when the wave is wide enough, else 1
-constexpr float kCommanderRadius     = 1.05f;   // collision sphere (Scarab: kInvaderRadius)
+constexpr float kCommanderRadius     = 1.2f;    // collision sphere (Scarab: kInvaderRadius)
 constexpr float kHitFlashTime        = 0.15f;   // seconds an alien lights up after a hit
 constexpr const char* kCommanderModelFile = "models/commander.glb";
-constexpr float kCommanderModelScale = 2.0f;    // the model is about 1 unit big
+constexpr float kCommanderModelScale = 2.3f;    // the model is about 1 unit big
 constexpr float kCommanderHover      = 0.6f;    // drawn this much higher, to peek over the rows in front
 
 // ---- Invader shots --------------------------------------------------------------
@@ -202,7 +208,7 @@ constexpr float kRocketGlowSize       = 2.6f;    // width of the light square ar
 constexpr float kInvaderShotGlowSize  = 2.2f;    // ... around an invader shot
 
 // ---- Score and waves ------------------------------------------------------------
-constexpr int   kScorePerInvader   = 100;      // same as the 2D game
+constexpr int   kScorePerInvader   = 100;      // a Scarab; same as the 2D game (other types: see "Alien types")
 constexpr float kWaveRespawnDelay  = 1.5f;     // pause before a new wave appears
 constexpr float kGameOverDelay     = 1.6f;     // time to watch the explosion before the Game Over screen
 

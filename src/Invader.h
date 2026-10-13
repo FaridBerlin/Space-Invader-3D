@@ -10,7 +10,9 @@
 
 // The kinds of aliens. "enum class" = a fixed list of named values.
 enum class AlienType {
-    Scarab,      // the common alien: violet shell, lime circuit lines, two claws
+    Scarab,      // front rows: violet shell, lime circuit lines, two claws
+    Reaper,      // middle rows: black and red, horn-wings, shoots more often
+    Drone,       // back row: a small spinning cyan crystal with a ring of light
     Commander,   // 1-2 per wave in the back row: bigger, takes several hits
 };
 
