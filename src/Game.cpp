@@ -14,25 +14,47 @@
 
 namespace {
 
-// The look of our two explosions. The NUMBERS are tuning values and live in
-// Config.h; the COLOURS are art and live here.
-ExplosionStyle InvaderExplosion() {
-    return ExplosionStyle{
+// The look of the explosions. The NUMBERS are tuning values and live in
+// Config.h; the COLOURS are art and live here. Every alien type bursts in its
+// own two colours; the commander also bursts bigger.
+ExplosionStyle AlienExplosion(AlienType type) {
+    ExplosionStyle style{
         config::kInvaderExplosionCount, config::kInvaderExplosionSpeed,
         config::kInvaderExplosionLife,  config::kInvaderExplosionSize,
-        Color{140,  90, 220, 255},   // violet (the Scarab's shell)
-        Color{170, 255,  90, 255},   // lime (its glowing lines)
+        Color{140,  90, 220, 255},   // Scarab: violet (its shell) ...
+        Color{170, 255,  90, 255},   // ... and lime (its glowing lines)
     };
+    switch (type) {
+        case AlienType::Scarab:
+            break;
+        case AlienType::Reaper:
+            style.colorA = Color{230,  40,  50, 255};   // red stripes
+            style.colorB = Color{110, 110, 125, 255};   // dark metal
+            break;
+        case AlienType::Drone:
+            style.colorA = Color{ 70, 195, 255, 255};   // cyan crystal
+            style.colorB = Color{235, 250, 255, 255};   // white
+            break;
+        case AlienType::Commander:
+            style.count *= 2;
+            style.speed *= 1.3f;
+            style.life  *= 1.2f;
+            style.colorA = Color{255, 200,  60, 255};   // gold
+            style.colorB = Color{255, 255, 230, 255};   // white-hot
+            break;
+    }
+    return style;
 }
 
-// A commander bursts in its gold colours, bigger than a normal alien.
-ExplosionStyle CommanderExplosion() {
-    return ExplosionStyle{
-        config::kInvaderExplosionCount * 2, config::kInvaderExplosionSpeed * 1.3f,
-        config::kInvaderExplosionLife * 1.2f, config::kInvaderExplosionSize,
-        Color{255, 200, 60, 255},    // gold
-        Color{255, 255, 230, 255},   // white-hot
-    };
+// Points for destroying an alien of this type.
+int ScoreFor(AlienType type) {
+    switch (type) {
+        case AlienType::Scarab:    return config::kScorePerInvader;
+        case AlienType::Reaper:    return config::kScorePerReaper;
+        case AlienType::Drone:     return config::kScorePerDrone;
+        case AlienType::Commander: return config::kScorePerCommander;
+    }
+    return 0;   // not reached: the switch above covers every type
 }
 
 // A small spray of sparks when a commander is hit but survives.
@@ -293,13 +315,13 @@ void Game::UpdatePlaying(float dt, const PlayerInput& input) {
     for (auto& rocket : rockets_) {
         if (const auto hit = invaders_.TryHit(rocket.position, config::kRocketRadius)) {
             rocket.alive = false;                 // the rocket is used up
-            const bool commander = (hit->type == AlienType::Commander);
             if (!hit->destroyed) {
                 particles_.Explode(hit->position, HitSparks());   // damaged, not dead yet
                 continue;
             }
-            score_ += commander ? config::kScorePerCommander : config::kScorePerInvader;
-            particles_.Explode(hit->position, commander ? CommanderExplosion() : InvaderExplosion());
+            score_ += ScoreFor(hit->type);
+            particles_.Explode(hit->position, AlienExplosion(hit->type));
+            const bool commander = (hit->type == AlienType::Commander);
             audio_.Play(commander ? Sfx::BombExplosion : Sfx::InvaderDestroyed);
         }
     }
