@@ -1,6 +1,6 @@
 # Space Invader 3D
 
-**[▶ Play it in your browser](https://faridberlin.github.io/Space-Invader-3D/)** (needs a keyboard)
+**[▶ Play it in your browser](https://faridberlin.github.io/Space-Invader-3D/)** (keyboard, mouse or touch screen)
 
 A 3D remake of my 2D browser game *Space Dash Invaders*, written in **C++17** with
 [raylib](https://www.raylib.com/). It is also a learning project: the goal is to understand C++ and how
@@ -20,7 +20,9 @@ real-time 3D graphics work, built one small, reviewed step at a time.
 | **Windows / Linux** | Download the latest zip / tar.gz from [Releases](../../releases), unpack it and start `space-invader-3d`. |
 | **From source** | See [Build it yourself](#build-it-yourself). |
 
-**Controls:** `A`/`D` or arrow keys to move, `Space` to shoot (hold for rapid fire), `Enter` to start / restart, `P` to pause, `M` to mute. On desktop also `F` for fullscreen, `1`-`5` to pick the window size (you can drag the window edges too) and `Esc` to leave fullscreen or quit.
+**Touch / mouse:** drag anywhere to move, the ship fires by itself while your finger (or the mouse button) is down; tap to start; the pause button sits at the top right. The game also pauses itself when you switch to another app or window.
+
+**Keyboard:** `A`/`D` or arrow keys to move, `Space` to shoot (hold for rapid fire), `Enter` to start / restart, `P` to pause, `M` to mute. On desktop also `F` for fullscreen, `1`-`5` to pick the window size (you can drag the window edges too) and `Esc` to leave fullscreen or quit.
 
 ## The game
 

@@ -166,6 +166,7 @@ Game::Game() {
     camera_.projection = CAMERA_PERSPECTIVE;
 
     highScore_ = highscore::Load();   // the best score from earlier games (0 the first time)
+    touchMode_ = IsTouchDevice();     // phones and tablets start with the touch hints
 
     Restart();                 // builds a fresh game ...
     state_ = GameState::Menu;  // ... but we wait on the title screen until Enter is pressed
@@ -302,6 +303,15 @@ bool Game::DamagePlayer(const char* reason) {
 
 void Game::Update(float dt) {
     const PlayerInput input = ReadInput();
+    // Asked every frame, in every state, so it always knows whether the game was
+    // just sent to the background. Only "Playing" reacts to it (see below).
+    const bool wentToBackground = WentToBackground();
+    // Show touch hints after a tap, keyboard hints after a key: whatever the player uses.
+    if (input.pointerPressed) {
+        touchMode_ = true;
+    } else if (input.move != 0.0f || input.fire) {
+        touchMode_ = false;
+    }
     if (input.toggleMute) {
         audio_.ToggleMute();
     }
@@ -334,30 +344,100 @@ void Game::Update(float dt) {
     // What else happens each frame depends on the state we are in.
     switch (state_) {
         case GameState::Menu:
-            if (input.confirm) {
+            if (input.confirm || input.pointerPressed) {   // Enter, or a tap anywhere
                 Restart();
             }
             break;
         case GameState::Playing:
-            if (input.togglePause) {
+            // Pause with P, with the pause button, or by itself when the game goes
+            // to the background (a phone call, another app or window).
+            if (input.togglePause || wentToBackground ||
+                (input.pointerPressed && CheckCollisionPointRec(input.pointer, PauseButtonRect()))) {
                 state_ = GameState::Paused;
                 break;   // nothing moves in the frame we pause
             }
             UpdatePlaying(dt, input);
             break;
         case GameState::Paused:
-            if (input.togglePause) {
+            // Continue only with P or the play button, so a stray tap (or picking the
+            // phone back up) does not start the game by accident.
+            if (input.togglePause ||
+                (input.pointerPressed && CheckCollisionPointRec(input.pointer, PlayButtonRect()))) {
+                dragActive_ = false;   // the next touch starts a fresh drag
                 state_ = GameState::Playing;
             }
             break;
         case GameState::GameOver:
             // The world is frozen. After a short pause, wait for Enter.
             gameOverTime_ += dt;
-            if (gameOverTime_ >= config::kGameOverDelay && input.confirm) {
+            if (gameOverTime_ >= config::kGameOverDelay && (input.confirm || input.pointerPressed)) {
                 Restart();
             }
             break;
     }
+}
+
+PlayerInput Game::ApplyTouchSteering(const PlayerInput& input) {
+    PlayerInput steer = input;   // a copy we can change
+    if (!input.pointerDown) {
+        dragActive_ = false;
+        return steer;            // no finger: keyboard as usual
+    }
+
+    // How many screen pixels is one world unit at the ship's distance? We ask the
+    // camera where two points 1 unit apart end up on screen.
+    const Vector2 a = GetWorldToScreen(Vector3{0.0f, config::kPlayerHeight, 0.0f}, camera_);
+    const Vector2 b = GetWorldToScreen(Vector3{1.0f, config::kPlayerHeight, 0.0f}, camera_);
+    const float pixelsPerUnit = std::max(1.0f, b.x - a.x);
+
+    // A new drag remembers where the finger and the ship started. From then on
+    // the ship moves as far as the finger has moved: a "relative" drag, so you can
+    // touch anywhere and your finger never hides the ship.
+    if (!dragActive_) {
+        dragActive_        = true;
+        dragStartPointerX_ = input.pointer.x;
+        dragStartShipX_    = player_.X();
+    }
+    float target = dragStartShipX_ +
+                   (input.pointer.x - dragStartPointerX_) / pixelsPerUnit * config::kTouchDragGain;
+
+    // At a wall: slide the start point along, so moving the finger back moves the
+    // ship back immediately (instead of first "unwinding" the extra distance).
+    const float limit = config::kFieldHalfWidth -
+                        config::kPlayerHalfWidth * config::kTierScale[player_.Tier()];
+    if (target > limit)  { dragStartShipX_ -= target - limit;  target = limit; }
+    if (target < -limit) { dragStartShipX_ += -limit - target; target = -limit; }
+
+    steer.targetX = target;
+    steer.fire    = true;   // while the finger is down, the ship fires by itself
+    return steer;
+}
+
+Rectangle Game::PlayButtonRect() const {
+    using display::Px;
+    const float size = static_cast<float>(Px(120));
+    return Rectangle{(static_cast<float>(GetScreenWidth()) - size) / 2.0f,
+                     static_cast<float>(GetScreenHeight()) / 2.0f - size / 2.0f + static_cast<float>(Px(20)),
+                     size, size};
+}
+
+Rectangle Game::PauseButtonRect() const {
+    using display::Px;
+    const float size = static_cast<float>(Px(52));
+    return Rectangle{static_cast<float>(GetScreenWidth() - Px(20)) - size,
+                     static_cast<float>(Px(62)), size, size};
+}
+
+void Game::DrawPauseButton() const {
+    const Rectangle r = PauseButtonRect();
+    DrawRectangleRounded(r, 0.3f, 6, Fade(Color{20, 25, 50, 255}, 0.7f));
+    DrawRectangleRoundedLinesEx(r, 0.3f, 6, 2.0f, Fade(RAYWHITE, 0.6f));
+    // The pause symbol: two upright bars.
+    const float barW = r.width * 0.16f;
+    const float barH = r.height * 0.46f;
+    const float top  = r.y + (r.height - barH) / 2.0f;
+    DrawRectangleRec(Rectangle{r.x + r.width * 0.30f, top, barW, barH}, RAYWHITE);
+    DrawRectangleRec(Rectangle{r.x + r.width * 0.54f, top, barW, barH}, RAYWHITE);
 }
 
 void Game::UpdatePlaying(float dt, const PlayerInput& input) {
@@ -372,13 +452,14 @@ void Game::UpdatePlaying(float dt, const PlayerInput& input) {
     }
 
     if (playerAlive_) {
-        player_.Update(dt, input);
+        const PlayerInput steer = ApplyTouchSteering(input);
+        player_.Update(dt, steer);
 
         // A cooldown limits the fire rate: it counts down, and we may only shoot
         // when it has reached zero. Holding the button fires every 0.2 seconds.
         // With rapid fire the cooldown is shorter, so we shoot more often.
         fireCooldown_ -= dt;
-        if (input.fire && fireCooldown_ <= 0.0f) {
+        if (steer.fire && fireCooldown_ <= 0.0f) {
             FireRocket();
             fireCooldown_ = (rapidFireTimer_ > 0.0f) ? config::kRapidFireInterval
                                                      : config::kRocketFireInterval;
@@ -635,6 +716,9 @@ void Game::Draw() const {
     // stays the same size relative to the picture in a small and in a huge window.
     using display::Px;
     DrawText(TextFormat("SCORE  %06d", score_), Px(20), Px(16), Px(32), RAYWHITE);
+    if (touchMode_) {
+        DrawText("Drag anywhere to move. The ship fires by itself.", Px(20), Px(56), Px(20), LIGHTGRAY);
+    } else {
 #if defined(__EMSCRIPTEN__)
     DrawText("Move: A / D or arrows     Fire: Space (hold)     Mute: M     Pause: P",
              Px(20), Px(56), Px(20), LIGHTGRAY);
@@ -642,6 +726,7 @@ void Game::Draw() const {
     DrawText("Move: A / D or arrows     Fire: Space (hold)     Mute: M     Pause: P     Fullscreen: F     Window size: 1-5     Quit: Esc",
              Px(20), Px(56), Px(20), LIGHTGRAY);
 #endif
+    }
     DrawText(TextFormat("%d FPS", GetFPS()), Px(20), Px(84), Px(20), GREEN);
     DrawLives();
 
@@ -662,7 +747,10 @@ void Game::Draw() const {
     auto drawRight = [&](const char* text, int y, Color color) {
         DrawText(text, GetScreenWidth() - Px(20) - MeasureText(text, Px(22)), y, Px(22), color);
     };
-    int statusY = Px(84);   // below the help line
+    if (state_ == GameState::Playing) {
+        DrawPauseButton();
+    }
+    int statusY = Px(126);   // below the pause button
     if (shieldTimer_ > 0.0f) {
         drawRight(TextFormat("SHIELD %d", static_cast<int>(std::ceil(shieldTimer_))), statusY,
                   Color{80, 220, 255, 255});
@@ -714,13 +802,29 @@ void Game::DrawLives() const {
 
 void Game::DrawPaused() const {
     using display::Px;
-    DrawRectangle(0, 0, GetScreenWidth(), GetScreenHeight(), Fade(BLACK, 0.5f));
+    DrawRectangle(0, 0, GetScreenWidth(), GetScreenHeight(), Fade(BLACK, 0.55f));
+
+    const Rectangle play = PlayButtonRect();
     const char* title = "PAUSED";
-    const char* hint  = "Press P to continue";
     DrawText(title, (GetScreenWidth() - MeasureText(title, Px(70))) / 2,
-             GetScreenHeight() / 2 - Px(60), Px(70), RAYWHITE);
-    DrawText(hint, (GetScreenWidth() - MeasureText(hint, Px(26))) / 2,
-             GetScreenHeight() / 2 + Px(25), Px(26), LIGHTGRAY);
+             static_cast<int>(play.y) - Px(100), Px(70), RAYWHITE);
+
+    // The play button: a glowing circle with a triangle pointing right ("play").
+    const Vector2 c{play.x + play.width / 2.0f, play.y + play.height / 2.0f};
+    const float r = play.width / 2.0f;
+    const float pulse = 0.5f + 0.5f * sinf(static_cast<float>(GetTime()) * 3.0f);
+    DrawCircleV(c, r, Fade(Color{40, 140, 90, 255}, 0.85f));
+    DrawCircleLinesV(c, r, Fade(Color{150, 255, 170, 255}, 0.6f + 0.4f * pulse));
+    // raylib wants the corners counter-clockwise as seen on screen: top-left,
+    // bottom-left, then the tip on the right.
+    DrawTriangle(Vector2{c.x - r * 0.30f, c.y - r * 0.42f},
+                 Vector2{c.x - r * 0.30f, c.y + r * 0.42f},
+                 Vector2{c.x + r * 0.45f, c.y}, RAYWHITE);
+
+    const char* hint = IsTouchDevice() ? "Tap the play button to continue"
+                                       : "Click the play button or press P to continue";
+    DrawText(hint, (GetScreenWidth() - MeasureText(hint, Px(24))) / 2,
+             static_cast<int>(play.y + play.height) + Px(28), Px(24), LIGHTGRAY);
 }
 
 void Game::DrawGameOver() const {
@@ -746,7 +850,9 @@ void Game::DrawGameOver() const {
         const bool on = std::fmod(static_cast<float>(GetTime()) * 2.0f, 1.0f) < 0.5f;
         if (on) drawCentered("NEW HIGH SCORE!", middle + Px(60), Px(26), Color{255, 200, 60, 255});
     }
-    drawCentered("Press ENTER to play again", middle + Px(100), Px(26), LIGHTGRAY);
+    drawCentered(touchMode_ ? (IsTouchDevice() ? "Tap to play again" : "Click to play again")
+                            : "Press ENTER to play again",
+                 middle + Px(100), Px(26), LIGHTGRAY);
 #if !defined(__EMSCRIPTEN__)
     drawCentered("Esc to quit", middle + Px(140), Px(22), GRAY);
 #endif
@@ -772,8 +878,13 @@ void Game::DrawMenu() const {
     if (highScore_ > 0) {
         drawCentered(TextFormat("HIGH SCORE  %06d", highScore_), Px(275), Px(26), Color{255, 200, 60, 255});
     }
-    drawCentered("Press ENTER to start", Px(330), Px(32), Fade(RAYWHITE, pulse));
-    drawCentered("Move: A / D or arrows     Fire: Space (hold)     Pause: P", Px(380), Px(22), LIGHTGRAY);
+    if (touchMode_) {
+        drawCentered(IsTouchDevice() ? "Tap to start" : "Click to start", Px(330), Px(32), Fade(RAYWHITE, pulse));
+        drawCentered("Drag anywhere to move. The ship fires by itself.", Px(380), Px(22), LIGHTGRAY);
+    } else {
+        drawCentered("Press ENTER to start", Px(330), Px(32), Fade(RAYWHITE, pulse));
+        drawCentered("Move: A / D or arrows     Fire: Space (hold)     Pause: P", Px(380), Px(22), LIGHTGRAY);
+    }
 #if !defined(__EMSCRIPTEN__)
     drawCentered("Fullscreen: F     Window size: 1 - 5     Quit: Esc", Px(415), Px(22), LIGHTGRAY);
 #endif
