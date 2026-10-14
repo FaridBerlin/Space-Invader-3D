@@ -12,27 +12,30 @@
 #include "raymath.h"   // Vector3Add, Vector3Lerp, ...
 
 InvaderGrid::InvaderGrid() {
-    Respawn();
+    Respawn(0);
 }
 
-void InvaderGrid::Respawn() {
+void InvaderGrid::Respawn(int level) {
     invaders_.clear();
     direction_   = 1.0f;
     waveOffset_  = Vector3{0.0f, 0.0f, 0.0f};
-    diveTimer_   = config::kDiveInterval[0];   // a short calm start for every wave
+    speed_       = config::kLevelInvaderSpeed[level];
+    diveTimer_   = config::kLevelDiveInterval[level];   // a calm start for every wave
 
     // GetRandomValue(a, b) gives a random whole number from a to b, both included.
     const int columns = GetRandomValue(config::kInvaderMinColumns, config::kInvaderMaxColumns);
-    const int rows    = GetRandomValue(config::kInvaderMinRows, config::kInvaderMaxRows);
+    const int rows    = GetRandomValue(config::kLevelMinRows[level], config::kLevelMaxRows[level]);
 
     // Centre the wave on X = 0. The leftmost column starts at -(half the total width).
     const float startX = -0.5f * static_cast<float>(columns - 1) * config::kInvaderSpacingX;
 
     // Commanders sit in the middle of the back row: one, or two when the wave
     // is wide enough. For 7 columns, two commanders go to columns 2 and 4.
-    const int commanders = (columns >= 6) ? config::kCommandersPerWave : 1;
+    const int commanders = !config::kLevelHasCommanders[level] ? 0
+                         : (columns >= 6) ? config::kCommandersPerWave : 1;
     const int middle = columns / 2;
     auto isCommanderColumn = [&](int col) {
+        if (commanders == 0) return false;
         if (commanders == 1) return col == middle;
         return col == middle - 1 || col == middle + 1;
     };
@@ -46,6 +49,7 @@ void InvaderGrid::Respawn() {
             // Which kind of alien goes here? Front half: Scarabs. Back row: Drones
             // (and the commanders). In between: Reapers. With 5 rows that gives
             // Scarab, Scarab, Reaper, Reaper, Drone (front to back).
+            // Early levels do not have every type yet: a missing type becomes a Scarab.
             const bool backRow = (row == rows - 1);
             AlienType type = AlienType::Reaper;
             if (backRow) {
@@ -53,6 +57,8 @@ void InvaderGrid::Respawn() {
             } else if (row < rows / 2) {
                 type = AlienType::Scarab;
             }
+            if (type == AlienType::Reaper && !config::kLevelHasReapers[level]) type = AlienType::Scarab;
+            if (type == AlienType::Drone  && !config::kLevelHasDrones[level])  type = AlienType::Scarab;
             // emplace_back builds the Invader directly inside the vector.
             invaders_.emplace_back(Vector3{x, config::kInvaderHeight, z}, type);
         }
@@ -75,7 +81,7 @@ void InvaderGrid::MoveFormation(float dt) {
     //    element, so we change the real invader and not a copy. We also keep
     //    track of the whole wave's movement in waveOffset_: a diver needs it to
     //    find its way back to its place, which has moved on in the meantime.
-    const float dx = direction_ * config::kInvaderSpeed * dt;
+    const float dx = direction_ * speed_ * dt;
     waveOffset_.x += dx;
     bool anyInFormation = false;
     for (auto& invader : invaders_) {
@@ -127,7 +133,7 @@ void InvaderGrid::UpdateDivers(float dt, int level, float playerX) {
         if (invader.dive != DiveState::InFormation) ++divers;
     }
     diveTimer_ -= dt;
-    if (diveTimer_ <= 0.0f && divers < config::kMaxDivers[level]) {
+    if (diveTimer_ <= 0.0f && divers < config::kLevelMaxDivers[level]) {
         // Collect who may dive (aliens in formation, but no commanders) and pick one.
         std::vector<Invader*> candidates;
         for (auto& invader : invaders_) {
@@ -146,7 +152,7 @@ void InvaderGrid::UpdateDivers(float dt, int level, float playerX) {
             diver.slot        = Vector3Subtract(diver.position, waveOffset_);   // its place
         }
         // Not like a clock: a bit random, so the player cannot count along.
-        diveTimer_ = config::kDiveInterval[level] * RandomFloat(0.7f, 1.3f);
+        diveTimer_ = config::kLevelDiveInterval[level] * RandomFloat(0.7f, 1.3f);
     }
 
     // ---- 2. Move the divers along their paths -----------------------------------------

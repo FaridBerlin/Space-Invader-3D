@@ -5,6 +5,8 @@
 
 #pragma once   // "include me only once", even if several files ask for me
 
+#include <iterator>   // std::size
+
 #include "raylib.h"
 
 // A namespace is a named box. Writing config::kFieldHalfWidth makes it obvious
@@ -93,14 +95,11 @@ constexpr float kRocketRadius       = 0.3f;    // size of the rocket's collision
 // ---- Invaders -----------------------------------------------------------------
 constexpr int   kInvaderMinColumns = 5;        // a wave gets a random size, like the 2D game
 constexpr int   kInvaderMaxColumns = 10;
-constexpr int   kInvaderMinRows    = 2;
-constexpr int   kInvaderMaxRows    = 5;
 constexpr float kInvaderSpacingX   = 2.2f;     // distance between neighbours sideways
 constexpr float kInvaderSpacingZ   = 3.2f;     // distance between rows in depth (room to see the back rows)
 constexpr float kInvaderHalfWidth  = 0.7f;     // used to stop at the field edge
 constexpr float kInvaderRadius     = 0.9f;     // size of the collision sphere
 constexpr float kInvaderHeight     = 0.9f;     // centre above the ground
-constexpr float kInvaderSpeed      = 5.0f;     // sideways speed of the whole wave
 constexpr float kInvaderStepZ      = 1.0f;     // how far the wave steps toward you at an edge
 constexpr float kInvaderStartZ     = -30.0f;   // Z of the front row when a wave spawns
 constexpr float kInvaderReachZ     = -2.5f;    // an invader this close to the ship = game over
@@ -127,24 +126,90 @@ constexpr float kCommanderHover      = 0.6f;    // drawn this much higher, to pe
 // ---- Invader shots --------------------------------------------------------------
 // The 2D game fired one shot every ~8 seconds. In 3D you can see shots coming and
 // dodge them more easily, so we fire more often. Tune to taste!
-constexpr float kInvaderShotInterval = 2.0f;   // seconds between shots from the wave
 constexpr float kInvaderShotRadius   = 0.25f;  // collision sphere of a shot
 constexpr float kInvaderShotDespawnZ = 6.0f;   // shots that fly past the ship are removed here
 
 // ---- Levels --------------------------------------------------------------------------
-// Same three levels and score thresholds as the 2D game. A higher level makes the
-// invader shots faster (units per second, flying toward +Z, the player). Later, bombs
-// get faster and bigger per level as well. Arrays are indexed from 0: level 1 is index 0.
-constexpr int   kLevelCount = 3;
-constexpr int   kLevelStartScore[kLevelCount] = {0, 10000, 20000};
-constexpr float kLevelShotSpeed[kLevelCount]  = {11.0f, 15.0f, 19.0f};
-constexpr float kLevelBannerTime = 2.0f;       // seconds the "LEVEL 2" banner stays on screen
+// Seven levels of three waves each. A level ends when its third wave is destroyed;
+// after level 7 the game goes on with endless bonus waves. Every level adds ONE new
+// thing, so the player keeps discovering something:
+//
+//   level 1  Scarabs only, slow, no divers          (learn the controls)
+//   level 2  Drones join, first divers
+//   level 3  Reapers join (they shoot more), faster bombs
+//   level 4  Commanders join, ship upgrade 2
+//   level 5  two divers at once, red bombs
+//   level 6  faster waves, ship upgrade 3
+//   level 7  everything at full speed, three divers
+//
+// Every table below has one value per level. Arrays are indexed from 0: level 1 is
+// index 0. The static_asserts at the end check that no table misses a level.
+constexpr int   kLevelCount    = 7;
+constexpr int   kWavesPerLevel = 3;
+constexpr float kLevelBannerTime = 3.0f;   // seconds the "LEVEL 2" banner stays on screen
+constexpr float kWaveBannerTime  = 1.4f;   // ... and the smaller "WAVE 2 / 3"
+constexpr int   kAllLevelsBonus  = 10000;  // points for clearing level 7
+
+constexpr const char* kLevelIntro[] = {
+    "Scarabs incoming",
+    "Drones join - and aliens start to dive!",
+    "Reapers join: they shoot more often",
+    "Commanders arrive. Ship upgraded!",
+    "Two divers at once",
+    "Faster waves. Ship upgraded!",
+    "Final level: everything at full speed",
+};
+
+// Which alien types may appear (Scarabs always do).
+constexpr bool  kLevelHasDrones[]     = {false, true,  true,  true,  true,  true,  true};
+constexpr bool  kLevelHasReapers[]    = {false, false, true,  true,  true,  true,  true};
+constexpr bool  kLevelHasCommanders[] = {false, false, false, true,  true,  true,  true};
+
+// The size of a wave: rows of aliens, from ... to (picked at random).
+constexpr int   kLevelMinRows[] = {2, 2, 3, 3, 3, 4, 4};
+constexpr int   kLevelMaxRows[] = {3, 3, 4, 4, 5, 5, 5};
+
+constexpr float kLevelInvaderSpeed[]  = {4.0f, 4.5f, 5.0f, 5.5f, 6.0f, 6.8f, 7.5f};   // sideways, units/s
+constexpr float kLevelShotInterval[]  = {2.4f, 2.2f, 2.0f, 1.8f, 1.6f, 1.4f, 1.2f};   // seconds between shots
+constexpr float kLevelShotSpeed[]     = {11.0f, 12.0f, 13.0f, 15.0f, 16.0f, 18.0f, 19.0f};
+constexpr float kLevelBombSpeed[]     = {9.0f, 10.0f, 11.0f, 12.0f, 13.0f, 14.0f, 15.0f};
+constexpr float kLevelBombRadius[]    = {0.9f, 1.0f, 1.1f, 1.2f, 1.3f, 1.4f, 1.5f};     // 2D: 30 .. 50 px
+constexpr Color kLevelBombColor[] = {           // from yellow to deep red: "hotter" each level
+    {253, 249,   0, 255}, {255, 220,   0, 255}, {255, 180,   0, 255}, {255, 140,  20, 255},
+    {255, 100,  30, 255}, {240,  50,  40, 255}, {220,  20,  60, 255},
+};
+constexpr float kLevelDiveInterval[]  = {0.0f, 5.0f, 4.5f, 4.0f, 3.5f, 3.0f, 2.5f};   // 0 = no divers
+constexpr int   kLevelMaxDivers[]     = {0, 1, 1, 1, 2, 2, 3};                         // at the same time
+constexpr int   kLevelShipTier[]      = {0, 0, 0, 1, 1, 2, 2};                         // see "Ship upgrades"
+
+// The colour mood of each level: the stars are tinted, from cool blue to hot red.
+constexpr Color kLevelStarColor[] = {
+    {200, 220, 255, 255}, {150, 200, 255, 255}, {170, 170, 255, 255}, {200, 150, 255, 255},
+    {240, 140, 230, 255}, {255, 150, 140, 255}, {255, 110,  90, 255},
+};
+
+// std::size(array) counts the entries. If someone adds an 8th level to kLevelCount
+// but forgets a table, the build stops right here with a clear message.
+static_assert(std::size(kLevelIntro) == kLevelCount, "one intro text per level");
+static_assert(std::size(kLevelHasDrones) == kLevelCount && std::size(kLevelHasReapers) == kLevelCount &&
+              std::size(kLevelHasCommanders) == kLevelCount, "alien types: one value per level");
+static_assert(std::size(kLevelMinRows) == kLevelCount && std::size(kLevelMaxRows) == kLevelCount,
+              "wave size: one value per level");
+static_assert(std::size(kLevelInvaderSpeed) == kLevelCount && std::size(kLevelShotInterval) == kLevelCount &&
+              std::size(kLevelShotSpeed) == kLevelCount, "invader speeds: one value per level");
+static_assert(std::size(kLevelBombSpeed) == kLevelCount && std::size(kLevelBombRadius) == kLevelCount &&
+              std::size(kLevelBombColor) == kLevelCount, "bombs: one value per level");
+static_assert(std::size(kLevelDiveInterval) == kLevelCount && std::size(kLevelMaxDivers) == kLevelCount,
+              "divers: one value per level");
+static_assert(std::size(kLevelShipTier) == kLevelCount && std::size(kLevelStarColor) == kLevelCount,
+              "ship tier and star colour: one value per level");
 
 // ---- Ship upgrades -------------------------------------------------------------------
-// The ship grows with the level: tier 0 at level 1, tier 1 at level 2, tier 2 at level 3.
+// The ship has three looks ("tiers"); kLevelShipTier above says which level gets which.
 // Each tier is bigger, fires more rockets at once, and fires a different colour.
 // (The colours and parts of the ship itself are in Player.cpp.)
-constexpr float kTierScale[kLevelCount] = {1.0f, 1.12f, 1.25f};   // 1.0 = original size
+constexpr int   kTierCount = 3;
+constexpr float kTierScale[kTierCount] = {1.0f, 1.12f, 1.25f};   // 1.0 = original size
 
 // Where a rocket leaves the ship: x = sideways from the ship's centre, z = forward
 // (negative = toward the invaders). Wing cannons sit at x = +-0.95 * scale.
@@ -152,13 +217,13 @@ struct ShotPoint {
     float x;
     float z;
 };
-constexpr int kTierShotCount[kLevelCount] = {1, 2, 3};
-constexpr ShotPoint kTierShots[kLevelCount][3] = {
+constexpr int kTierShotCount[kTierCount] = {1, 2, 3};
+constexpr ShotPoint kTierShots[kTierCount][3] = {
     {{ 0.00f, -2.7f}, { 0.00f,  0.0f}, { 0.00f,  0.0f}},   // tier 0: one rocket from the nose
     {{-1.06f, -1.3f}, { 1.06f, -1.3f}, { 0.00f,  0.0f}},   // tier 1: one from each wing cannon
     {{-1.19f, -1.4f}, { 0.00f, -3.4f}, { 1.19f, -1.4f}},   // tier 2: both cannons plus the nose
 };
-constexpr Color kTierShotColor[kLevelCount] = {
+constexpr Color kTierShotColor[kTierCount] = {
     {150, 255,  70, 255},   // lime green
     { 80, 220, 255, 255},   // cyan
     {255,  80, 200, 255},   // hot pink
@@ -167,8 +232,7 @@ constexpr Color kTierShotColor[kLevelCount] = {
 // ---- Divers ------------------------------------------------------------------------
 // Now and then an alien leaves the formation and swoops at the player in an
 // S-curve. If it misses, it comes back from the far end into its place.
-constexpr float kDiveInterval[kLevelCount] = {5.0f, 3.5f, 2.5f};   // seconds between dives
-constexpr int   kMaxDivers[kLevelCount]    = {1, 2, 3};            // at the same time
+// How often and how many: kLevelDiveInterval and kLevelMaxDivers (see "Levels").
 constexpr float kDiveDuration   = 3.2f;    // seconds from the formation to past the player
 constexpr float kDiveEndZ       = 9.0f;    // the dive ends here, behind the player
 constexpr float kDiveSwing      = 4.0f;    // how far the S-curve swings sideways
@@ -196,7 +260,7 @@ constexpr float kRapidFireInterval = 0.1f;    // normal: kRocketFireInterval (0.
 constexpr float kPickupBannerTime  = 1.5f;    // the "SHIELD!" text after a pickup
 
 // ---- Bombs ---------------------------------------------------------------------------
-// Numbers from the 2D game: one bomb every 5 s; faster, bigger and redder per level.
+// One bomb every 5 s; its speed, size and colour per level are in "Levels".
 constexpr float kBombInterval  = 5.0f;     // seconds between bombs
 constexpr float kBombSpawnZ    = -42.0f;   // far end of the field, behind the invaders
 constexpr float kBombSpawnY    = 9.0f;     // starts high up ...
@@ -204,8 +268,6 @@ constexpr float kBombLevelOutZ = -16.0f;   // ... and has sunk to cruise height 
 constexpr float kBombCruiseY   = 1.0f;     // the height at which rockets can hit it
 constexpr float kBombDespawnZ  = 6.0f;     // flew past the ship
 constexpr float kBombAimSpread = 3.0f;     // aimed at the ship's X, give or take this much
-constexpr float kLevelBombSpeed[kLevelCount]  = {9.0f, 12.0f, 15.0f};   // units per second
-constexpr float kLevelBombRadius[kLevelCount] = {0.9f, 1.2f, 1.5f};     // 2D: 30 / 40 / 50 px
 constexpr int   kScorePerBomb  = 500;
 constexpr int   kBombExplosionCount = 130;
 constexpr float kBombExplosionSpeed = 14.0f;

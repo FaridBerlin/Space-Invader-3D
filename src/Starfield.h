@@ -17,6 +17,10 @@ public:
     void Update(float dt);
     void Draw() const;   // call between BeginMode3D and EndMode3D
 
+    // The stars' colour (each level has its own mood). The change happens smoothly
+    // over about two seconds, not in one jump.
+    void SetColor(Color target) { target_ = target; }
+
 private:
     struct Star {
         Vector3 position;
@@ -28,4 +32,6 @@ private:
     static Star MakeStar(float z);
 
     std::vector<Star> stars_;
+    Color color_{200, 220, 255, 255};    // what the stars look like right now
+    Color target_{200, 220, 255, 255};   // what they are fading toward
 };

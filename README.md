@@ -20,7 +20,7 @@ real-time 3D graphics work, built one small, reviewed step at a time.
 | **Windows / Linux** | Download the latest zip / tar.gz from [Releases](../../releases), unpack it and start `space-invader-3d`. |
 | **From source** | See [Build it yourself](#build-it-yourself). |
 
-**Touch / mouse:** drag anywhere to move, the ship fires by itself while your finger (or the mouse button) is down; tap to start; the pause button sits at the top right. The game also pauses itself when you switch to another app or window.
+**Touch / mouse:** drag anywhere to move, the ship fires by itself while your finger (or the mouse button) is down; tap to start; the pause and sound buttons sit at the top right (a muted game stays muted next time). The game also pauses itself when you switch to another app or window.
 
 **Keyboard:** `A`/`D` or arrow keys to move, `Space` to shoot (hold for rapid fire), `Enter` to start / restart, `P` to pause, `M` to mute. On desktop also `F` for fullscreen, `1`-`5` to pick the window size (you can drag the window edges too) and `Esc` to leave fullscreen or quit.
 
@@ -33,7 +33,7 @@ real-time 3D graphics work, built one small, reviewed step at a time.
 - Shot aliens sometimes drop a **power-up**: a **shield** that absorbs one hit, **rapid fire**, or rarely an **extra life**.
 - Your ship **upgrades** at every level: bigger, new colours, two and then three rockets per shot.
 - A glowing **bomb** flies in every few seconds. Shoot it for **+500** points, or dodge it.
-- **3 levels** (at 10,000 and 20,000 points): invader shots and bombs get faster, bombs get bigger and redder.
+- **7 levels of 3 waves each.** Every level adds something new (Drones, divers, Reapers, Commanders, ship upgrades), gets faster and has its own colour mood. After level 7: a bonus and endless bonus waves.
 - Particle explosions, a streaming starfield, glowing projectiles (a custom GLSL shader) and sound effects.
 
 ## Build it yourself

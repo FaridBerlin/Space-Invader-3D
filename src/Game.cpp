@@ -7,7 +7,7 @@
 
 #include "Config.h"
 #include "Display.h"
-#include "HighScore.h"
+#include "Storage.h"
 #include "Input.h"
 #include "Random.h"
 #include "Util.h"
@@ -73,11 +73,6 @@ ExplosionStyle PlayerExplosion() {
     };
 }
 
-// The bomb colour gets "hotter" with each level: yellow, orange, red.
-Color BombColor(int level) {
-    const Color colors[config::kLevelCount] = {YELLOW, ORANGE, RED};
-    return colors[level];
-}
 
 ExplosionStyle BombExplosion(Color base) {
     return ExplosionStyle{
@@ -144,16 +139,6 @@ void DrawGlassFloor() {
     DrawTriangle3D(a, c, d, config::kGlassColor);
 }
 
-// Which level belongs to this score? Walk the thresholds, keep the highest one reached.
-int LevelForScore(int score) {
-    int level = 0;
-    for (int i = 1; i < config::kLevelCount; ++i) {
-        if (score >= config::kLevelStartScore[i]) {
-            level = i;
-        }
-    }
-    return level;
-}
 
 }  // namespace
 
@@ -165,7 +150,8 @@ Game::Game() {
     camera_.fovy       = config::kCameraFovDegrees;
     camera_.projection = CAMERA_PERSPECTIVE;
 
-    highScore_ = highscore::Load();   // the best score from earlier games (0 the first time)
+    highScore_ = storage::LoadInt("highscore");   // the best score from earlier games (0 the first time)
+    audio_.SetMuted(storage::LoadInt("muted") != 0);   // muted last time? Then stay muted.
     touchMode_ = IsTouchDevice();     // phones and tablets start with the touch hints
 
     Restart();                 // builds a fresh game ...
@@ -174,7 +160,7 @@ Game::Game() {
 
 void Game::Restart() {
     player_ = Player();            // a brand-new ship in the middle
-    invaders_.Respawn();
+    invaders_.Respawn(0);          // the first wave of level 1
     rockets_.clear();
     powerUps_.clear();
     invaderShots_.clear();
@@ -187,9 +173,14 @@ void Game::Restart() {
     gameOverTime_     = 0.0f;
     score_            = 0;
     level_            = 0;
+    wave_             = 0;
     levelBannerTimer_ = config::kLevelBannerTime;   // announce "LEVEL 1"
+    waveBannerTimer_  = 0.0f;
+    bannerTitle_      = "LEVEL 1";
+    bannerSubtitle_   = config::kLevelIntro[0];
+    stars_.SetColor(config::kLevelStarColor[0]);
     fireCooldown_     = 0.0f;
-    invaderShotTimer_ = config::kInvaderShotInterval;
+    invaderShotTimer_ = config::kLevelShotInterval[0];
     bombTimer_        = config::kBombInterval;
     respawnTimer_     = config::kWaveRespawnDelay;
     lives_            = config::kStartLives;
@@ -211,13 +202,56 @@ void Game::EndGame(const char* reason) {
     if (score_ > highScore_) {
         highScore_    = score_;
         newHighScore_ = true;
-        highscore::Save(highScore_);
+        storage::SaveInt("highscore", highScore_);
     }
+}
+
+void Game::NextWave() {
+    const int lastLevel = config::kLevelCount - 1;
+
+    if (wave_ + 1 < config::kWavesPerLevel || level_ == lastLevel) {
+        // ---- The next wave of the same level -------------------------------------
+        ++wave_;
+        waveBannerTimer_ = config::kWaveBannerTime;
+
+        // The last wave of the last level is done: the whole game is beaten!
+        // From here on, endless bonus waves at full speed.
+        if (level_ == lastLevel && wave_ == config::kWavesPerLevel) {
+            score_ += config::kAllLevelsBonus;
+            bannerTitle_      = TextFormat("ALL %d LEVELS CLEARED!", config::kLevelCount);
+            bannerSubtitle_   = TextFormat("+%d bonus. Endless bonus waves from here!", config::kAllLevelsBonus);
+            levelBannerTimer_ = config::kLevelBannerTime + 1.0f;
+            waveBannerTimer_  = 0.0f;
+        }
+    } else {
+        // ---- The next level ----------------------------------------------------
+        ++level_;
+        wave_ = 0;
+        bannerTitle_      = TextFormat("LEVEL %d", level_ + 1);
+        bannerSubtitle_   = config::kLevelIntro[level_];
+        levelBannerTimer_ = config::kLevelBannerTime;
+        stars_.SetColor(config::kLevelStarColor[level_]);   // the new colour mood
+
+        // Some levels upgrade the ship: new look, and a burst of sparkles in the
+        // new shot colour around it.
+        const int tier = config::kLevelShipTier[level_];
+        if (tier != player_.Tier()) {
+            player_.SetTier(tier);
+            if (playerAlive_) {
+                particles_.Explode(player_.Position(),
+                                   ExplosionStyle{70, 9.0f, 1.0f, 0.3f,
+                                                  config::kTierShotColor[tier], Color{255, 255, 255, 255}});
+            }
+        }
+    }
+
+    invaders_.Respawn(level_);
+    invaderShotTimer_ = config::kLevelShotInterval[level_];   // a short grace period
 }
 
 void Game::RespawnPlayer() {
     player_ = Player();           // a fresh ship in the middle ...
-    player_.SetTier(level_);      // ... keeping the upgrade it had earned
+    player_.SetTier(config::kLevelShipTier[level_]);   // ... with the upgrade of this level
     playerAlive_     = true;
     invincibleTimer_ = config::kInvincibleTime;
     fireCooldown_    = 0.0f;
@@ -313,8 +347,24 @@ void Game::Update(float dt) {
         touchMode_ = false;
     }
     if (input.toggleMute) {
-        audio_.ToggleMute();
+        ToggleSound();
     }
+
+    // The sound button works in every state (menu, playing, paused, game over).
+    // A tap on it is "used up": it must not also start the game or steer the ship.
+    bool tapUsed = false;
+    if (input.pointerPressed) {
+        const bool onMute  = CheckCollisionPointRec(input.pointer, MuteButtonRect());
+        const bool onPause = state_ == GameState::Playing && CheckCollisionPointRec(input.pointer, PauseButtonRect());
+        touchOnButton_ = onMute || onPause;
+        if (onMute) {
+            ToggleSound();
+            tapUsed = true;
+        }
+    } else if (!input.pointerDown) {
+        touchOnButton_ = false;   // the finger is lifted: the next touch is a new one
+    }
+    const bool tap = input.pointerPressed && !tapUsed;
     if (input.toggleFullscreen) {
         display::ToggleFullscreen();
     }
@@ -344,7 +394,7 @@ void Game::Update(float dt) {
     // What else happens each frame depends on the state we are in.
     switch (state_) {
         case GameState::Menu:
-            if (input.confirm || input.pointerPressed) {   // Enter, or a tap anywhere
+            if (input.confirm || tap) {   // Enter, or a tap anywhere (but not on the sound button)
                 Restart();
             }
             break;
@@ -352,7 +402,7 @@ void Game::Update(float dt) {
             // Pause with P, with the pause button, or by itself when the game goes
             // to the background (a phone call, another app or window).
             if (input.togglePause || wentToBackground ||
-                (input.pointerPressed && CheckCollisionPointRec(input.pointer, PauseButtonRect()))) {
+                (tap && CheckCollisionPointRec(input.pointer, PauseButtonRect()))) {
                 state_ = GameState::Paused;
                 break;   // nothing moves in the frame we pause
             }
@@ -362,7 +412,7 @@ void Game::Update(float dt) {
             // Continue only with P or the play button, so a stray tap (or picking the
             // phone back up) does not start the game by accident.
             if (input.togglePause ||
-                (input.pointerPressed && CheckCollisionPointRec(input.pointer, PlayButtonRect()))) {
+                (tap && CheckCollisionPointRec(input.pointer, PlayButtonRect()))) {
                 dragActive_ = false;   // the next touch starts a fresh drag
                 state_ = GameState::Playing;
             }
@@ -370,7 +420,7 @@ void Game::Update(float dt) {
         case GameState::GameOver:
             // The world is frozen. After a short pause, wait for Enter.
             gameOverTime_ += dt;
-            if (gameOverTime_ >= config::kGameOverDelay && (input.confirm || input.pointerPressed)) {
+            if (gameOverTime_ >= config::kGameOverDelay && (input.confirm || tap)) {
                 Restart();
             }
             break;
@@ -379,9 +429,9 @@ void Game::Update(float dt) {
 
 PlayerInput Game::ApplyTouchSteering(const PlayerInput& input) {
     PlayerInput steer = input;   // a copy we can change
-    if (!input.pointerDown) {
+    if (!input.pointerDown || touchOnButton_) {
         dragActive_ = false;
-        return steer;            // no finger: keyboard as usual
+        return steer;            // no finger (or it is on a button): keyboard as usual
     }
 
     // How many screen pixels is one world unit at the ship's distance? We ask the
@@ -411,6 +461,47 @@ PlayerInput Game::ApplyTouchSteering(const PlayerInput& input) {
     steer.targetX = target;
     steer.fire    = true;   // while the finger is down, the ship fires by itself
     return steer;
+}
+
+void Game::ToggleSound() {
+    audio_.ToggleMute();
+    storage::SaveInt("muted", audio_.Muted() ? 1 : 0);   // remembered for next time
+}
+
+Rectangle Game::MuteButtonRect() const {
+    const Rectangle pause = PauseButtonRect();   // same size, just left of it
+    return Rectangle{pause.x - pause.width - static_cast<float>(display::Px(12)), pause.y,
+                     pause.width, pause.height};
+}
+
+void Game::DrawMuteButton() const {
+    const Rectangle r = MuteButtonRect();
+    DrawRectangleRounded(r, 0.3f, 6, Fade(Color{20, 25, 50, 255}, 0.7f));
+    DrawRectangleRoundedLinesEx(r, 0.3f, 6, 2.0f, Fade(RAYWHITE, 0.6f));
+
+    // A loudspeaker: a small box and a cone opening to the right.
+    const float s = r.width;
+    const float cx = r.x + s * 0.40f;
+    const float cy = r.y + s * 0.50f;
+    DrawRectangleRec(Rectangle{cx - s * 0.20f, cy - s * 0.09f, s * 0.12f, s * 0.18f}, RAYWHITE);
+    // The cone is two triangles (raylib wants each one's corners counter-clockwise on screen).
+    DrawTriangle(Vector2{cx - s * 0.08f, cy - s * 0.09f}, Vector2{cx - s * 0.08f, cy + s * 0.09f},
+                 Vector2{cx + s * 0.08f, cy + s * 0.22f}, RAYWHITE);
+    DrawTriangle(Vector2{cx - s * 0.08f, cy - s * 0.09f}, Vector2{cx + s * 0.08f, cy + s * 0.22f},
+                 Vector2{cx + s * 0.08f, cy - s * 0.22f}, RAYWHITE);
+
+    if (audio_.Muted()) {
+        // Sound off: a red cross next to the speaker.
+        const Color red{255, 90, 90, 255};
+        const float x = cx + s * 0.22f;
+        DrawLineEx(Vector2{x, cy - s * 0.10f}, Vector2{x + s * 0.18f, cy + s * 0.10f}, s * 0.06f, red);
+        DrawLineEx(Vector2{x, cy + s * 0.10f}, Vector2{x + s * 0.18f, cy - s * 0.10f}, s * 0.06f, red);
+    } else {
+        // Sound on: two sound waves (parts of rings) coming out of the speaker.
+        const Vector2 centre{cx + s * 0.06f, cy};
+        DrawRing(centre, s * 0.20f, s * 0.24f, -45.0f, 45.0f, 10, RAYWHITE);
+        DrawRing(centre, s * 0.32f, s * 0.36f, -45.0f, 45.0f, 12, RAYWHITE);
+    }
 }
 
 Rectangle Game::PlayButtonRect() const {
@@ -484,7 +575,7 @@ void Game::UpdatePlaying(float dt, const PlayerInput& input) {
                     config::kLevelShotSpeed[level_]);
                 audio_.Play(Sfx::InvaderShot);
             }
-            invaderShotTimer_ = config::kInvaderShotInterval;
+            invaderShotTimer_ = config::kLevelShotInterval[level_];
         }
     }
 
@@ -498,7 +589,7 @@ void Game::UpdatePlaying(float dt, const PlayerInput& input) {
         bombs_.emplace_back(Vector3{x, config::kBombSpawnY, config::kBombSpawnZ},
                             config::kLevelBombSpeed[level_],
                             config::kLevelBombRadius[level_],
-                            BombColor(level_));
+                            config::kLevelBombColor[level_]);
         bombTimer_ = config::kBombInterval;
     }
 
@@ -547,22 +638,9 @@ void Game::UpdatePlaying(float dt, const PlayerInput& input) {
         }
     }
 
-    // 4a'. Did the score just reach the next level? Levels only go up.
-    const int newLevel = LevelForScore(score_);
-    if (newLevel > level_) {
-        level_            = newLevel;
-        levelBannerTimer_ = config::kLevelBannerTime;
-
-        // Level up = ship upgrade: new look, and a burst of sparkles in the new
-        // shot colour around the ship.
-        player_.SetTier(level_);
-        particles_.Explode(player_.Position(),
-                           ExplosionStyle{70, 9.0f, 1.0f, 0.3f,
-                                          config::kTierShotColor[level_], Color{255, 255, 255, 255}});
-    }
-    if (levelBannerTimer_ > 0.0f) {
-        levelBannerTimer_ -= dt;
-    }
+    // 4a'. The banners fade out by themselves.
+    levelBannerTimer_ = std::max(0.0f, levelBannerTimer_ - dt);
+    waveBannerTimer_  = std::max(0.0f, waveBannerTimer_ - dt);
 
     // 4b. Invader shots against our ship.
     for (auto& shot : invaderShots_) {
@@ -623,8 +701,7 @@ void Game::UpdatePlaying(float dt, const PlayerInput& input) {
     if (invaders_.Empty()) {
         respawnTimer_ -= dt;
         if (respawnTimer_ <= 0.0f) {
-            invaders_.Respawn();
-            invaderShotTimer_ = config::kInvaderShotInterval;   // a short grace period
+            NextWave();
         }
     } else {
         respawnTimer_ = config::kWaveRespawnDelay;
@@ -708,6 +785,7 @@ void Game::Draw() const {
 
     if (state_ == GameState::Menu) {
         DrawMenu();
+        DrawMuteButton();
         return;   // no score or banner on the title screen
     }
 
@@ -719,13 +797,9 @@ void Game::Draw() const {
     if (touchMode_) {
         DrawText("Drag anywhere to move. The ship fires by itself.", Px(20), Px(56), Px(20), LIGHTGRAY);
     } else {
-#if defined(__EMSCRIPTEN__)
-    DrawText("Move: A / D or arrows     Fire: Space (hold)     Mute: M     Pause: P",
-             Px(20), Px(56), Px(20), LIGHTGRAY);
-#else
-    DrawText("Move: A / D or arrows     Fire: Space (hold)     Mute: M     Pause: P     Fullscreen: F     Window size: 1-5     Quit: Esc",
-             Px(20), Px(56), Px(20), LIGHTGRAY);
-#endif
+        // Only the keys needed while playing; the window keys are listed in the menu.
+        DrawText("Move: A / D or arrows     Fire: Space (hold)     Pause: P     Mute: M",
+                 Px(20), Px(56), Px(20), LIGHTGRAY);
     }
     DrawText(TextFormat("%d FPS", GetFPS()), Px(20), Px(84), Px(20), GREEN);
     DrawLives();
@@ -740,8 +814,16 @@ void Game::Draw() const {
 
     // Level in the top right corner, right-aligned: measure the text, then
     // start that far left of the screen edge.
+    // "WAVE 2/3   LEVEL 3" in the top right corner, right-aligned: measure the
+    // text, then start that far left of the screen edge.
     const char* levelText = TextFormat("LEVEL %d", level_ + 1);
-    DrawText(levelText, GetScreenWidth() - Px(20) - MeasureText(levelText, Px(32)), Px(16), Px(32), SKYBLUE);
+    const int levelX = GetScreenWidth() - Px(20) - MeasureText(levelText, Px(32));
+    DrawText(levelText, levelX, Px(16), Px(32), SKYBLUE);
+    const char* waveText = (wave_ < config::kWavesPerLevel)
+        ? TextFormat("WAVE %d/%d", wave_ + 1, config::kWavesPerLevel)
+        : TextFormat("BONUS WAVE %d", wave_ - config::kWavesPerLevel + 1);
+    DrawText(waveText, levelX - Px(18) - MeasureText(waveText, Px(22)), Px(24), Px(22),
+             Fade(SKYBLUE, 0.75f));
 
     // Active power-ups under the level, right-aligned, with the seconds left.
     auto drawRight = [&](const char* text, int y, Color color) {
@@ -771,6 +853,14 @@ void Game::Draw() const {
 
     if (state_ == GameState::Playing && levelBannerTimer_ > 0.0f) {
         DrawLevelBanner();
+    } else if (state_ == GameState::Playing && waveBannerTimer_ > 0.0f) {
+        // The small wave banner, when no big level banner is showing.
+        const float alpha = waveBannerTimer_ > 0.4f ? 1.0f : waveBannerTimer_ / 0.4f;
+        const char* text = (wave_ < config::kWavesPerLevel)
+            ? TextFormat("WAVE %d / %d", wave_ + 1, config::kWavesPerLevel)
+            : TextFormat("BONUS WAVE %d", wave_ - config::kWavesPerLevel + 1);
+        DrawText(text, (GetScreenWidth() - MeasureText(text, Px(44))) / 2, GetScreenHeight() / 4,
+                 Px(44), Fade(SKYBLUE, alpha));
     }
 
     if (state_ == GameState::Paused) {
@@ -780,6 +870,8 @@ void Game::Draw() const {
     if (state_ == GameState::GameOver && gameOverTime_ >= config::kGameOverDelay) {
         DrawGameOver();
     }
+
+    DrawMuteButton();   // last, so the dark pause and game-over screens do not cover it
 }
 
 // One small ship icon per life, right of the score: a triangle with an orange flame.
@@ -891,10 +983,15 @@ void Game::DrawMenu() const {
 }
 
 void Game::DrawLevelBanner() const {
+    using display::Px;
     // Fade out during the last half second of the banner time.
     const float alpha = levelBannerTimer_ > 0.5f ? 1.0f : levelBannerTimer_ / 0.5f;
-    const char* text = TextFormat("LEVEL %d", level_ + 1);
-    const int fontSize = display::Px(70);
-    DrawText(text, (GetScreenWidth() - MeasureText(text, fontSize)) / 2,
-             GetScreenHeight() / 4, fontSize, Fade(SKYBLUE, alpha));
+    const int titleSize = Px(70);
+    const int subSize   = Px(28);
+    const int y = GetScreenHeight() / 4;
+    // .c_str() turns a std::string into the plain "const char*" that raylib wants.
+    DrawText(bannerTitle_.c_str(), (GetScreenWidth() - MeasureText(bannerTitle_.c_str(), titleSize)) / 2,
+             y, titleSize, Fade(SKYBLUE, alpha));
+    DrawText(bannerSubtitle_.c_str(), (GetScreenWidth() - MeasureText(bannerSubtitle_.c_str(), subSize)) / 2,
+             y + titleSize + Px(12), subSize, Fade(RAYWHITE, alpha));
 }
