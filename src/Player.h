@@ -39,7 +39,7 @@ private:
     float x_         = 0.0f;   // position along X (left/right)
     float velocityX_ = 0.0f;   // current sideways speed in units per second
     float time_      = 0.0f;   // seconds since creation, drives the engine flicker
-    int   tier_      = 0;      // upgrade level, 0..kLevelCount-1
+    int   tier_      = 0;      // upgrade level, 0..kTierCount-1
 
     // Half the ship's width, which grows with the tier. Used for the wall limit.
     float HalfWidth() const;

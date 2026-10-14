@@ -3,6 +3,7 @@
 #include "Starfield.h"
 
 #include <algorithm>   // std::min
+#include <cmath>       // std::exp
 
 #include "Config.h"
 #include "Random.h"
@@ -37,6 +38,15 @@ Starfield::Starfield() {
 }
 
 void Starfield::Update(float dt) {
+    // Move the colour a little toward the target every frame (same smoothing as the
+    // ship's movement, so it takes the same time at any frame rate).
+    const float blend = 1.0f - std::exp(-1.5f * dt);
+    auto toward = [blend](unsigned char from, unsigned char to) {
+        return static_cast<unsigned char>(static_cast<float>(from) +
+                                          (static_cast<float>(to) - static_cast<float>(from)) * blend + 0.5f);
+    };
+    color_ = Color{toward(color_.r, target_.r), toward(color_.g, target_.g), toward(color_.b, target_.b), 255};
+
     for (auto& star : stars_) {
         star.position.z += config::kStarSpeed * star.speedFactor * dt;
 
@@ -49,7 +59,7 @@ void Starfield::Update(float dt) {
 }
 
 void Starfield::Draw() const {
-    const Color base{200, 220, 255, 255};   // a slightly blue white
+    const Color base = color_;   // the level's colour mood (see SetColor)
 
     for (const auto& star : stars_) {
         // Fade in over the first stretch, so stars do not "pop" into view at the far end.

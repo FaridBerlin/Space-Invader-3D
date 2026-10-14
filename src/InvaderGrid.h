@@ -25,7 +25,9 @@ class InvaderGrid {
 public:
     InvaderGrid();
 
-    void Respawn();            // creates a fresh wave of random size
+    // Creates a fresh wave for this level (0-based): its size, speed and alien
+    // types depend on the level (see "Levels" in Config.h).
+    void Respawn(int level);
     // level = 0-based level (more divers later), playerX = where the ship is (divers aim there).
     void Update(float dt, int level, float playerX);
     void Draw(const AlienModels& models) const;
@@ -58,5 +60,6 @@ private:
     float   direction_ = 1.0f;   // +1 = moving right, -1 = moving left
     float   time_      = 0.0f;   // drives the bobbing animation
     float   diveTimer_ = 0.0f;   // seconds until the next alien may dive
+    float   speed_     = 5.0f;   // sideways speed of this wave, units per second
     Vector3 waveOffset_{};       // how far the whole wave has moved since it appeared
 };

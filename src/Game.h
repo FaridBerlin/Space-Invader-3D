@@ -5,6 +5,7 @@
 
 #pragma once
 
+#include <string>
 #include <vector>
 
 #include "AlienModels.h"
@@ -57,12 +58,16 @@ private:
     void DrawPaused() const;
     void DrawLives() const;
     void RespawnPlayer();
+    void NextWave();   // after a wave is destroyed: the next wave, or the next level
     void DrawPauseButton() const;
     // Turns a finger drag into steering (targetX) and auto-fire. Returns the input
     // the ship should use this frame.
     PlayerInput ApplyTouchSteering(const PlayerInput& input);
     Rectangle PauseButtonRect() const;   // the on-screen pause button (top right)
     Rectangle PlayButtonRect() const;    // the big play button on the pause screen
+    Rectangle MuteButtonRect() const;    // the sound on/off button, left of the pause button
+    void DrawMuteButton() const;
+    void ToggleSound();                  // mute or unmute, and remember the choice
 
     Camera3D camera_{};
     Player   player_;
@@ -84,7 +89,11 @@ private:
 
     int   score_           = 0;
     int   level_           = 0;      // 0-based index into the level tables (shown as level_ + 1)
-    float levelBannerTimer_ = 0.0f;  // seconds left to show the "LEVEL n" banner
+    int   wave_            = 0;      // 0-based wave within the level (beyond the last level: keeps counting)
+    float levelBannerTimer_ = 0.0f;  // seconds left to show the big banner ("LEVEL 3")
+    float waveBannerTimer_ = 0.0f;   // seconds left to show "WAVE 2 / 3"
+    std::string bannerTitle_;        // the big banner's text ...
+    std::string bannerSubtitle_;     // ... and the line under it
     float fireCooldown_    = 0.0f;   // seconds until the next rocket may be fired
     float invaderShotTimer_ = 0.0f;  // seconds until the wave fires its next shot
     float bombTimer_       = 0.0f;   // seconds until the next bomb appears
@@ -92,6 +101,7 @@ private:
     float respawnTimer_    = 0.0f;   // counts down after a wave is destroyed
     bool  touchMode_       = false;  // playing with a finger/mouse: show touch hints and the pause button
     bool  dragActive_      = false;  // a finger is down and steering the ship
+    bool  touchOnButton_   = false;  // this touch began on a button: it must not steer or fire
     float dragStartPointerX_ = 0.0f; // where the finger was when the drag began (pixels)
     float dragStartShipX_  = 0.0f;   // where the ship was when the drag began (world units)
     int   lives_           = 0;      // ships left, including the one flying now

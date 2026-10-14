@@ -39,6 +39,7 @@ public:
 
     void Play(Sfx sfx);
     void ToggleMute();
+    void SetMuted(bool muted) { if (muted != muted_) ToggleMute(); }
     bool Muted() const { return muted_; }
 
 private:

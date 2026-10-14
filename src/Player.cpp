@@ -34,7 +34,7 @@ struct ShipStyle {
     float flameLength;   // 1.0 = normal; bigger tiers have longer flames
 };
 
-// One entry per tier = per level. The ship starts blue-grey with lime trim and
+// One entry per tier (which level gets which tier: kLevelShipTier in Config.h). The ship starts blue-grey with lime trim and
 // ends crimson and gold. The engine flames are orange, then red-orange, then red.
 constexpr ShipStyle kStyles[] = {
     // hull               wing                trim                canopy              flame outer         flame core          length
@@ -42,8 +42,8 @@ constexpr ShipStyle kStyles[] = {
     {{225, 230, 242, 255}, {150, 105, 225, 255}, { 90, 230, 255, 255}, {110, 240, 255, 255}, {255,  70,  20, 255}, {255, 200,  80, 255}, 1.15f},
     {{150, 152, 178, 255}, {215,  60,  85, 255}, {255, 210,  70, 255}, {255, 200,  80, 255}, {255,  40,  40, 255}, {255, 255, 200, 255}, 1.35f},
 };
-static_assert(std::size(kStyles) == static_cast<std::size_t>(config::kLevelCount),
-              "one ship style per level");
+static_assert(std::size(kStyles) == static_cast<std::size_t>(config::kTierCount),
+              "one ship style per tier");
 
 }  // namespace
 
@@ -86,7 +86,7 @@ void Player::Update(float dt, const PlayerInput& input) {
 
 void Player::SetTier(int tier) {
     // Keep the tier inside the table, whatever the caller passes.
-    tier_ = std::clamp(tier, 0, config::kLevelCount - 1);
+    tier_ = std::clamp(tier, 0, config::kTierCount - 1);
 }
 
 float Player::HalfWidth() const {
