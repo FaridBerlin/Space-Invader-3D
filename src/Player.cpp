@@ -2,7 +2,7 @@
 
 #include "Player.h"
 
-#include <algorithm>   // std::min, std::max
+#include <algorithm>   // std::min, std::max, std::clamp
 #include <cmath>       // std::exp, std::sin
 #include <cstddef>     // std::size_t
 #include <iterator>    // std::size
@@ -53,7 +53,14 @@ void Player::Update(float dt, const PlayerInput& input) {
     time_ += dt;
 
     // 1. What speed do we WANT? input.move is -1..+1, so this is -speed..+speed.
-    const float targetVelocity = input.move * config::kPlayerSpeed;
+    //    With touch steering we want to reach input.targetX instead: the further
+    //    away it is, the faster we fly there (a bit faster than with the keys,
+    //    so the ship keeps up with the finger).
+    float targetVelocity = input.move * config::kPlayerSpeed;
+    if (input.targetX) {
+        const float maxSpeed = config::kPlayerSpeed * config::kTouchSpeedFactor;
+        targetVelocity = std::clamp((*input.targetX - x_) * config::kTouchFollowRate, -maxSpeed, maxSpeed);
+    }
 
     // 2. Move the real velocity toward the wanted one, smoothly, so the ship
     //    accelerates and brakes instead of jerking.
@@ -95,8 +102,10 @@ void Player::Draw() const {
     // The ship flies toward -Z, so "rolling" means rotating around the Z axis.
     // Positive angles tip the right wing UP when seen from behind, so we use the
     // negative sign to dip the wing on the side we are turning toward.
+    // (std::clamp: with touch the ship can fly faster than kPlayerSpeed, but the
+    // tilt should not go beyond the maximum.)
     const float bankDegrees =
-        -(velocityX_ / config::kPlayerSpeed) * config::kPlayerMaxBankDegrees;
+        -std::clamp(velocityX_ / config::kPlayerSpeed, -1.0f, 1.0f) * config::kPlayerMaxBankDegrees;
 
     // ---- Transform stack ---------------------------------------------------------
     // Instead of calculating the position of every part by hand, we MOVE and

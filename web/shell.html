@@ -12,7 +12,11 @@
   #stage { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; }
   canvas { max-width: 100vw; max-height: 100vh; aspect-ratio: 16 / 9;
            width: min(100vw, 177.78vh); height: auto; display: block;
-           outline: none; background: #05050f; }
+           outline: none; background: #05050f;
+           /* Phones and tablets: the finger steers the ship, so the page must not
+              scroll, zoom, select text or show a menu when it is touched. */
+           touch-action: none; user-select: none; -webkit-user-select: none;
+           -webkit-touch-callout: none; -webkit-tap-highlight-color: transparent; }
   #loading { position: fixed; inset: 0; display: flex; flex-direction: column;
              align-items: center; justify-content: center; gap: 14px; pointer-events: none; }
   #loading h1 { margin: 0; font-size: 28px; letter-spacing: 2px; color: #be78ff; }
@@ -20,12 +24,21 @@
   #fill { width: 0; height: 100%; background: #6cc4ff; transition: width .15s; }
   #status { font-size: 14px; opacity: .8; }
   #hint { position: fixed; bottom: 8px; left: 0; right: 0; text-align: center; font-size: 12px; opacity: .45; pointer-events: none; }
+  /* Touch screens only: a fullscreen button, and a hint to turn the phone sideways. */
+  #fullscreen { position: fixed; right: max(10px, env(safe-area-inset-right)); bottom: max(10px, env(safe-area-inset-bottom));
+                display: none; padding: 8px 12px; font: 600 13px system-ui, sans-serif; color: #cfd3ff;
+                background: rgba(20, 25, 50, .75); border: 1px solid rgba(207, 211, 255, .4); border-radius: 8px; }
+  #rotate { position: fixed; top: 12px; left: 0; right: 0; text-align: center; font-size: 14px;
+            display: none; pointer-events: none; color: #ffd166; }
+  @media (orientation: portrait) { body.touch #rotate { display: block; } }
 </style>
 </head>
 <body>
 <div id="stage"><canvas id="canvas" tabindex="-1" oncontextmenu="event.preventDefault()"></canvas></div>
 <div id="loading"><h1>SPACE INVADER 3D</h1><div id="bar"><div id="fill"></div></div><div id="status">Loading...</div></div>
-<div id="hint">Click the game once so it gets the keyboard. Move: A / D or arrows, Fire: Space, Mute: M. Needs a keyboard.</div>
+<div id="hint">Click the game once so it gets the keyboard. Move: A / D or arrows (or drag with the mouse), Fire: Space, Pause: P, Mute: M.</div>
+<div id="rotate">Turn your device sideways for a bigger picture.</div>
+<button id="fullscreen" type="button">Fullscreen</button>
 <script>
   var Module = {
     canvas: document.getElementById('canvas'),
@@ -42,6 +55,32 @@
   // Browsers only let a page play sound after the player has interacted with
   // it. Clicking the canvas gives the keyboard focus to the game as well.
   document.getElementById('canvas').addEventListener('mousedown', function () { window.focus(); });
+  // Touch screens: other hints, and a fullscreen button where the browser allows it
+  // (Android does; iPhones do not let a web page go fullscreen).
+  var isTouch = navigator.maxTouchPoints > 0 || 'ontouchstart' in window;
+  if (isTouch) {
+    document.body.classList.add('touch');
+    document.getElementById('hint').textContent = 'Tap to start. Drag anywhere to move; the ship fires by itself.';
+    var fs = document.getElementById('fullscreen');
+    var root = document.documentElement;
+    if (root.requestFullscreen) {
+      fs.style.display = 'block';
+      fs.addEventListener('click', function () {
+        root.requestFullscreen().then(function () {
+          // Also try to lock landscape; many browsers allow this only in fullscreen.
+          if (screen.orientation && screen.orientation.lock) { screen.orientation.lock('landscape').catch(function () {}); }
+        }).catch(function () {});
+      });
+      document.addEventListener('fullscreenchange', function () {
+        fs.style.display = document.fullscreenElement ? 'none' : 'block';
+      });
+    }
+    // Once the game is touched, the bottom hint is not needed any more.
+    document.getElementById('canvas').addEventListener('touchstart', function () {
+      document.getElementById('hint').style.display = 'none';
+    }, { once: true });
+  }
+
   // Stop the arrow keys and Space from scrolling the page.
   window.addEventListener('keydown', function (e) {
     if (['ArrowLeft','ArrowRight','ArrowUp','ArrowDown',' '].indexOf(e.key) >= 0) { e.preventDefault(); }

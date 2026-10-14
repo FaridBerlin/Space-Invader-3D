@@ -78,6 +78,13 @@ constexpr float kPlayerHalfWidth      = 1.5f;   // wing tip to centre, used for 
 constexpr float kPlayerHeight         = 0.6f;   // ship centre above the ground
 constexpr float kPlayerHitRadius      = 1.1f;   // collision sphere of the ship (a bit smaller than the wings)
 
+// ---- Touch / mouse steering -----------------------------------------------------------
+// Drag anywhere: the ship moves as far (in screen pixels) as the finger does, and
+// fires by itself while the finger is down.
+constexpr float kTouchDragGain    = 1.3f;    // 1.0 = the ship follows the finger 1:1 on screen
+constexpr float kTouchFollowRate  = 14.0f;   // how quickly the ship catches up with the finger
+constexpr float kTouchSpeedFactor = 1.8f;    // top speed with touch, times kPlayerSpeed
+
 // ---- Rockets ------------------------------------------------------------------
 constexpr float kRocketSpeed        = 35.0f;   // units per second, flying toward -Z
 constexpr float kRocketFireInterval = 0.2f;    // seconds between shots (same as the 2D game)
