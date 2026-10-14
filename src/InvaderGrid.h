@@ -61,5 +61,6 @@ private:
     float   time_      = 0.0f;   // drives the bobbing animation
     float   diveTimer_ = 0.0f;   // seconds until the next alien may dive
     float   speed_     = 5.0f;   // sideways speed of this wave, units per second
+    int     level_     = 0;      // the level this wave belongs to (for its colours)
     Vector3 waveOffset_{};       // how far the whole wave has moved since it appeared
 };

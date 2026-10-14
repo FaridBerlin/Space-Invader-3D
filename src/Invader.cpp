@@ -13,8 +13,11 @@
 
 #include "Invader.h"
 
+#include <algorithm>          // std::clamp
 #include <cmath>              // std::sin, std::cos
+#include <cstddef>            // std::size_t
 #include <initializer_list>   // lets us loop over a list like {-1.0f, 1.0f}
+#include <iterator>           // std::size
 
 #include "Config.h"
 #include "LowPoly.h"
@@ -36,6 +39,8 @@ struct ScarabStyle {
     float scale;   // 1.0 = normal size
 };
 
+// The Scarab as designed. In the game its colours come from the level (see
+// kLevelAlienColors below); only its size is taken from here.
 constexpr ScarabStyle kScarabStyle{
     { 95,  60, 150, 255},   // violet
     { 40,  25,  70, 255},   // very dark violet
@@ -52,6 +57,27 @@ constexpr ScarabStyle kCommanderFallbackStyle{
     {255, 200,  60, 255},   // gold
     1.30f,
 };
+
+// ---- Colours per level ----------------------------------------------------------------
+// Body and glow colour of the wave in each level. Chosen so the glow never looks
+// like that level's bomb (see kLevelBombColor in Config.h).
+constexpr LevelAlienColors kLevelAlienColors[] = {
+    {{ 95,  60, 150, 255}, {160, 255,  60, 255}},   // 1 violet and lime
+    {{ 35, 115, 135, 255}, {255, 205,  70, 255}},   // 2 teal and gold
+    {{ 45,  60, 160, 255}, {255, 160,  60, 255}},   // 3 navy and orange
+    {{ 35, 100,  60, 255}, {255, 110, 200, 255}},   // 4 dark green and pink
+    {{110,  35,  70, 255}, { 80, 240, 220, 255}},   // 5 maroon and aqua
+    {{130,  80,  35, 255}, {255, 240, 170, 255}},   // 6 bronze and white-gold
+    {{ 62,  44,  70, 255}, {255,  40,  70, 255}},   // 7 near-black and crimson
+};
+static_assert(std::size(kLevelAlienColors) == static_cast<std::size_t>(config::kLevelCount),
+              "one alien colour scheme per level");
+
+// A colour made darker: f = 0.5 gives half the brightness.
+Color Darker(Color c, float f) {
+    return Color{static_cast<unsigned char>(c.r * f), static_cast<unsigned char>(c.g * f),
+                 static_cast<unsigned char>(c.b * f), c.a};
+}
 
 // A point on the shell's rim. Angle in degrees, measured like on a clock face
 // turned sideways: 0 = right, 90 = top, 180 = left, 270 = bottom.
@@ -211,12 +237,13 @@ void DrawScarab(const ScarabStyle& style, float flash, float pulse, float claws)
 // A dark armoured body pointing down at the player, red chevron stripes, two big
 // horn-wings sweeping out and down, and glowing red pods along its sides.
 //   flash  0..1 white after a hit, pulse 0..1 glow of the pods, wings = flap angle
-void DrawReaper(float flash, float pulse, float wings) {
+//   metal = the armour colour of this level, stripes = its glow colour
+void DrawReaper(float flash, float pulse, float wings, Color metal, Color stripes) {
     const Color white{255, 255, 255, 255};
-    const Color body  = Mix(Color{ 92,  92, 108, 255}, white, flash);
-    const Color wing  = Mix(Color{ 76,  76,  90, 255}, white, flash);
-    const Color back  = Mix(Color{ 25,  25,  30, 255}, white, flash);
-    const Color red   = Mix(Color{230,  35,  45, 255}, white, flash);
+    const Color body  = Mix(metal, white, flash);
+    const Color wing  = Mix(Darker(metal, 0.82f), white, flash);
+    const Color back  = Mix(Darker(metal, 0.28f), white, flash);
+    const Color red   = Mix(stripes, white, flash);   // the stripes and wing edges
     const Color glow  = Mix(Color{255,  70,  70, 255}, white, std::fmax(flash, 0.4f * pulse));
 
     // ---- Body: a diamond with a ridge down the middle -------------------------------
@@ -284,9 +311,10 @@ void DrawReaper(float flash, float pulse, float wings) {
 // with a ring of light around it. Spinning makes each face catch the lamp in turn,
 // so it sparkles.
 //   flash 0..1, spin = rotation angle in degrees
-void DrawDrone(float flash, float spin) {
+//   color = the crystal's colour in this level (the ring always stays white-blue)
+void DrawDrone(float flash, float spin, Color color) {
     const Color white{255, 255, 255, 255};
-    const Color crystal = Mix(Color{ 70, 195, 255, 255}, white, flash);
+    const Color crystal = Mix(color, white, flash);
     const Color ring    = Mix(Color{150, 240, 255, 255}, white, flash);
 
     rlPushMatrix();
@@ -299,8 +327,15 @@ void DrawDrone(float flash, float spin) {
     for (int i = 0; i < 4; ++i) {
         const Vector3 a = around[i];
         const Vector3 b = around[(i + 1) % 4];   // % 4 wraps 4 back to 0
-        DrawFace(top, a, b, crystal, lowpoly::Mid(top, a, b));
-        DrawFace(bottom, a, b, crystal, lowpoly::Mid(bottom, a, b));
+        // A crystal glows from inside, so it is NOT shaded by the lamp like armour.
+        // Instead every face has its own fixed brightness: bright and normal
+        // alternating on top, normal and darker underneath. As it spins, the
+        // faces take turns facing us, and the crystal sparkles.
+        const bool even = (i % 2 == 0);
+        const Color upper = even ? Mix(crystal, white, 0.45f) : crystal;
+        const Color lower = even ? crystal : Darker(crystal, 0.7f);
+        DrawTriangle3D(top, a, b, upper);    DrawTriangle3D(top, b, a, upper);      // both sides
+        DrawTriangle3D(bottom, a, b, lower); DrawTriangle3D(bottom, b, a, lower);
         DrawLine3D(top, a, ring);       // bright edges make the crystal sparkle
         DrawLine3D(bottom, a, ring);
     }
@@ -323,6 +358,10 @@ void DrawDrone(float flash, float spin) {
 
 }  // namespace
 
+LevelAlienColors AlienColorsForLevel(int level) {
+    return kLevelAlienColors[std::clamp(level, 0, config::kLevelCount - 1)];
+}
+
 Invader::Invader(Vector3 start, AlienType alienType)
     : position(start),
       type(alienType),
@@ -342,7 +381,8 @@ float Invader::Radius() const {
     }
 }
 
-void Invader::Draw(float time, const Model* commanderModel) const {
+void Invader::Draw(float time, const Model* commanderModel, int level) const {
+    const LevelAlienColors palette = AlienColorsForLevel(level);
     // Bob up and down. Adding position.x to the angle makes neighbours move
     // out of step, so the wave looks like it is wobbling, not like a block.
     const float bob = 0.12f * std::sin(time * 4.0f + position.x);
@@ -368,13 +408,18 @@ void Invader::Draw(float time, const Model* commanderModel) const {
         rlScalef(config::kReaperScale, config::kReaperScale, config::kReaperScale);
         const float pulse = 0.5f + 0.5f * std::sin(time * 5.0f + position.x);
         const float wings = 6.0f * std::sin(time * 2.5f + position.x * 0.5f);   // degrees
-        DrawReaper(flashAmount, pulse, wings);
+        // The armour: the level's body colour mixed with grey metal, so it still looks armoured.
+        DrawReaper(flashAmount, pulse, wings, Mix(palette.body, Color{92, 92, 108, 255}, 0.45f), palette.glow);
     } else if (type == AlienType::Drone) {
         rlScalef(config::kDroneScale, config::kDroneScale, config::kDroneScale);
-        DrawDrone(flashAmount, time * 90.0f + position.x * 20.0f);   // 90 degrees per second
+        DrawDrone(flashAmount, time * 90.0f + position.x * 20.0f,   // 90 degrees per second
+                  palette.glow);   // the crystal glows in the level's bright colour
     } else {
+        // The Scarab takes the level's colours; the commander keeps its gold.
+        const ScarabStyle levelScarab{palette.body, Darker(palette.body, 0.42f),
+                                      Darker(palette.body, 0.85f), palette.glow, kScarabStyle.scale};
         const ScarabStyle& style =
-            (type == AlienType::Commander) ? kCommanderFallbackStyle : kScarabStyle;
+            (type == AlienType::Commander) ? kCommanderFallbackStyle : levelScarab;
         rlScalef(style.scale, style.scale, style.scale);
 
         const float pulse = 0.5f + 0.5f * std::sin(time * 6.0f + position.x * 0.7f);
