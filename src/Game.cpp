@@ -9,6 +9,7 @@
 #include "Display.h"
 #include "Storage.h"
 #include "Input.h"
+#include "LowPoly.h"
 #include "Random.h"
 #include "Util.h"
 #include "rlgl.h"      // rlDisableDepthMask, rlDrawRenderBatchActive (see Game::Draw)
@@ -18,23 +19,27 @@ namespace {
 // The look of the explosions. The NUMBERS are tuning values and live in
 // Config.h; the COLOURS are art and live here. Every alien type bursts in its
 // own two colours; the commander also bursts bigger.
-ExplosionStyle AlienExplosion(AlienType type) {
+// The colours come from the level's alien colours (see Invader.cpp), so a
+// wave explodes in the colours it was painted in.
+ExplosionStyle AlienExplosion(AlienType type, int level) {
+    const LevelAlienColors palette = AlienColorsForLevel(level);
+    const Color bodyLight = lowpoly::Mix(palette.body, Color{255, 255, 255, 255}, 0.35f);
     ExplosionStyle style{
         config::kInvaderExplosionCount, config::kInvaderExplosionSpeed,
         config::kInvaderExplosionLife,  config::kInvaderExplosionSize,
-        Color{140,  90, 220, 255},   // Scarab: violet (its shell) ...
-        Color{170, 255,  90, 255},   // ... and lime (its glowing lines)
+        bodyLight,       // Scarab: its shell ...
+        palette.glow,    // ... and its glowing lines
     };
     switch (type) {
         case AlienType::Scarab:
             break;
         case AlienType::Reaper:
-            style.colorA = Color{230,  40,  50, 255};   // red stripes
-            style.colorB = Color{110, 110, 125, 255};   // dark metal
+            style.colorA = palette.glow;                  // stripes
+            style.colorB = Color{110, 110, 125, 255};     // dark metal
             break;
         case AlienType::Drone:
-            style.colorA = Color{ 70, 195, 255, 255};   // cyan crystal
-            style.colorB = Color{235, 250, 255, 255};   // white
+            style.colorA = palette.glow;                  // crystal
+            style.colorB = Color{235, 250, 255, 255};     // white
             break;
         case AlienType::Commander:
             style.count *= 2;
@@ -274,7 +279,7 @@ void Game::FireRocket() {
 
 void Game::OnAlienDestroyed(const InvaderHit& hit) {
     score_ += ScoreFor(hit.type);
-    particles_.Explode(hit.position, AlienExplosion(hit.type));
+    particles_.Explode(hit.position, AlienExplosion(hit.type, level_));
     const bool commander = (hit.type == AlienType::Commander);
     audio_.Play(commander ? Sfx::BombExplosion : Sfx::InvaderDestroyed);
 
@@ -589,7 +594,8 @@ void Game::UpdatePlaying(float dt, const PlayerInput& input) {
         bombs_.emplace_back(Vector3{x, config::kBombSpawnY, config::kBombSpawnZ},
                             config::kLevelBombSpeed[level_],
                             config::kLevelBombRadius[level_],
-                            config::kLevelBombColor[level_]);
+                            config::kLevelBombColor[level_],
+                            level_);
         bombTimer_ = config::kBombInterval;
     }
 
@@ -671,7 +677,7 @@ void Game::UpdatePlaying(float dt, const PlayerInput& input) {
             if (!DamagePlayer("An alien crashed into your ship!")) {
                 OnAlienDestroyed(*ram);
             } else {
-                particles_.Explode(ram->position, AlienExplosion(ram->type));
+                particles_.Explode(ram->position, AlienExplosion(ram->type, level_));
             }
         }
     }
@@ -769,7 +775,7 @@ void Game::Draw() const {
                        Color{255, 220, 60, 255});   // yellow
         }
         for (const auto& bomb : bombs_) {
-            glow_.Draw(camera_, bomb.position, bomb.radius * config::kBombGlowFactor, bomb.color);
+            glow_.Draw(camera_, bomb.position, bomb.GlowSize(time_), bomb.color);
         }
         for (const auto& powerUp : powerUps_) {
             glow_.Draw(camera_, powerUp.position, 2.6f, powerUp.MainColor());

@@ -19,6 +19,7 @@ void InvaderGrid::Respawn(int level) {
     invaders_.clear();
     direction_   = 1.0f;
     waveOffset_  = Vector3{0.0f, 0.0f, 0.0f};
+    level_       = level;
     speed_       = config::kLevelInvaderSpeed[level];
     diveTimer_   = config::kLevelDiveInterval[level];   // a calm start for every wave
 
@@ -202,7 +203,7 @@ void InvaderGrid::UpdateDivers(float dt, int level, float playerX) {
 
 void InvaderGrid::Draw(const AlienModels& models) const {
     for (const auto& invader : invaders_) {
-        invader.Draw(time_, models.Commander());
+        invader.Draw(time_, models.Commander(), level_);
     }
 }
 

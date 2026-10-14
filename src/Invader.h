@@ -16,6 +16,16 @@ enum class AlienType {
     Commander,   // 1-2 per wave in the back row: bigger, takes several hits
 };
 
+// The colours of the aliens in one level: every level paints the whole wave in
+// its own colours, so you see at a glance that a new level has begun. The shapes
+// stay the same, and each type keeps one small mark of its own (the Reaper's red
+// pods, the Drone's white ring), so the types stay easy to tell apart.
+struct LevelAlienColors {
+    Color body;   // shells, armour and wings
+    Color glow;   // glowing lines, stripes and the core
+};
+LevelAlienColors AlienColorsForLevel(int level);   // level is 0-based
+
 // What an alien is doing right now. Divers leave the formation (see InvaderGrid).
 enum class DiveState {
     InFormation,   // moving with the wave
@@ -45,7 +55,8 @@ struct Invader {
 
     // "time" (seconds) drives the animations (bobbing, claws, glowing core).
     // commanderModel is the loaded .glb model, or nullptr to use the built-in look.
-    void Draw(float time, const Model* commanderModel) const;
+    // level (0-based) picks the colours, see AlienColorsForLevel.
+    void Draw(float time, const Model* commanderModel, int level) const;
 
     // Size of the collision sphere; commanders are bigger.
     float Radius() const;

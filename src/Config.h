@@ -174,9 +174,17 @@ constexpr float kLevelShotInterval[]  = {2.4f, 2.2f, 2.0f, 1.8f, 1.6f, 1.4f, 1.2
 constexpr float kLevelShotSpeed[]     = {11.0f, 12.0f, 13.0f, 15.0f, 16.0f, 18.0f, 19.0f};
 constexpr float kLevelBombSpeed[]     = {9.0f, 10.0f, 11.0f, 12.0f, 13.0f, 14.0f, 15.0f};
 constexpr float kLevelBombRadius[]    = {0.9f, 1.0f, 1.1f, 1.2f, 1.3f, 1.4f, 1.5f};     // 2D: 30 .. 50 px
-constexpr Color kLevelBombColor[] = {           // from yellow to deep red: "hotter" each level
-    {253, 249,   0, 255}, {255, 220,   0, 255}, {255, 180,   0, 255}, {255, 140,  20, 255},
-    {255, 100,  30, 255}, {240,  50,  40, 255}, {220,  20,  60, 255},
+// Every level has its own bomb: a new colour, and one more scary effect on top of
+// the previous ones (see Bomb.cpp): pulse, energy ring, spikes, sparks, flicker,
+// and in level 7 a cracked dark core with lightning.
+constexpr Color kLevelBombColor[] = {
+    {253, 249,   0, 255},   // 1 yellow
+    { 90, 255,  90, 255},   // 2 green
+    { 60, 220, 255, 255},   // 3 cyan
+    {190,  90, 255, 255},   // 4 violet
+    {255, 140,  30, 255},   // 5 orange
+    {255,  50,  40, 255},   // 6 red
+    {255,  30,  70, 255},   // 7 crimson
 };
 constexpr float kLevelDiveInterval[]  = {0.0f, 5.0f, 4.5f, 4.0f, 3.5f, 3.0f, 2.5f};   // 0 = no divers
 constexpr int   kLevelMaxDivers[]     = {0, 1, 1, 1, 2, 2, 3};                         // at the same time
