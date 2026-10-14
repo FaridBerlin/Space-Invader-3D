@@ -7,6 +7,7 @@
 enum class PowerUpType {
     Shield,      // a bubble around the ship that absorbs one hit
     RapidFire,   // shoot twice as fast for a few seconds
+    ExtraLife,   // one more ship (rarer than the others)
 };
 
 struct PowerUp {
@@ -20,7 +21,7 @@ struct PowerUp {
     void Update(float dt);   // drifts toward the player; dies when it flies past
     void Draw() const;
 
-    Color MainColor() const;   // cyan for the shield, orange for rapid fire
+    Color MainColor() const;   // cyan: shield, orange: rapid fire, pink: extra life
 
     // A random type, used when a capsule drops.
     static PowerUpType RandomType();

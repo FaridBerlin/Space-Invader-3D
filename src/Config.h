@@ -169,9 +169,16 @@ constexpr float kDiveMaxRoll    = 35.0f;   // degrees the alien tilts in the cur
 constexpr float kReturnStartZ   = -62.0f;  // a diver that missed re-enters from here ...
 constexpr float kReturnDuration = 1.8f;    // ... and takes this long to reach its place
 
+// ---- Lives ---------------------------------------------------------------------------
+constexpr int   kStartLives         = 3;
+constexpr int   kMaxLives           = 5;      // the extra-life power-up stops here
+constexpr float kPlayerRespawnDelay = 1.5f;   // seconds between losing a ship and the next one
+constexpr float kInvincibleTime     = 2.5f;   // the new ship blinks and cannot be hit
+
 // ---- Power-ups -----------------------------------------------------------------------
 // A destroyed alien sometimes drops a capsule that drifts toward the player.
 constexpr float kPowerUpDropChance = 0.08f;   // 8% per alien; commanders always drop one
+constexpr int   kExtraLifeChance   = 10;      // percent of drops that are an extra life
 constexpr int   kMaxPowerUps       = 2;       // capsules on the field at the same time
 constexpr float kPowerUpSpeed      = 7.0f;    // units per second toward the player
 constexpr float kPowerUpRadius     = 0.7f;

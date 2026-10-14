@@ -20,14 +20,15 @@ real-time 3D graphics work, built one small, reviewed step at a time.
 | **Windows / Linux** | Download the latest zip / tar.gz from [Releases](../../releases), unpack it and start `space-invader-3d`. |
 | **From source** | See [Build it yourself](#build-it-yourself). |
 
-**Controls:** `A`/`D` or arrow keys to move, `Space` to shoot (hold for rapid fire), `Enter` to start / restart, `M` to mute. On desktop also `F` for fullscreen, `1`-`5` to pick the window size (you can drag the window edges too) and `Esc` to leave fullscreen or quit.
+**Controls:** `A`/`D` or arrow keys to move, `Space` to shoot (hold for rapid fire), `Enter` to start / restart, `P` to pause, `M` to mute. On desktop also `F` for fullscreen, `1`-`5` to pick the window size (you can drag the window edges too) and `Esc` to leave fullscreen or quit.
 
 ## The game
 
 - Waves of invaders sweep sideways and step toward you. Shoot them before they reach you. They shoot back.
 - Four alien types: **Scarabs** (100), **Reapers** (200, shoot more often), crystal **Drones** (150) and
   **Commanders** (500, three hits). Every few seconds one alien **dives** at you in an S-curve.
-- Shot aliens sometimes drop a **power-up**: a **shield** that absorbs one hit, or **rapid fire**.
+- **3 lives** (up to 5), and your **high score** is saved (on desktop and in the browser).
+- Shot aliens sometimes drop a **power-up**: a **shield** that absorbs one hit, **rapid fire**, or rarely an **extra life**.
 - Your ship **upgrades** at every level: bigger, new colours, two and then three rockets per shot.
 - A glowing **bomb** flies in every few seconds. Shoot it for **+500** points, or dodge it.
 - **3 levels** (at 10,000 and 20,000 points): invader shots and bombs get faster, bombs get bigger and redder.

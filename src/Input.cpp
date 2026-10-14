@@ -23,6 +23,7 @@ PlayerInput ReadInput() {
     input.confirm = IsKeyPressed(KEY_ENTER) || IsKeyPressed(KEY_KP_ENTER);
     input.toggleMute = IsKeyPressed(KEY_M);
     input.toggleFullscreen = IsKeyPressed(KEY_F);
+    input.togglePause = IsKeyPressed(KEY_P);
     input.back = IsKeyPressed(KEY_ESCAPE);
 
     // Keys 1 .. 5 pick a window size. KEY_ONE .. KEY_FIVE are consecutive numbers,
