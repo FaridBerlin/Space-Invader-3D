@@ -26,6 +26,7 @@
 enum class GameState {
     Menu,       // title screen, waiting for Enter
     Playing,
+    Paused,     // the world is frozen until P is pressed again
     GameOver,
 };
 
@@ -53,6 +54,9 @@ private:
     void DrawMenu() const;
     void DrawLevelBanner() const;
     void DrawGameOver() const;
+    void DrawPaused() const;
+    void DrawLives() const;
+    void RespawnPlayer();
 
     Camera3D camera_{};
     Player   player_;
@@ -80,6 +84,11 @@ private:
     float bombTimer_       = 0.0f;   // seconds until the next bomb appears
     float time_            = 0.0f;   // seconds since the program started, for animations
     float respawnTimer_    = 0.0f;   // counts down after a wave is destroyed
+    int   lives_           = 0;      // ships left, including the one flying now
+    float playerRespawnTimer_ = 0.0f;   // > 0 while waiting for the next ship
+    float invincibleTimer_ = 0.0f;   // > 0 while a fresh ship blinks and cannot be hit
+    int   highScore_       = 0;      // best score ever, loaded at start (see HighScore.h)
+    bool  newHighScore_    = false;  // did this game beat it?
     float shieldTimer_     = 0.0f;   // > 0 while the shield is up (seconds left)
     float rapidFireTimer_  = 0.0f;   // > 0 while rapid fire is active (seconds left)
     float pickupTimer_     = 0.0f;   // > 0 while the "SHIELD!" / "RAPID FIRE!" text shows

@@ -22,12 +22,20 @@ void PowerUp::Update(float dt) {
 }
 
 Color PowerUp::MainColor() const {
-    return type == PowerUpType::Shield ? Color{ 80, 220, 255, 255}    // cyan
-                                       : Color{255, 150,  40, 255};   // orange
+    switch (type) {
+        case PowerUpType::Shield:    return Color{ 80, 220, 255, 255};   // cyan
+        case PowerUpType::RapidFire: return Color{255, 150,  40, 255};   // orange
+        case PowerUpType::ExtraLife: return Color{255,  90, 150, 255};   // pink
+    }
+    return Color{255, 255, 255, 255};
 }
 
 PowerUpType PowerUp::RandomType() {
-    return GetRandomValue(0, 1) == 0 ? PowerUpType::Shield : PowerUpType::RapidFire;
+    // A number from 1 to 100: the first kExtraLifeChance numbers mean "extra life",
+    // the rest is split evenly between shield and rapid fire.
+    const int roll = GetRandomValue(1, 100);
+    if (roll <= config::kExtraLifeChance) return PowerUpType::ExtraLife;
+    return (roll % 2 == 0) ? PowerUpType::Shield : PowerUpType::RapidFire;
 }
 
 void PowerUp::Draw() const {
@@ -47,6 +55,10 @@ void PowerUp::Draw() const {
     if (type == PowerUpType::Shield) {
         DrawCircle3D(Vector3{0.0f, 0.0f, 0.0f}, 0.62f, Vector3{1.0f, 0.0f, 0.0f}, 90.0f, main);
         DrawCircle3D(Vector3{0.0f, 0.0f, 0.0f}, 0.66f, Vector3{1.0f, 0.0f, 0.0f}, 90.0f, white);
+    } else if (type == PowerUpType::ExtraLife) {
+        // A "+" sign above the capsule.
+        DrawLine3D(Vector3{-0.2f, 0.55f, 0.0f}, Vector3{0.2f, 0.55f, 0.0f}, white);
+        DrawLine3D(Vector3{0.0f, 0.35f, 0.0f}, Vector3{0.0f, 0.75f, 0.0f}, white);
     } else {
         for (const float y : {0.45f, 0.62f}) {   // two stacked arrowheads ("^ ^")
             DrawLine3D(Vector3{-0.22f, y - 0.15f, 0.0f}, Vector3{0.0f, y, 0.0f}, white);

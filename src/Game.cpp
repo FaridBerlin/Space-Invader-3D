@@ -7,6 +7,7 @@
 
 #include "Config.h"
 #include "Display.h"
+#include "HighScore.h"
 #include "Input.h"
 #include "Random.h"
 #include "Util.h"
@@ -164,6 +165,8 @@ Game::Game() {
     camera_.fovy       = config::kCameraFovDegrees;
     camera_.projection = CAMERA_PERSPECTIVE;
 
+    highScore_ = highscore::Load();   // the best score from earlier games (0 the first time)
+
     Restart();                 // builds a fresh game ...
     state_ = GameState::Menu;  // ... but we wait on the title screen until Enter is pressed
 }
@@ -188,6 +191,10 @@ void Game::Restart() {
     invaderShotTimer_ = config::kInvaderShotInterval;
     bombTimer_        = config::kBombInterval;
     respawnTimer_     = config::kWaveRespawnDelay;
+    lives_            = config::kStartLives;
+    playerRespawnTimer_ = 0.0f;
+    invincibleTimer_  = 0.0f;
+    newHighScore_     = false;
     shieldTimer_      = 0.0f;
     rapidFireTimer_   = 0.0f;
     pickupTimer_      = 0.0f;
@@ -198,6 +205,25 @@ void Game::EndGame(const char* reason) {
     state_          = GameState::GameOver;
     gameOverReason_ = reason;
     gameOverTime_   = 0.0f;
+
+    // A new record? Remember it now, so it survives closing the game.
+    if (score_ > highScore_) {
+        highScore_    = score_;
+        newHighScore_ = true;
+        highscore::Save(highScore_);
+    }
+}
+
+void Game::RespawnPlayer() {
+    player_ = Player();           // a fresh ship in the middle ...
+    player_.SetTier(level_);      // ... keeping the upgrade it had earned
+    playerAlive_     = true;
+    invincibleTimer_ = config::kInvincibleTime;
+    fireCooldown_    = 0.0f;
+    // Fair play: remove the shots and bombs that are already on their way, so the
+    // new ship does not appear in the middle of the fire that destroyed the last one.
+    invaderShots_.clear();
+    bombs_.clear();
 }
 
 void Game::FireRocket() {
@@ -226,12 +252,19 @@ void Game::OnAlienDestroyed(const InvaderHit& hit) {
 }
 
 void Game::Collect(PowerUpType type) {
-    if (type == PowerUpType::Shield) {
-        shieldTimer_ = config::kShieldDuration;
-        pickupText_  = "SHIELD!";
-    } else {
-        rapidFireTimer_ = config::kRapidFireDuration;
-        pickupText_     = "RAPID FIRE!";
+    switch (type) {
+        case PowerUpType::Shield:
+            shieldTimer_ = config::kShieldDuration;
+            pickupText_  = "SHIELD!";
+            break;
+        case PowerUpType::RapidFire:
+            rapidFireTimer_ = config::kRapidFireDuration;
+            pickupText_     = "RAPID FIRE!";
+            break;
+        case PowerUpType::ExtraLife:
+            lives_      = std::min(lives_ + 1, config::kMaxLives);
+            pickupText_ = "EXTRA LIFE!";
+            break;
     }
     pickupTimer_ = config::kPickupBannerTime;
     pickupColor_ = PowerUp(Vector3{}, type).MainColor();
@@ -239,6 +272,9 @@ void Game::Collect(PowerUpType type) {
 }
 
 bool Game::DamagePlayer(const char* reason) {
+    if (invincibleTimer_ > 0.0f) {
+        return false;   // a fresh ship cannot be hit while it blinks
+    }
     if (shieldTimer_ > 0.0f) {
         // The shield absorbs the hit and breaks: a burst of cyan sparks.
         shieldTimer_ = 0.0f;
@@ -248,10 +284,19 @@ bool Game::DamagePlayer(const char* reason) {
         audio_.Play(Sfx::InvaderDestroyed);
         return false;
     }
-    playerAlive_ = false;
+    // The ship is destroyed. Its power-ups are lost with it.
+    playerAlive_    = false;
+    shieldTimer_    = 0.0f;
+    rapidFireTimer_ = 0.0f;
     particles_.Explode(player_.Position(), PlayerExplosion());
     audio_.Play(Sfx::PlayerDeath);
-    EndGame(reason);
+
+    lives_ -= 1;
+    if (lives_ > 0) {
+        playerRespawnTimer_ = config::kPlayerRespawnDelay;   // the next ship comes soon
+    } else {
+        EndGame(reason);   // that was the last one
+    }
     return true;
 }
 
@@ -278,10 +323,13 @@ void Game::Update(float dt) {
 
     // The background and the explosions keep moving in EVERY state, so the
     // death explosion plays out nicely before the Game Over screen appears.
+    // While paused, explosions freeze too; only the stars keep drifting.
     stars_.Update(dt);
-    particles_.Update(dt);
-    glow_.Update(dt);
-    time_ += dt;
+    if (state_ != GameState::Paused) {
+        particles_.Update(dt);
+        glow_.Update(dt);
+        time_ += dt;
+    }
 
     // What else happens each frame depends on the state we are in.
     switch (state_) {
@@ -291,7 +339,16 @@ void Game::Update(float dt) {
             }
             break;
         case GameState::Playing:
+            if (input.togglePause) {
+                state_ = GameState::Paused;
+                break;   // nothing moves in the frame we pause
+            }
             UpdatePlaying(dt, input);
+            break;
+        case GameState::Paused:
+            if (input.togglePause) {
+                state_ = GameState::Playing;
+            }
             break;
         case GameState::GameOver:
             // The world is frozen. After a short pause, wait for Enter.
@@ -305,16 +362,27 @@ void Game::Update(float dt) {
 
 void Game::UpdatePlaying(float dt, const PlayerInput& input) {
     // ---- 1. Player and firing ---------------------------------------------------
-    player_.Update(dt, input);
+    // After losing a ship (with lives left), wait a moment, then bring the next one.
+    invincibleTimer_ = std::max(0.0f, invincibleTimer_ - dt);
+    if (!playerAlive_) {
+        playerRespawnTimer_ -= dt;
+        if (playerRespawnTimer_ <= 0.0f) {
+            RespawnPlayer();
+        }
+    }
 
-    // A cooldown limits the fire rate: it counts down, and we may only shoot
-    // when it has reached zero. Holding the button fires every 0.2 seconds.
-    // With rapid fire the cooldown is shorter, so we shoot more often.
-    fireCooldown_ -= dt;
-    if (input.fire && fireCooldown_ <= 0.0f) {
-        FireRocket();
-        fireCooldown_ = (rapidFireTimer_ > 0.0f) ? config::kRapidFireInterval
-                                                 : config::kRocketFireInterval;
+    if (playerAlive_) {
+        player_.Update(dt, input);
+
+        // A cooldown limits the fire rate: it counts down, and we may only shoot
+        // when it has reached zero. Holding the button fires every 0.2 seconds.
+        // With rapid fire the cooldown is shorter, so we shoot more often.
+        fireCooldown_ -= dt;
+        if (input.fire && fireCooldown_ <= 0.0f) {
+            FireRocket();
+            fireCooldown_ = (rapidFireTimer_ > 0.0f) ? config::kRapidFireInterval
+                                                     : config::kRocketFireInterval;
+        }
     }
 
     // Power-up timers run down. (std::max keeps them from going below zero.)
@@ -504,7 +572,9 @@ void Game::Draw() const {
         rlDrawRenderBatchActive();
         rlEnableDepthMask();
 
-        if (playerAlive_) {
+        // A fresh ship blinks while it cannot be hit: drawn 0.1 s, hidden 0.1 s.
+        const bool blinkHidden = invincibleTimer_ > 0.0f && std::fmod(invincibleTimer_, 0.2f) < 0.1f;
+        if (playerAlive_ && !blinkHidden) {
             player_.Draw();
         }
         invaders_.Draw(alienModels_);
@@ -566,13 +636,19 @@ void Game::Draw() const {
     using display::Px;
     DrawText(TextFormat("SCORE  %06d", score_), Px(20), Px(16), Px(32), RAYWHITE);
 #if defined(__EMSCRIPTEN__)
-    DrawText("Move: A / D or arrows     Fire: Space (hold)     Mute: M",
+    DrawText("Move: A / D or arrows     Fire: Space (hold)     Mute: M     Pause: P",
              Px(20), Px(56), Px(20), LIGHTGRAY);
 #else
-    DrawText("Move: A / D or arrows     Fire: Space (hold)     Mute: M     Fullscreen: F     Window size: 1-5     Quit: Esc",
+    DrawText("Move: A / D or arrows     Fire: Space (hold)     Mute: M     Pause: P     Fullscreen: F     Window size: 1-5     Quit: Esc",
              Px(20), Px(56), Px(20), LIGHTGRAY);
 #endif
     DrawText(TextFormat("%d FPS", GetFPS()), Px(20), Px(84), Px(20), GREEN);
+    DrawLives();
+
+    // The best score, in the middle at the top. While you beat it, it counts up with you.
+    const char* best = TextFormat("HI %06d", std::max(highScore_, score_));
+    DrawText(best, (GetScreenWidth() - MeasureText(best, Px(24))) / 2, Px(20), Px(24),
+             Color{255, 200, 60, 255});
     if (audio_.Muted()) {
         DrawText("SOUND OFF", Px(20), Px(112), Px(20), ORANGE);
     }
@@ -609,9 +685,42 @@ void Game::Draw() const {
         DrawLevelBanner();
     }
 
+    if (state_ == GameState::Paused) {
+        DrawPaused();
+    }
+
     if (state_ == GameState::GameOver && gameOverTime_ >= config::kGameOverDelay) {
         DrawGameOver();
     }
+}
+
+// One small ship icon per life, right of the score: a triangle with an orange flame.
+void Game::DrawLives() const {
+    using display::Px;
+    const int scoreWidth = MeasureText(TextFormat("SCORE  %06d", score_), Px(32));
+    int x = Px(20) + scoreWidth + Px(28);
+    const float y = static_cast<float>(Px(32));
+    const float s = static_cast<float>(Px(10));   // icon size
+    for (int i = 0; i < lives_; ++i) {
+        const float cx = static_cast<float>(x);
+        // raylib wants the three corners counter-clockwise (as seen on screen).
+        DrawTriangle(Vector2{cx, y - s}, Vector2{cx - s, y + s * 0.8f}, Vector2{cx + s, y + s * 0.8f},
+                     Color{190, 205, 230, 255});                         // the ship
+        DrawTriangle(Vector2{cx, y + s * 1.5f}, Vector2{cx + s * 0.35f, y + s * 0.8f},
+                     Vector2{cx - s * 0.35f, y + s * 0.8f}, Color{255, 140, 40, 255});   // flame
+        x += Px(26);
+    }
+}
+
+void Game::DrawPaused() const {
+    using display::Px;
+    DrawRectangle(0, 0, GetScreenWidth(), GetScreenHeight(), Fade(BLACK, 0.5f));
+    const char* title = "PAUSED";
+    const char* hint  = "Press P to continue";
+    DrawText(title, (GetScreenWidth() - MeasureText(title, Px(70))) / 2,
+             GetScreenHeight() / 2 - Px(60), Px(70), RAYWHITE);
+    DrawText(hint, (GetScreenWidth() - MeasureText(hint, Px(26))) / 2,
+             GetScreenHeight() / 2 + Px(25), Px(26), LIGHTGRAY);
 }
 
 void Game::DrawGameOver() const {
@@ -632,9 +741,14 @@ void Game::DrawGameOver() const {
     drawCentered("GAME OVER", middle - Px(120), Px(80), RED);
     drawCentered(gameOverReason_, middle - Px(30), Px(30), RAYWHITE);
     drawCentered(TextFormat("Final score: %06d", score_), middle + Px(20), Px(36), YELLOW);
-    drawCentered("Press ENTER to play again", middle + Px(90), Px(26), LIGHTGRAY);
+    if (newHighScore_) {
+        // Blinks twice per second: on while the fraction of the time is below one half.
+        const bool on = std::fmod(static_cast<float>(GetTime()) * 2.0f, 1.0f) < 0.5f;
+        if (on) drawCentered("NEW HIGH SCORE!", middle + Px(60), Px(26), Color{255, 200, 60, 255});
+    }
+    drawCentered("Press ENTER to play again", middle + Px(100), Px(26), LIGHTGRAY);
 #if !defined(__EMSCRIPTEN__)
-    drawCentered("Esc to quit", middle + Px(130), Px(22), GRAY);
+    drawCentered("Esc to quit", middle + Px(140), Px(22), GRAY);
 #endif
 }
 
@@ -655,8 +769,11 @@ void Game::DrawMenu() const {
     using display::Px;
     drawCentered("SPACE INVADER", Px(70), Px(90), Color{190, 120, 255, 255});
     drawCentered("3D", Px(160), Px(90), SKYBLUE);
+    if (highScore_ > 0) {
+        drawCentered(TextFormat("HIGH SCORE  %06d", highScore_), Px(275), Px(26), Color{255, 200, 60, 255});
+    }
     drawCentered("Press ENTER to start", Px(330), Px(32), Fade(RAYWHITE, pulse));
-    drawCentered("Move: A / D or arrows     Fire: Space (hold)", Px(380), Px(22), LIGHTGRAY);
+    drawCentered("Move: A / D or arrows     Fire: Space (hold)     Pause: P", Px(380), Px(22), LIGHTGRAY);
 #if !defined(__EMSCRIPTEN__)
     drawCentered("Fullscreen: F     Window size: 1 - 5     Quit: Esc", Px(415), Px(22), LIGHTGRAY);
 #endif

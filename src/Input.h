@@ -20,6 +20,9 @@ struct PlayerInput {
     // True ONLY in the frame the mute key (M) was pressed.
     bool  toggleMute = false;
 
+    // True ONLY in the frame the pause key (P) was pressed.
+    bool  togglePause = false;
+
     // True ONLY in the frame the fullscreen key (F) was pressed.
     bool  toggleFullscreen = false;
 
