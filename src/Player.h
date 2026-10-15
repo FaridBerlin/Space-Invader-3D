@@ -32,6 +32,14 @@ public:
     void SetTier(int tier);
     int  Tier() const { return tier_; }
 
+    // Switches between the first ship design and the copper "Claw" (from level 5).
+    void SetHero(bool hero) { hero_ = hero; }
+    bool Hero() const { return hero_; }
+
+    // Half the ship's width: it depends on the design and grows with the tier.
+    // Used for the wall limit.
+    float HalfWidth() const;
+
 private:
     // "private" = only Player's own functions can touch these. Everyone else
     // must go through the public functions, so the ship can never end up in an
@@ -40,7 +48,9 @@ private:
     float velocityX_ = 0.0f;   // current sideways speed in units per second
     float time_      = 0.0f;   // seconds since creation, drives the engine flicker
     int   tier_      = 0;      // upgrade level, 0..kTierCount-1
+    bool  hero_      = false;  // true = draw the Claw instead of the first ship
 
-    // Half the ship's width, which grows with the tier. Used for the wall limit.
-    float HalfWidth() const;
+    // Draws the Claw around the origin. Draw() has already moved, rolled and
+    // scaled the coordinate system, so this only builds the shape.
+    void DrawHero() const;
 };
