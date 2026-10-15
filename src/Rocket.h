@@ -10,13 +10,12 @@
 
 struct Rocket {
     Vector3 position;
-    Color   color;          // the rocket's colour; depends on the ship's upgrade tier
+    Color   color;          // the rocket's colour; depends on the ship (see Game::FireRocket)
     bool    alive = true;   // set to false when it hits something or leaves the field
 
     // The constructor. ": position(start)" is an "initializer list": it sets the
     // members directly instead of creating them empty first and assigning later.
-    // "tier" is the ship's upgrade level (0, 1, 2); it picks the colour from Config.h.
-    Rocket(Vector3 start, int tier);
+    Rocket(Vector3 start, Color rocketColor);
 
     void Update(float dt);
     void Draw() const;

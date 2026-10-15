@@ -4,8 +4,8 @@
 
 #include "Config.h"
 
-Rocket::Rocket(Vector3 start, int tier)
-    : position(start), color(config::kTierShotColor[tier]) {}
+Rocket::Rocket(Vector3 start, Color rocketColor)
+    : position(start), color(rocketColor) {}
 
 void Rocket::Update(float dt) {
     // Distance = speed * time. Flying "forward" means toward -Z.
@@ -20,7 +20,7 @@ void Rocket::Update(float dt) {
 }
 
 void Rocket::Draw() const {
-    // The rocket is a cone pointing forward (-Z) in its tier colour, with a small
+    // The rocket is a cone pointing forward (-Z) in its colour, with a small
     // lighter trail behind it.
     const Vector3 tip {position.x, position.y, position.z - 0.45f};
     const Vector3 tail{position.x, position.y, position.z + 0.45f};

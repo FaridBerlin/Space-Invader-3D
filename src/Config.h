@@ -138,7 +138,7 @@ constexpr float kInvaderShotDespawnZ = 6.0f;   // shots that fly past the ship a
 //   level 2  Drones join, first divers
 //   level 3  Reapers join (they shoot more), faster bombs
 //   level 4  Commanders join, ship upgrade 2
-//   level 5  two divers at once, red bombs
+//   level 5  two divers at once, new ship design (the "Claw")
 //   level 6  faster waves, ship upgrade 3
 //   level 7  everything at full speed, three divers
 //
@@ -155,7 +155,7 @@ constexpr const char* kLevelIntro[] = {
     "Drones join - and aliens start to dive!",
     "Reapers join: they shoot more often",
     "Commanders arrive. Ship upgraded!",
-    "Two divers at once",
+    "Two divers at once. New ship: the Claw!",
     "Faster waves. Ship upgraded!",
     "Final level: everything at full speed",
 };
@@ -189,6 +189,7 @@ constexpr Color kLevelBombColor[] = {
 constexpr float kLevelDiveInterval[]  = {0.0f, 5.0f, 4.5f, 4.0f, 3.5f, 3.0f, 2.5f};   // 0 = no divers
 constexpr int   kLevelMaxDivers[]     = {0, 1, 1, 1, 2, 2, 3};                         // at the same time
 constexpr int   kLevelShipTier[]      = {0, 0, 0, 1, 1, 2, 2};                         // see "Ship upgrades"
+constexpr bool  kLevelHeroShip[]      = {false, false, false, false, true, true, true};  // the copper "Claw"
 
 // The colour mood of each level: the stars are tinted, from cool blue to hot red.
 constexpr Color kLevelStarColor[] = {
@@ -209,8 +210,8 @@ static_assert(std::size(kLevelBombSpeed) == kLevelCount && std::size(kLevelBombR
               std::size(kLevelBombColor) == kLevelCount, "bombs: one value per level");
 static_assert(std::size(kLevelDiveInterval) == kLevelCount && std::size(kLevelMaxDivers) == kLevelCount,
               "divers: one value per level");
-static_assert(std::size(kLevelShipTier) == kLevelCount && std::size(kLevelStarColor) == kLevelCount,
-              "ship tier and star colour: one value per level");
+static_assert(std::size(kLevelShipTier) == kLevelCount && std::size(kLevelHeroShip) == kLevelCount &&
+              std::size(kLevelStarColor) == kLevelCount, "ship and star colour: one value per level");
 
 // ---- Ship upgrades -------------------------------------------------------------------
 // The ship has three looks ("tiers"); kLevelShipTier above says which level gets which.
@@ -236,6 +237,17 @@ constexpr Color kTierShotColor[kTierCount] = {
     { 80, 220, 255, 255},   // cyan
     {255,  80, 200, 255},   // hot pink
 };
+
+// The "Claw": a second ship design, flown from level 5 (kLevelHeroShip above). It is
+// a little wider than the first ship and fires from the gold tips of its front claws
+// (and at tier 2 from its nose as well). Same number of rockets per tier as above.
+constexpr float kHeroHalfWidth = 2.05f;   // outer claw to centre, before the tier scale
+constexpr ShotPoint kHeroShots[kTierCount][3] = {
+    {{ 0.00f, -3.0f}, { 0.00f,  0.0f}, { 0.00f,  0.0f}},   // tier 0 (not used): the nose
+    {{-0.84f, -1.5f}, { 0.84f, -1.5f}, { 0.00f,  0.0f}},   // tier 1: both inner claw tips
+    {{-0.94f, -1.7f}, { 0.00f, -2.6f}, { 0.94f, -1.7f}},   // tier 2: claw tips plus the nose
+};
+constexpr Color kHeroShotColor{255, 120, 60, 255};   // copper-orange
 
 // ---- Divers ------------------------------------------------------------------------
 // Now and then an alien leaves the formation and swoops at the player in an

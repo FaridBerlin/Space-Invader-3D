@@ -47,6 +47,7 @@ private:
     void EndGame(const char* reason);     // switch to GameOver
     void UpdatePlaying(float dt, const PlayerInput& input);
     void FireRocket();
+    Color ShotColor() const;   // the colour of the player's rockets right now
     void OnAlienDestroyed(const InvaderHit& hit);   // score, explosion, sound, maybe a power-up
     void Collect(PowerUpType type);
     // Something hit the ship. With a shield, the shield takes the hit and this

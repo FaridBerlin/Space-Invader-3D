@@ -237,15 +237,17 @@ void Game::NextWave() {
         levelBannerTimer_ = config::kLevelBannerTime;
         stars_.SetColor(config::kLevelStarColor[level_]);   // the new colour mood
 
-        // Some levels upgrade the ship: new look, and a burst of sparkles in the
-        // new shot colour around it.
-        const int tier = config::kLevelShipTier[level_];
-        if (tier != player_.Tier()) {
+        // Some levels upgrade the ship (a bigger tier, or the new "Claw" design):
+        // new look, and a burst of sparkles in the new shot colour around it.
+        const int  tier = config::kLevelShipTier[level_];
+        const bool hero = config::kLevelHeroShip[level_];
+        if (tier != player_.Tier() || hero != player_.Hero()) {
             player_.SetTier(tier);
+            player_.SetHero(hero);
             if (playerAlive_) {
                 particles_.Explode(player_.Position(),
                                    ExplosionStyle{70, 9.0f, 1.0f, 0.3f,
-                                                  config::kTierShotColor[tier], Color{255, 255, 255, 255}});
+                                                  ShotColor(), Color{255, 255, 255, 255}});
             }
         }
     }
@@ -257,6 +259,7 @@ void Game::NextWave() {
 void Game::RespawnPlayer() {
     player_ = Player();           // a fresh ship in the middle ...
     player_.SetTier(config::kLevelShipTier[level_]);   // ... with the upgrade of this level
+    player_.SetHero(config::kLevelHeroShip[level_]);
     playerAlive_     = true;
     invincibleTimer_ = config::kInvincibleTime;
     fireCooldown_    = 0.0f;
@@ -266,13 +269,19 @@ void Game::RespawnPlayer() {
     bombs_.clear();
 }
 
+Color Game::ShotColor() const {
+    return player_.Hero() ? config::kHeroShotColor : config::kTierShotColor[player_.Tier()];
+}
+
 void Game::FireRocket() {
     // A higher ship tier fires more rockets at once, from different points
-    // (nose and wing cannons). The table is in Config.h.
+    // (nose and wing cannons, or the Claw's claw tips). The tables are in Config.h.
     const int tier = player_.Tier();
+    // A reference to one row of a 2D array: "the 3 shot points of this ship".
+    const config::ShotPoint (&points)[3] = player_.Hero() ? config::kHeroShots[tier] : config::kTierShots[tier];
     for (int i = 0; i < config::kTierShotCount[tier]; ++i) {
-        const config::ShotPoint& point = config::kTierShots[tier][i];
-        rockets_.emplace_back(Vector3{player_.X() + point.x, config::kPlayerHeight, point.z}, tier);
+        rockets_.emplace_back(Vector3{player_.X() + points[i].x, config::kPlayerHeight, points[i].z},
+                              ShotColor());
     }
     audio_.Play(Sfx::PlayerShot);   // one sound per volley, so it does not get louder and louder
 }
@@ -458,8 +467,7 @@ PlayerInput Game::ApplyTouchSteering(const PlayerInput& input) {
 
     // At a wall: slide the start point along, so moving the finger back moves the
     // ship back immediately (instead of first "unwinding" the extra distance).
-    const float limit = config::kFieldHalfWidth -
-                        config::kPlayerHalfWidth * config::kTierScale[player_.Tier()];
+    const float limit = config::kFieldHalfWidth - player_.HalfWidth();
     if (target > limit)  { dragStartShipX_ -= target - limit;  target = limit; }
     if (target < -limit) { dragStartShipX_ += -limit - target; target = -limit; }
 

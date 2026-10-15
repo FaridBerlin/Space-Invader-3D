@@ -22,6 +22,7 @@ namespace {
 using lowpoly::DrawFace;
 using lowpoly::DrawQuadFace;
 using lowpoly::Mid;
+using lowpoly::Mix;
 
 // How one upgrade tier of the ship looks. Colours are {red, green, blue, alpha}.
 struct ShipStyle {
@@ -90,7 +91,8 @@ void Player::SetTier(int tier) {
 }
 
 float Player::HalfWidth() const {
-    return config::kPlayerHalfWidth * config::kTierScale[tier_];
+    const float base = hero_ ? config::kHeroHalfWidth : config::kPlayerHalfWidth;
+    return base * config::kTierScale[tier_];
 }
 
 Vector3 Player::Position() const {
@@ -120,6 +122,12 @@ void Player::Draw() const {
     rlRotatef(bankDegrees, 0.0f, 0.0f, 1.0f);
     const float scale = config::kTierScale[tier_];
     rlScalef(scale, scale, scale);   // bigger ship at higher tiers (x, y, z factors)
+
+    if (hero_) {          // the Claw has its own function (below)
+        DrawHero();
+        rlPopMatrix();
+        return;
+    }
 
     // The colours of the current tier (see the table at the top of this file).
     const ShipStyle& style = kStyles[tier_];
@@ -228,6 +236,167 @@ void Player::Draw() const {
                        style.flameOuter);                                  // outer flame
         DrawCylinderEx(start, Vector3{x, -0.05f, 1.35f + flameLength * 0.6f}, 0.10f, 0.0f, 10,
                        style.flameCore);                                   // bright core
+    }
+
+    rlPopMatrix();
+}
+
+// ---- The Claw ----------------------------------------------------------------------
+// A copper ship with a silver-edged hull, a gold crystal cockpit and two pairs of
+// claw-shaped wings. Every part is a few flat triangles; the lamp shading in
+// DrawFace gives them their light and dark sides.
+void Player::DrawHero() const {
+    const Color copper    {205, 100,  45, 255};
+    const Color copperDark{125,  55,  30, 255};
+    const Color silver    {205, 210, 220, 255};
+    const Color navy      { 40,  45,  95, 255};
+    const Color gold      {255, 195,  40, 255};
+    const Color goldLight {255, 240, 150, 255};
+    const Color underside { 60,  35,  30, 255};
+
+    // The numbers below were measured on the concept picture. It is wider than it is
+    // long, so we shrink it a little to keep it close to the first ship's size.
+    rlPushMatrix();
+    rlScalef(0.8f, 0.8f, 0.8f);
+
+    // The outward hint for a face: from a point inside the part to the face's middle.
+    auto face = [](Vector3 a, Vector3 b, Vector3 c, Color color, Vector3 inside) {
+        DrawFace(a, b, c, color, Vector3Subtract(Mid(a, b, c), inside));
+    };
+
+    // ---- Hull ------------------------------------------------------------------------
+    // The hull is a tube with a six-cornered cross-section, measured at three
+    // "stations" along Z, closed by a pointed nose and a short tail spike.
+    //       T            T = top ridge, U = upper edges (silver stripes between U and the
+    //    U     U             sides L/R), B = bottom
+    //   L       R
+    //       B
+    struct Ring { Vector3 L, UL, T, UR, R, B; };
+    auto ring = [](float z, float w, float h, float d) {
+        return Ring{{-w, 0.0f, z}, {-w * 0.55f, h * 0.72f, z}, {0.0f, h, z},
+                    { w * 0.55f, h * 0.72f, z}, {w, 0.0f, z}, {0.0f, -d, z}};
+    };
+    const Ring rings[] = {ring(-1.7f, 0.45f, 0.45f, 0.25f),
+                          ring(-0.6f, 0.62f, 0.60f, 0.32f),
+                          ring( 0.6f, 0.42f, 0.45f, 0.28f)};
+    const Vector3 nose{0.0f, 0.05f, -2.6f};
+    const Vector3 tail{0.0f, -0.02f, 1.45f};
+    const Vector3 hullCentre{0.0f, 0.1f, -0.6f};
+
+    // One strip of the hull = 6 faces around the tube, each with its own colour.
+    auto strip = [&](const Ring& a, const Ring& b) {
+        DrawQuadFace(a.L,  a.UL, b.UL, b.L,  silver,     Vector3Subtract(Mid(a.L, a.UL, b.UL), hullCentre));
+        DrawQuadFace(a.UL, a.T,  b.T,  b.UL, copper,     Vector3Subtract(Mid(a.UL, a.T, b.T), hullCentre));
+        DrawQuadFace(a.T,  a.UR, b.UR, b.T,  copper,     Vector3Subtract(Mid(a.T, a.UR, b.UR), hullCentre));
+        DrawQuadFace(a.UR, a.R,  b.R,  b.UR, silver,     Vector3Subtract(Mid(a.UR, a.R, b.R), hullCentre));
+        DrawQuadFace(a.R,  a.B,  b.B,  b.R,  copperDark, Vector3Subtract(Mid(a.R, a.B, b.B), hullCentre));
+        DrawQuadFace(a.B,  a.L,  b.L,  b.B,  copperDark, Vector3Subtract(Mid(a.B, a.L, b.L), hullCentre));
+    };
+    strip(rings[0], rings[1]);
+    strip(rings[1], rings[2]);
+
+    // A cone of triangles from a single point (nose or tail) to a ring.
+    auto cap = [&](Vector3 tip, const Ring& r) {
+        face(tip, r.L,  r.UL, silver,     hullCentre);
+        face(tip, r.UL, r.T,  copper,     hullCentre);
+        face(tip, r.T,  r.UR, copper,     hullCentre);
+        face(tip, r.UR, r.R,  silver,     hullCentre);
+        face(tip, r.R,  r.B,  copperDark, hullCentre);
+        face(tip, r.B,  r.L,  copperDark, hullCentre);
+    };
+    cap(nose, rings[0]);
+    cap(tail, rings[2]);
+
+    // ---- Gold crystal cockpit on the front of the hull ---------------------------------
+    {
+        const Vector3 front{0.0f, 0.38f, -2.1f}, back{0.0f, 0.62f, -0.7f};
+        const Vector3 left{-0.27f, 0.52f, -1.4f}, right{0.27f, 0.52f, -1.4f};
+        const Vector3 top{0.0f, 0.88f, -1.35f};
+        const Vector3 inside{0.0f, 0.45f, -1.35f};
+        face(front, left, top, goldLight, inside);
+        face(front, top, right, goldLight, inside);
+        face(left, back, top, gold, inside);
+        face(top, back, right, gold, inside);
+    }
+
+    // ---- Claws (mirrored: side = -1 left, +1 right) --------------------------------
+    // Each claw is a folded plate: a raised crease runs from its gold front tip to
+    // its sharp back point, so one half faces inward and the other outward.
+    struct Claw {
+        Vector3 root;       // front corner where it meets the body
+        Vector3 tip;        // gold front tip
+        Vector3 outer;      // outer shoulder
+        Vector3 back;       // sharp back point
+        Vector3 rootBack;   // back corner where it meets the body
+        Vector3 crease;     // the raised fold
+    };
+    auto drawClaw = [&](const Claw& c) {
+        const Vector3 inside = Mid(c.root, c.outer, c.rootBack);
+        const Vector3 below{inside.x, inside.y - 1.0f, inside.z};
+        face(c.root, c.tip, c.crease, copper, below);          // inner half
+        face(c.root, c.crease, c.rootBack, copper, below);
+        face(c.rootBack, c.crease, c.back, copper, below);
+        const Color outerHalf = Mix(copper, copperDark, 0.45f);   // a darker, browner side
+        face(c.tip, c.outer, c.crease, outerHalf, below);      // outer half
+        face(c.crease, c.outer, c.back, outerHalf, below);
+        // Flat dark underside.
+        const Vector3 down{0.0f, -0.06f, 0.0f};
+        const Vector3 uRoot = Vector3Add(c.root, down), uTip = Vector3Add(c.tip, down);
+        const Vector3 uOuter = Vector3Add(c.outer, down), uBack = Vector3Add(c.back, down);
+        const Vector3 uRootBack = Vector3Add(c.rootBack, down);
+        const Vector3 under{0.0f, -1.0f, 0.0f};
+        DrawFace(uRoot, uTip, uOuter, underside, under);
+        DrawFace(uRoot, uOuter, uBack, underside, under);
+        DrawFace(uRoot, uBack, uRootBack, underside, under);
+        // The gold tip: the front 35% of the claw, painted on top of both halves.
+        const Vector3 lift{0.0f, 0.012f, 0.0f};
+        const Vector3 t  = Vector3Add(c.tip, lift);
+        const Vector3 t1 = Vector3Add(Vector3Lerp(c.tip, c.root, 0.35f), lift);
+        const Vector3 t2 = Vector3Add(Vector3Lerp(c.tip, c.crease, 0.35f), lift);
+        const Vector3 t3 = Vector3Add(Vector3Lerp(c.tip, c.outer, 0.35f), lift);
+        face(t, t1, t2, gold, below);
+        face(t, t2, t3, gold, below);
+        // From tier 2 on, the crease glows gold.
+        if (tier_ >= 2) {
+            DrawLine3D(Vector3Add(c.tip, lift), Vector3Add(c.crease, lift), gold);
+            DrawLine3D(Vector3Add(c.crease, lift), Vector3Add(c.back, lift), gold);
+        }
+    };
+
+    for (const float side : {-1.0f, 1.0f}) {
+        auto P = [side](float x, float y, float z) { return Vector3{side * x, y, z}; };
+
+        // Navy body between the hull and the claws (most of it hides under them).
+        DrawQuadFace(P(0.35f, 0.10f, -1.1f), P(1.40f, 0.10f, -0.6f), P(1.40f, 0.10f, 0.6f),
+                     P(0.35f, 0.10f, 0.8f), navy, Vector3{0.0f, 1.0f, 0.0f});
+
+        // Inner claw: reaching forward beside the cockpit.
+        drawClaw(Claw{P(0.50f, 0.15f, -1.0f), P(0.94f, 0.50f, -1.7f), P(1.45f, 0.10f, -0.95f),
+                      P(0.72f, 0.05f, 0.80f), P(0.55f, 0.10f, 0.3f), P(1.00f, 0.60f, -0.6f)});
+        // Outer claw: further out, sweeping back to a long sharp point.
+        drawClaw(Claw{P(1.20f, 0.12f, -0.2f), P(1.68f, 0.42f, -0.8f), P(2.15f, 0.06f, -0.15f),
+                      P(2.55f, 0.00f, 1.05f), P(1.35f, 0.06f, 0.75f), P(1.85f, 0.50f, 0.1f)});
+
+        // Silver armour plate on the outside of the outer claw.
+        DrawQuadFace(P(1.95f, 0.34f, -0.30f), P(2.38f, 0.20f, -0.25f), P(2.40f, 0.18f, 0.15f),
+                     P(1.98f, 0.32f, 0.22f), silver, Vector3{side * 0.5f, 1.0f, 0.0f});
+    }
+    if (tier_ >= 2) {
+        DrawLine3D(Vector3{0.0f, 0.46f, -1.7f}, Vector3{0.0f, 0.06f, -2.6f}, gold);   // the nose ridge
+    }
+
+    // ---- Two engines beside the tail spike, with copper-orange flames ----------------
+    const Color flameOuter{255, 110, 30, 255};
+    const Color flameCore {255, 230, 150, 255};
+    const float flameScale = (tier_ >= 2) ? 1.35f : 1.15f;
+    for (int i = 0; i < 2; ++i) {
+        const float x = (i == 0) ? -0.25f : 0.25f;
+        DrawCylinderEx(Vector3{x, 0.02f, 0.45f}, Vector3{x, 0.02f, 0.95f}, 0.17f, 0.21f, 10,
+                       Mix(navy, underside, 0.5f));
+        const float length = (0.9f + 0.25f * std::sin(time_ * 40.0f + static_cast<float>(i) * 1.7f)) * flameScale;
+        const Vector3 start{x, 0.02f, 0.95f};
+        DrawCylinderEx(start, Vector3{x, 0.02f, 0.95f + length}, 0.17f, 0.0f, 10, flameOuter);
+        DrawCylinderEx(start, Vector3{x, 0.02f, 0.95f + length * 0.6f}, 0.09f, 0.0f, 10, flameCore);
     }
 
     rlPopMatrix();
