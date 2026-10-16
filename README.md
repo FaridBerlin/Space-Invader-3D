@@ -6,11 +6,16 @@ A 3D remake of my 2D browser game *Space Dash Invaders*, written in **C++17** wi
 [raylib](https://www.raylib.com/). It is also a learning project: the goal is to understand C++ and how
 real-time 3D graphics work, built one small, reviewed step at a time.
 
-![Menu](docs/img/menu.png)
+![Level 7: the Claw ship against a wave of dark aliens and a cracked, lightning bomb](docs/img/bomb.png)
 
 | | |
 |---|---|
-| ![Action](docs/img/action.png) | ![Bomb](docs/img/bomb.png) |
+| ![Level 3: Reapers, Scarabs and a diving alien](docs/img/action.png) | ![Level 5: the Claw ship firing from its claw tips](docs/img/claw.png) |
+| ![The title screen](docs/img/menu.png) | ![Aliens and bombs of levels 1 to 7](docs/img/levels.png) |
+
+Your ship through the levels:
+
+![The ship in levels 1-3, level 4, level 5 (the Claw) and levels 6-7](docs/img/ships.png)
 
 ## Play
 
@@ -31,9 +36,13 @@ real-time 3D graphics work, built one small, reviewed step at a time.
   **Commanders** (500, three hits). Every few seconds one alien **dives** at you in an S-curve.
 - **3 lives** (up to 5), and your **high score** is saved (on desktop and in the browser).
 - Shot aliens sometimes drop a **power-up**: a **shield** that absorbs one hit, **rapid fire**, or rarely an **extra life**.
-- Your ship **upgrades** at every level: bigger, new colours, two and then three rockets per shot.
-- A glowing **bomb** flies in every few seconds. Shoot it for **+500** points, or dodge it.
-- **7 levels of 3 waves each.** Every level adds something new (Drones, divers, Reapers, Commanders, ship upgrades), gets faster and has its own colour mood. After level 7: a bonus and endless bonus waves.
+- Your ship **upgrades** as you go: two rockets per shot from level 4, and from level 5 you fly the
+  **Claw**, a copper ship with claw-shaped wings, which fires three rockets from level 6.
+- A glowing **bomb** flies in every few seconds. Shoot it for **+500** points, or dodge it. Every level
+  has its own bomb: from a calm yellow ball in level 1 to a cracked, crimson one with lightning in level 7.
+- **7 levels of 3 waves each.** Every level adds something new (Drones, divers, Reapers, Commanders, ship upgrades),
+  gets faster and has its own colours: the aliens, the bombs and the stars change with every level.
+  After level 7: a bonus and endless bonus waves.
 - Particle explosions, a streaming starfield, glowing projectiles (a custom GLSL shader) and sound effects.
 
 ## Build it yourself
