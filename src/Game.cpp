@@ -196,6 +196,8 @@ void Game::Restart() {
     rapidFireTimer_   = 0.0f;
     pickupTimer_      = 0.0f;
     helpTimer_        = config::kHelpShowTime;   // show the keys for the first seconds
+    boss_.reset();
+    bossDefeated_     = false;
 }
 
 void Game::EndGame(const char* reason) {
@@ -215,6 +217,12 @@ void Game::EndGame(const char* reason) {
 void Game::NextWave() {
     const int lastLevel = config::kLevelCount - 1;
 
+    // The last wave of a level with a boss is done: now the boss comes.
+    if (wave_ + 1 >= config::kWavesPerLevel && config::kLevelBoss[level_] >= 0 && !bossDefeated_) {
+        StartBoss();
+        return;
+    }
+
     if (wave_ + 1 < config::kWavesPerLevel || level_ == lastLevel) {
         // ---- The next wave of the same level -------------------------------------
         ++wave_;
@@ -233,6 +241,7 @@ void Game::NextWave() {
         // ---- The next level ----------------------------------------------------
         ++level_;
         wave_ = 0;
+        bossDefeated_ = false;
         bannerTitle_      = TextFormat("LEVEL %d", level_ + 1);
         bannerSubtitle_   = config::kLevelIntro[level_];
         levelBannerTimer_ = config::kLevelBannerTime;
@@ -255,6 +264,48 @@ void Game::NextWave() {
 
     invaders_.Respawn(level_);
     invaderShotTimer_ = config::kLevelShotInterval[level_];   // a short grace period
+}
+
+void Game::StartBoss() {
+    boss_.emplace(level_);   // builds the Boss right inside the optional
+    bannerTitle_      = boss_->Name();
+    bannerSubtitle_   = "Boss fight! Hit its core when it opens and glows.";
+    levelBannerTimer_ = config::kLevelBannerTime;
+    waveBannerTimer_  = 0.0f;
+    bombs_.clear();          // a clean start: the boss brings its own bombs
+    audio_.Play(Sfx::BombExplosion);
+}
+
+void Game::UpdateBoss(float dt) {
+    if (!boss_) return;
+    const BossEvents events = boss_->Update(dt, player_.X(), invaderShots_, bombs_);
+    if (events.shot) {
+        audio_.Play(Sfx::InvaderShot);
+    }
+    // The death sequence: a chain of blasts in the boss's colours.
+    for (const Vector3& blast : events.blasts) {
+        particles_.Explode(blast, ExplosionStyle{60, 10.0f, 0.9f, 0.4f, boss_->GlowColor(),
+                                                 Color{255, 240, 200, 255}});
+        audio_.Play(Sfx::InvaderDestroyed);
+    }
+    if (events.finished) {
+        // The final blast, the points, a reward, and the way to the next level.
+        const Vector3 center = boss_->Position();
+        for (int i = 0; i < 4; ++i) {
+            particles_.Explode(center, BombExplosion(boss_->GlowColor()));
+        }
+        audio_.Play(Sfx::BombExplosion);
+        score_ += boss_->Points();
+        bannerTitle_      = "BOSS DEFEATED!";
+        bannerSubtitle_   = TextFormat("+%d points", boss_->Points());
+        levelBannerTimer_ = config::kBossOutroTime - 0.3f;
+        // Two power-ups fall out of the wreck.
+        powerUps_.emplace_back(Vector3{center.x - 2.0f, center.y, center.z}, PowerUp::RandomType());
+        powerUps_.emplace_back(Vector3{center.x + 2.0f, center.y, center.z}, PowerUp::RandomType());
+        boss_.reset();
+        bossDefeated_ = true;
+        respawnTimer_ = config::kBossOutroTime;
+    }
 }
 
 void Game::RespawnPlayer() {
@@ -597,7 +648,8 @@ void Game::UpdatePlaying(float dt, const PlayerInput& input) {
     }
 
     // ---- 2b. Bombs appear every few seconds -----------------------------------------
-    bombTimer_ -= dt;
+    // (Not during a boss fight: the boss drops its own bombs.)
+    if (!boss_) bombTimer_ -= dt;
     if (bombTimer_ <= 0.0f) {
         // Aimed roughly at where the ship is NOW, so the player has to react.
         // std::clamp keeps the bomb inside the walls.
@@ -625,6 +677,7 @@ void Game::UpdatePlaying(float dt, const PlayerInput& input) {
         powerUp.Update(dt);
     }
     invaders_.Update(dt, level_, player_.X());
+    UpdateBoss(dt);
 
     // ---- 4. Collisions ----------------------------------------------------------
     // 4a. Our rockets against the invaders.
@@ -636,6 +689,19 @@ void Game::UpdatePlaying(float dt, const PlayerInput& input) {
                 continue;
             }
             OnAlienDestroyed(*hit);
+        }
+    }
+
+    // 4a1. Our rockets against the boss. A hit on the open core does triple damage
+    // and sprays bigger sparks.
+    for (auto& rocket : rockets_) {
+        if (!rocket.alive || !boss_) continue;
+        if (const auto hit = boss_->TryHit(rocket.position, config::kRocketRadius)) {
+            rocket.alive = false;
+            particles_.Explode(hit->position, hit->core ? BombExplosion(boss_->GlowColor()) : HitSparks());
+            if (hit->destroyed) {
+                audio_.Play(Sfx::BombExplosion);
+            }
         }
     }
 
@@ -717,7 +783,8 @@ void Game::UpdatePlaying(float dt, const PlayerInput& input) {
     RemoveDead(powerUps_);
 
     // ---- 6. New wave ------------------------------------------------------------
-    if (invaders_.Empty()) {
+    // (While a boss is there, the fight is not over, even without aliens.)
+    if (invaders_.Empty() && !boss_) {
         respawnTimer_ -= dt;
         if (respawnTimer_ <= 0.0f) {
             NextWave();
@@ -755,6 +822,7 @@ void Game::Draw() const {
             player_.Draw();
         }
         invaders_.Draw(alienModels_);
+        if (boss_) boss_->Draw();
         for (const auto& rocket : rockets_) {
             rocket.Draw();
         }
@@ -796,6 +864,7 @@ void Game::Draw() const {
         if (shieldVisible) {
             glow_.Draw(camera_, player_.Position(), ShieldRadius() * 2.6f, Color{60, 160, 255, 255});
         }
+        if (boss_) boss_->DrawGlow(glow_, camera_);
         glow_.End();
 
         particles_.Draw();   // last: additive blending must be drawn on top of the solid objects
@@ -845,7 +914,8 @@ void Game::Draw() const {
     const char* levelText = TextFormat("LEVEL %d", level_ + 1);
     const int levelX = GetScreenWidth() - Px(20) - MeasureText(levelText, Px(32));
     DrawText(levelText, levelX, Px(16), Px(32), SKYBLUE);
-    const char* waveText = (wave_ < config::kWavesPerLevel)
+    const char* waveText = boss_ ? "BOSS"
+        : (wave_ < config::kWavesPerLevel)
         ? TextFormat("WAVE %d/%d", wave_ + 1, config::kWavesPerLevel)
         : TextFormat("BONUS WAVE %d", wave_ - config::kWavesPerLevel + 1);
     DrawText(waveText, levelX - Px(18) - MeasureText(waveText, Px(22)), Px(24), Px(22),
@@ -875,6 +945,10 @@ void Game::Draw() const {
         const int size = Px(46);
         DrawText(pickupText_, (GetScreenWidth() - MeasureText(pickupText_, size)) / 2,
                  GetScreenHeight() * 2 / 5, size, Fade(pickupColor_, alpha));   // above the ship
+    }
+
+    if (boss_) {
+        DrawBossBar();
     }
 
     if (state_ == GameState::Playing && levelBannerTimer_ > 0.0f) {
@@ -1029,4 +1103,33 @@ void Game::DrawLevelBanner() const {
              y, titleSize, Fade(SKYBLUE, alpha));
     DrawText(bannerSubtitle_.c_str(), (GetScreenWidth() - MeasureText(bannerSubtitle_.c_str(), subSize)) / 2,
              y + titleSize + Px(12), subSize, Fade(RAYWHITE, alpha));
+}
+
+void Game::DrawBossBar() const {
+    using display::Px;
+    // The boss's name and a health bar, centred under the high score. The bar
+    // has a dark background, the remaining health in the boss's colour (red
+    // when it is angry), and a thin white frame. It shakes a little when angry.
+    const int width  = GetScreenWidth() * 2 / 5;
+    const int height = Px(14);
+    const int shake  = boss_->Angry() ? static_cast<int>(2.0f * std::sin(time_ * 40.0f)) : 0;
+    const int x = (GetScreenWidth() - width) / 2 + shake;
+    const int y = Px(80);
+
+    const char* name = boss_->Name();
+    DrawText(name, (GetScreenWidth() - MeasureText(name, Px(22))) / 2, Px(52), Px(22), RAYWHITE);
+
+    const Color fill = boss_->Angry() ? Color{255, 60, 60, 255} : boss_->GlowColor();
+    DrawRectangle(x, y, width, height, Fade(BLACK, 0.6f));
+    DrawRectangle(x, y, static_cast<int>(static_cast<float>(width) * boss_->Health()), height, fill);
+    DrawRectangleLines(x, y, width, height, Fade(RAYWHITE, 0.8f));
+    // Quarter marks, so the player can see the progress.
+    for (int i = 1; i < 4; ++i) {
+        DrawLine(x + width * i / 4, y, x + width * i / 4, y + height, Fade(RAYWHITE, 0.5f));
+    }
+    if (boss_->CoreOpen()) {
+        const char* hint = "CORE OPEN!";
+        DrawText(hint, (GetScreenWidth() - MeasureText(hint, Px(20))) / 2, y + height + Px(8), Px(20),
+                 Fade(fill, 0.6f + 0.4f * std::sin(time_ * 10.0f)));
+    }
 }

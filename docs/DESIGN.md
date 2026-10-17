@@ -98,7 +98,7 @@ Drawn with raylib's 2D functions on top of the 3D scene, scaled with the window 
 ## 4. Difficulty and levels
 
 **7 levels of 3 waves each.** A wave is cleared when all its aliens are destroyed; after the third wave the next
-level starts. After level 7: +10,000 points and endless bonus waves at level 7 strength. All numbers live in
+level starts. Levels 3, 5 and 7 end with a **boss** (see below). After level 7: +10,000 points and endless bonus waves at level 7 strength. All numbers live in
 the "Levels" section of `src/Config.h`, one table entry per level.
 
 | Level | New | Rows | Wave speed | Shot every | Divers (every / at once) | Bomb | Ship |
@@ -114,7 +114,23 @@ the "Levels" section of `src/Config.h`, one table entry per level.
 Every level also has its own **colours**: the aliens (body and glow), the bombs and the tint of the stars.
 Bombs get bigger and faster with every level (radius 0.9 to 1.5).
 
-Ideas for later: a boss after levels 3, 5 and 7, screen shake, combo bonus, a nebula background.
+### Bosses
+
+After the third wave of levels 3, 5 and 7 a huge alien flies in, with its name and a health bar at the top of the
+screen. It slides from side to side and attacks in a fixed order. Every hit on its armour costs it 1 hit point; its
+**core** opens every 6 seconds for 2.5 seconds (it glows, "CORE OPEN!"), and a hit there costs 3. Below half health it
+gets **angry**: its eyes and health bar turn red, it moves faster, attacks more often and fires more shots. When it is
+destroyed it explodes in a chain of blasts and drops two power-ups. The normal bombs pause during a boss fight.
+
+| Boss | Level | Hit points | Points | Attacks |
+|---|---|---|---|---|
+| Hive Queen | 3 | 100 | 5,000 | fan of 5 shots, aimed burst of 3, a bomb |
+| War Titan | 5 | 200 | 8,000 | adds horns, 2 bombs and a rain of shots from its wing guns |
+| Void Emperor | 7 | 300 | 12,000 | adds a crown, a ring of blades, 3 bombs and a sweeping spiral of shots |
+
+All numbers are in the "Bosses" section of `src/Config.h`; the model and the attacks are in `src/Boss.cpp`.
+
+Ideas for later: screen shake, combo bonus, a nebula background.
 
 ## 5. Audio mapping
 

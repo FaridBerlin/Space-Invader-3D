@@ -251,6 +251,35 @@ constexpr ShotPoint kHeroShots[kTierCount][3] = {
 };
 constexpr Color kHeroShotColor{255, 120, 60, 255};   // copper-orange
 
+// ---- Bosses --------------------------------------------------------------------------
+// Levels 3, 5 and 7 end with a boss: after the third wave a huge alien flies in. It
+// slides from side to side and attacks in patterns (see Boss.cpp). Every hit on its
+// armour costs it 1 hit point; when its core opens (it glows), a hit there costs 3.
+// Below half health it gets angry: it attacks faster and with more shots.
+// kLevelBoss: which boss ends each level (0, 1, 2), or -1 for none.
+constexpr int   kLevelBoss[]     = {-1, -1, 0, -1, 1, -1, 2};
+constexpr int   kBossCount       = 3;
+constexpr const char* kBossName[kBossCount]  = {"HIVE QUEEN", "WAR TITAN", "VOID EMPEROR"};
+constexpr int   kBossHitPoints[kBossCount]   = {100, 200, 300};
+constexpr int   kBossScore[kBossCount]       = {5000, 8000, 12000};
+constexpr float kBossScale[kBossCount]       = {1.3f, 1.45f, 1.6f};   // size of the model
+constexpr float kBossSway[kBossCount]        = {4.0f, 3.2f, 2.5f};    // how far it slides left/right (bigger = less room)
+constexpr float kBossSwaySpeed[kBossCount]   = {0.45f, 0.55f, 0.65f}; // how fast (radians per second)
+constexpr float kBossAttackPause[kBossCount] = {2.2f, 1.8f, 1.5f};    // seconds between attacks
+constexpr float kBossShotSpeed[kBossCount]   = {11.0f, 13.0f, 15.0f};
+constexpr float kBossRageFactor  = 0.65f;   // angry: attack pauses get this much shorter
+constexpr float kBossZ           = -17.0f;  // where it hovers while fighting
+constexpr float kBossPitch       = 20.0f;   // degrees it leans forward, so the camera sees its top
+constexpr float kBossY           = 1.4f;    // its shots leave at the aliens' height (kInvaderHeight)
+constexpr float kBossEnterZ      = -80.0f;  // it flies in from here ...
+constexpr float kBossEnterTime   = 3.0f;    // ... taking this long (it cannot be hurt yet)
+constexpr float kBossCoreCycle   = 6.0f;    // the core opens once every 6 seconds ...
+constexpr float kBossCoreOpen    = 2.5f;    // ... for this long
+constexpr int   kBossCoreDamage  = 3;       // damage of a hit on the open core
+constexpr float kBossDeathTime   = 2.5f;    // the explosions before it is gone
+constexpr float kBossOutroTime   = 3.5f;    // pause after the boss before the next level
+static_assert(std::size(kLevelBoss) == kLevelCount, "bosses: one value per level");
+
 // ---- Divers ------------------------------------------------------------------------
 // Now and then an alien leaves the formation and swoops at the player in an
 // S-curve. If it misses, it comes back from the far end into its place.

@@ -6,12 +6,14 @@
 #pragma once
 
 #include <algorithm>   // std::max
+#include <optional>
 #include <string>
 #include <vector>
 
 #include "AlienModels.h"
 #include "Audio.h"
 #include "Bomb.h"
+#include "Boss.h"
 #include "GlowRenderer.h"
 #include "InvaderGrid.h"
 #include "InvaderShot.h"
@@ -48,6 +50,9 @@ private:
     void EndGame(const char* reason);     // switch to GameOver
     void UpdatePlaying(float dt, const PlayerInput& input);
     void FireRocket();
+    void StartBoss();                       // the boss of this level flies in
+    void UpdateBoss(float dt);              // its attacks, its death, the points
+    void DrawBossBar() const;               // its name and health bar at the top
     Color ShotColor() const;   // the colour of the player's rockets right now
     const char* HelpLine() const;   // the controls, for the HUD and the pause screen
     // The shield bubble: big enough to wrap the whole ship, also the wide Claw.
@@ -122,4 +127,9 @@ private:
     bool  quitRequested_   = false;
     float helpTimer_       = 0.0f;   // > 0 while the key help shows in the HUD (after a start)
     bool  showFps_         = false;  // F3 shows the frames per second
+
+    // The boss fight. std::optional: there is a boss, or there is none. A boss is
+    // created (emplace) when it appears and removed (reset) when it is destroyed.
+    std::optional<Boss> boss_;
+    bool  bossDefeated_    = false;  // this level's boss is beaten (or the level has none yet)
 };

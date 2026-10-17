@@ -11,9 +11,12 @@
 struct InvaderShot {
     Vector3 position;
     float   speed;          // units per second; depends on the level, so each shot remembers its own
+    float   sideSpeed;      // sideways speed (X); 0 = straight. The bosses fire fans of shots.
     bool    alive = true;
 
-    InvaderShot(Vector3 start, float shotSpeed) : position(start), speed(shotSpeed) {}
+    // "= 0.0f" is a default argument: callers that do not pass a side speed get 0.
+    InvaderShot(Vector3 start, float shotSpeed, float shotSideSpeed = 0.0f)
+        : position(start), speed(shotSpeed), sideSpeed(shotSideSpeed) {}
 
     void Update(float dt);
     void Draw() const;

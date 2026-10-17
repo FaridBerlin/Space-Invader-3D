@@ -18,6 +18,7 @@ src/
   Rocket.h/.cpp       the player's rockets
   InvaderShot.h/.cpp  the aliens' shots
   Bomb.h/.cpp         the bombs, one design per level
+  Boss.h/.cpp         the three bosses: model, movement, attack patterns, weak core
   PowerUp.h/.cpp      shield, rapid fire, extra life capsules
   Particles.h/.cpp    explosions made of small glowing cubes
   Starfield.h/.cpp    the stars, tinted per level

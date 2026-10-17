@@ -40,6 +40,8 @@ Your ship through the levels:
   **Claw**, a copper ship with claw-shaped wings, which fires three rockets from level 6.
 - A glowing **bomb** flies in every few seconds. Shoot it for **+500** points, or dodge it. Every level
   has its own bomb: from a calm yellow ball in level 1 to a cracked, crimson one with lightning in level 7.
+- **Boss fights** at the end of levels 3, 5 and 7: the **Hive Queen**, the **War Titan** and the
+  **Void Emperor**, each with a health bar, its own attack patterns and a core that opens for triple damage.
 - **7 levels of 3 waves each.** Every level adds something new (Drones, divers, Reapers, Commanders, ship upgrades),
   gets faster and has its own colours: the aliens, the bombs and the stars change with every level.
   After level 7: a bonus and endless bonus waves.

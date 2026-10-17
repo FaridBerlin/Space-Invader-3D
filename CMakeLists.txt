@@ -51,6 +51,7 @@ add_executable(space-invader-3d
     src/Starfield.cpp
     src/GlowRenderer.cpp
     src/Bomb.cpp
+    src/Boss.cpp
     src/Audio.cpp
     src/Display.cpp
     src/LowPoly.cpp
