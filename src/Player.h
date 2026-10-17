@@ -40,6 +40,10 @@ public:
     // Used for the wall limit.
     float HalfWidth() const;
 
+    // The radius of the ship's collision sphere: what can hit it. Bigger for the Claw,
+    // so a bomb cannot fly through its claws without doing harm.
+    float HitRadius() const;
+
 private:
     // "private" = only Player's own functions can touch these. Everyone else
     // must go through the public functions, so the ship can never end up in an

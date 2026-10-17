@@ -2,21 +2,30 @@
 
 Small and simple on purpose: easy to read while learning, and easy to compile for every platform.
 
-## Source layout (planned)
+## Source layout
 
 ```
 src/
-  main.cpp          entry point, window, main loop
-  Game.h/.cpp       owns all game state, update() and draw()
-  GameState.h       enum { Menu, Playing, GameOver }
-  Player.h/.cpp
-  Invader.h/.cpp    and the InvaderGrid (movement, shooting)
-  Projectile.h/.cpp player rockets and invader shots
-  Bomb.h/.cpp
-  Particles.h/.cpp  explosions and starfield
-  Input.h/.cpp      one place that turns keyboard / touch into "move" and "fire"
-  Assets.h/.cpp     loads and owns models, sounds, shaders
-  Config.h          every tuning number in one place (see DESIGN.md)
+  main.cpp            entry point, window, main loop (desktop and web)
+  Game.h/.cpp         owns all game state: states, levels and waves, collisions, HUD and screens
+  Config.h            every tuning number in one place, with one table entry per level
+  Input.h/.cpp        the only place that reads keys, mouse and touch
+  Display.h/.cpp      window size presets, fullscreen, scaling of the 2D text
+  Player.h/.cpp       the ship: movement, upgrade tiers, the Claw design
+  Invader.h/.cpp      one alien: the four types, colours per level, dive state
+  InvaderGrid.h/.cpp  the wave: sideways sweep, step forward, divers, who shoots
+  AlienModels.h/.cpp  optional .glb models (the Commander), with a built-in fallback
+  Rocket.h/.cpp       the player's rockets
+  InvaderShot.h/.cpp  the aliens' shots
+  Bomb.h/.cpp         the bombs, one design per level
+  PowerUp.h/.cpp      shield, rapid fire, extra life capsules
+  Particles.h/.cpp    explosions made of small glowing cubes
+  Starfield.h/.cpp    the stars, tinted per level
+  GlowRenderer.h/.cpp soft additive glow, our custom shader
+  LowPoly.h/.cpp      flat-shaded triangles for the ship and the aliens
+  Audio.h/.cpp        sound effects and mute
+  Storage.h/.cpp      small saved numbers (high score, mute): a file on desktop, localStorage on the web
+  AssetPath.h, Random.h, Util.h   small helpers
 ```
 
 ## Rules we follow
@@ -37,7 +46,11 @@ src/
 ## Game flow
 
 ```
-Menu --(Start)--> Playing --(player hit)--> GameOver --(Restart)--> Playing
+Menu --(Start)--> Playing --(last life lost / wave reached the ship)--> GameOver --(Restart)--> Playing
+                    ^   |
+     (play button / P)  (pause button / P / window in the background)
+                    |   v
+                   Paused
 ```
 
 ## Build

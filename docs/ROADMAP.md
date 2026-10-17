@@ -33,7 +33,7 @@ Each milestone ends with something you can run, and a short note on what it teac
 
 ## M5 - Full game loop
 - [x] Bombs (+500, big explosion)
-- [x] 3 levels with the 2D difficulty rules (shot speed, bomb speed, size and colour)
+- [x] Levels with rising difficulty (first 3 levels like the 2D game, now 7, see M6b)
 - [x] Menu, HUD (level + banner), Game Over, restart
 - [x] All sounds
 - [ ] Learn: state machines, audio
@@ -44,10 +44,26 @@ Each milestone ends with something you can run, and a short note on what it teac
 - [x] Web build published on GitHub Pages (workflow ready; switch on Pages, see SETUP.md)
 - [x] Trim large assets for web, README with play link and screenshots
 
-## M7 - Android (later)
+## M6b - A fuller game
+- [x] Glass floor and stars all around, resizable window, window size presets, fullscreen
+- [x] New low-poly ship with three upgrade tiers, and the Claw from level 5
+- [x] Four alien types (Scarab, Reaper, Drone, Commander), the Commander as an optional `.glb` model
+- [x] Divers, power-ups (shield, rapid fire, extra life), 3 lives, high score saved
+- [x] Touch and mouse controls, pause button, auto-pause in the background, sound button (remembered)
+- [x] 7 levels of 3 waves, each with its own alien colours, bomb design and star colour
+- [x] Key help only at the start and on the pause screen, FPS on F3
+- [ ] Learn: data tables per level, `static_assert`, procedural effects without textures
+
+## M7 - Bosses and polish (next)
+- [ ] A boss after levels 3, 5 and 7
+- [ ] Screen shake on hits, combo bonus, wave-clear bonus
+- [ ] Nebula background that changes per level
+- [ ] Balance the level numbers after real play tests
+
+## M8 - Android (later)
+- [x] Touch controls (done for the web version)
 - [ ] Android NDK build
-- [ ] Touch controls
 - [ ] Performance pass for phones
 
 ## Ideas backlog
-Shields, power-ups, boss wave, high-score table, bloom post-processing, free 2-axis movement, gamepad support.
+High-score table with names, bloom post-processing, free 2-axis movement, gamepad support.

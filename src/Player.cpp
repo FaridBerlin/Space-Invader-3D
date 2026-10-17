@@ -95,6 +95,10 @@ float Player::HalfWidth() const {
     return base * config::kTierScale[tier_];
 }
 
+float Player::HitRadius() const {
+    return hero_ ? config::kHeroHitRadius : config::kPlayerHitRadius;
+}
+
 Vector3 Player::Position() const {
     return Vector3{x_, config::kPlayerHeight, 0.0f};
 }
