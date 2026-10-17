@@ -256,7 +256,7 @@ std::optional<BossHit> Boss::TryHit(Vector3 center, float radius) {
     if (!armour) return std::nullopt;
 
     hitPoints_ -= core ? config::kBossCoreDamage : 1;
-    flash_ = config::kHitFlashTime;
+    flash_ = config::kBossHitFlashTime;
     const bool destroyed = hitPoints_ <= 0;
     if (destroyed) {
         state_ = State::Dying;
@@ -271,7 +271,9 @@ std::optional<BossHit> Boss::TryHit(Vector3 center, float radius) {
 void Boss::Draw() const {
     // Colours of this boss, made from the level's alien colours. A hit flashes
     // everything toward white; when angry the glow flickers toward red.
-    const float flash = flash_ / config::kHitFlashTime;
+    // Only a light tint (at most 35% white): a boss is hit many times a second, and
+    // a full white flash would hide its colours for the whole fight.
+    const float flash = 0.35f * flash_ / config::kBossHitFlashTime;
     const float rage  = Angry() ? 0.5f + 0.5f * std::sin(time_ * 12.0f) : 0.0f;
     const Color glow   = Mix(Mix(glow_, kRed, 0.6f * rage), kWhite, flash);
     const Color shell  = Mix(Mix(body_, kWhite, 0.15f), kWhite, flash);

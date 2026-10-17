@@ -276,6 +276,7 @@ constexpr float kBossEnterTime   = 3.0f;    // ... taking this long (it cannot b
 constexpr float kBossCoreCycle   = 6.0f;    // the core opens once every 6 seconds ...
 constexpr float kBossCoreOpen    = 2.5f;    // ... for this long
 constexpr int   kBossCoreDamage  = 3;       // damage of a hit on the open core
+constexpr float kBossHitFlashTime = 0.08f;  // a short, light flash per hit (see Boss::Draw)
 constexpr float kBossDeathTime   = 2.5f;    // the explosions before it is gone
 constexpr float kBossOutroTime   = 3.5f;    // pause after the boss before the next level
 static_assert(std::size(kLevelBoss) == kLevelCount, "bosses: one value per level");
