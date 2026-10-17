@@ -281,6 +281,12 @@ constexpr float kBossDeathTime   = 2.5f;    // the explosions before it is gone
 constexpr float kBossOutroTime   = 3.5f;    // pause after the boss before the next level
 static_assert(std::size(kLevelBoss) == kLevelCount, "bosses: one value per level");
 
+// ---- Music ---------------------------------------------------------------------------
+// Three looping tracks in assets/audio/music/ (see Audio.cpp and the README credits).
+constexpr float kMusicVolume      = 0.45f;   // under the sound effects
+constexpr float kMusicFadeTime    = 1.2f;    // seconds to fade from one track to another
+constexpr float kMusicPausedShare = 0.35f;   // the music volume on the pause screen
+
 // ---- Game feel ---------------------------------------------------------------------
 // Screen shake: big moments add "trauma" (0 .. 1); it fades by itself. The camera
 // moves by trauma squared, so small bumps stay subtle and big ones really shake.

@@ -159,6 +159,12 @@ Ideas for later: a nebula background, music.
 
 Browsers only start audio after a user click; the Start button covers this.
 
+**Music** (CC0, see `assets/audio/README.md`): `menu.ogg` on the menu and game-over screens, `level.ogg` while
+playing, `boss.ogg` during a boss fight. Music is *streamed* (decoded a little at a time) instead of loaded whole;
+`Audio::Update` feeds the streams every frame and fades between tracks in 1.2 s. The level track continues where it
+paused after a boss; menu and boss tracks start from the beginning. The pause screen turns the music down to 35%,
+and the sound button mutes music and effects together. Numbers: "Music" in `src/Config.h`.
+
 ## 6. Open questions
 
 - Final 3D models: make in Blender, use free CC0 packs, or generate from primitives in code first?

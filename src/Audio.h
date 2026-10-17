@@ -6,8 +6,12 @@
 // (a "Sound") and streams them to the sound card on a separate thread, so
 // playing a sound never makes the game stutter. We just say "play this now".
 //
-// Like GlowRenderer, this class OWNS resources (sounds, the audio device), so it
-// follows RAII: the constructor sets everything up, the destructor tears it down.
+// Music is different: a 2-minute song would be ~20 MB of numbers. So music is
+// STREAMED: raylib keeps the compressed file and decodes a small piece at a
+// time. That is why Update() must be called every frame: it refills the buffer.
+//
+// Like GlowRenderer, this class OWNS resources (sounds, music, the audio device),
+// so it follows RAII: the constructor sets everything up, the destructor tears it down.
 
 #pragma once
 
@@ -28,6 +32,15 @@ enum class Sfx {
     Count,
 };
 
+// The background music tracks. None = silence.
+enum class Track {
+    Menu,
+    Level,
+    Boss,
+    Count,
+    None = Count,
+};
+
 class Audio {
 public:
     Audio();
@@ -38,6 +51,14 @@ public:
     Audio& operator=(const Audio&) = delete;
 
     void Play(Sfx sfx);
+
+    // Which music should play. Changing it fades the old track out and the new
+    // one in (see Update). Calling it every frame with the same track is fine.
+    void SetTrack(Track track) { wanted_ = track; }
+
+    // Call once per frame: feeds the music streams and moves the fades along.
+    // quiet = true lowers the music (for the pause screen).
+    void Update(float dt, bool quiet);
     void ToggleMute();
     void SetMuted(bool muted) { if (muted != muted_) ToggleMute(); }
     bool Muted() const { return muted_; }
@@ -59,6 +80,15 @@ private:
     };
 
     std::array<Effect, static_cast<std::size_t>(Sfx::Count)> effects_{};
+
+    struct Song {
+        Music music{};
+        float fade   = 0.0f;   // 0 = silent .. 1 = full volume
+        bool  loaded = false;
+    };
+    std::array<Song, static_cast<std::size_t>(Track::Count)> songs_{};
+    Track wanted_ = Track::None;
+    float quietFade_ = 1.0f;   // 1 = normal, lower while paused
     bool ready_ = false;   // false when there is no sound card: the game then stays silent
     bool muted_ = false;
 };

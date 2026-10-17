@@ -53,7 +53,8 @@ Your ship through the levels:
 - **7 levels of 3 waves each.** Every level adds something new (Drones, divers, Reapers, Commanders, ship upgrades),
   gets faster and has its own colours: the aliens, the bombs and the stars change with every level.
   After level 7: a bonus and endless bonus waves.
-- Particle explosions, a streaming starfield, glowing projectiles (a custom GLSL shader) and sound effects.
+- Particle explosions, a streaming starfield, glowing projectiles (a custom GLSL shader), sound effects and
+  chiptune **music**: a calm menu track, a level track and a boss track that fade into each other.
 
 ## Build it yourself
 
@@ -102,6 +103,9 @@ space-invader-3d/
 
 - Built with [raylib](https://www.raylib.com/) (zlib license).
 - Sound effects from the original 2D game.
+- Music (all CC0, from [OpenGameArt](https://opengameart.org/)): "8-bit Epic Space Shooter Music" by **HydroGene**,
+  "Boss Fight" from Chiptune Adventures by **Juhani Junkala**, and "Observing The Star" by **yd**.
+  Details in [`assets/audio/README.md`](assets/audio/README.md).
 
 ## License
 

@@ -522,6 +522,15 @@ void Game::Update(float dt) {
     camera_.position = Vector3Add(config::kCameraPosition, offset);
     camera_.target   = Vector3Add(config::kCameraTarget, offset);
 
+    // Music: calm on the menu and after a game, the level track while playing,
+    // and the boss track during a boss fight. Audio fades between them by itself.
+    if (state_ == GameState::Menu || state_ == GameState::GameOver) {
+        audio_.SetTrack(Track::Menu);
+    } else {
+        audio_.SetTrack(boss_ ? Track::Boss : Track::Level);
+    }
+    audio_.Update(dt, state_ == GameState::Paused);
+
     // What else happens each frame depends on the state we are in.
     switch (state_) {
         case GameState::Menu:
