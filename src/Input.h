@@ -37,6 +37,9 @@ struct PlayerInput {
     // True ONLY in the frame Esc was pressed: leave fullscreen, or quit the game.
     bool  back = false;
 
+    // True ONLY in the frame F3 was pressed: show or hide the FPS counter.
+    bool  toggleFps = false;
+
     // Which window size the player chose with the keys 1 .. 5 (counted from 0),
     // or -1 when no such key was pressed in this frame.
     int   windowPreset = -1;

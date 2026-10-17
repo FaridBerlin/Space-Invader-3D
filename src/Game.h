@@ -5,6 +5,7 @@
 
 #pragma once
 
+#include <algorithm>   // std::max
 #include <string>
 #include <vector>
 
@@ -48,6 +49,9 @@ private:
     void UpdatePlaying(float dt, const PlayerInput& input);
     void FireRocket();
     Color ShotColor() const;   // the colour of the player's rockets right now
+    const char* HelpLine() const;   // the controls, for the HUD and the pause screen
+    // The shield bubble: big enough to wrap the whole ship, also the wide Claw.
+    float ShieldRadius() const { return std::max(1.9f, player_.HalfWidth() + 0.3f); }
     void OnAlienDestroyed(const InvaderHit& hit);   // score, explosion, sound, maybe a power-up
     void Collect(PowerUpType type);
     // Something hit the ship. With a shield, the shield takes the hit and this
@@ -116,4 +120,6 @@ private:
     const char* pickupText_ = "";
     Color pickupColor_{255, 255, 255, 255};
     bool  quitRequested_   = false;
+    float helpTimer_       = 0.0f;   // > 0 while the key help shows in the HUD (after a start)
+    bool  showFps_         = false;  // F3 shows the frames per second
 };

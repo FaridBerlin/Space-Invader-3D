@@ -195,6 +195,7 @@ void Game::Restart() {
     shieldTimer_      = 0.0f;
     rapidFireTimer_   = 0.0f;
     pickupTimer_      = 0.0f;
+    helpTimer_        = config::kHelpShowTime;   // show the keys for the first seconds
 }
 
 void Game::EndGame(const char* reason) {
@@ -381,6 +382,9 @@ void Game::Update(float dt) {
     const bool tap = input.pointerPressed && !tapUsed;
     if (input.toggleFullscreen) {
         display::ToggleFullscreen();
+    }
+    if (input.toggleFps) {
+        showFps_ = !showFps_;
     }
     // Esc: first step out of fullscreen; if we are not in fullscreen, quit.
     // These window keys work in EVERY state: menu, playing and game over.
@@ -654,13 +658,14 @@ void Game::UpdatePlaying(float dt, const PlayerInput& input) {
 
     // 4a'. The banners fade out by themselves.
     levelBannerTimer_ = std::max(0.0f, levelBannerTimer_ - dt);
+    helpTimer_        = std::max(0.0f, helpTimer_ - dt);
     waveBannerTimer_  = std::max(0.0f, waveBannerTimer_ - dt);
 
     // 4b. Invader shots against our ship.
     for (auto& shot : invaderShots_) {
         if (playerAlive_ && shot.alive &&
             CheckCollisionSpheres(shot.position, config::kInvaderShotRadius,
-                                  player_.Position(), config::kPlayerHitRadius)) {
+                                  player_.Position(), player_.HitRadius())) {
             shot.alive = false;
             DamagePlayer("Your ship was hit!");
         }
@@ -670,7 +675,7 @@ void Game::UpdatePlaying(float dt, const PlayerInput& input) {
     for (auto& bomb : bombs_) {
         if (bomb.alive && playerAlive_ &&
             CheckCollisionSpheres(bomb.position, bomb.radius,
-                                  player_.Position(), config::kPlayerHitRadius)) {
+                                  player_.Position(), player_.HitRadius())) {
             bomb.alive = false;
             particles_.Explode(bomb.position, BombExplosion(bomb.color));
             audio_.Play(Sfx::BombExplosion);
@@ -681,7 +686,7 @@ void Game::UpdatePlaying(float dt, const PlayerInput& input) {
     // 4b3. A diving alien crashing into our ship. The alien is always destroyed;
     // with a shield up we even get its points.
     if (playerAlive_) {
-        if (const auto ram = invaders_.TryRam(player_.Position(), config::kPlayerHitRadius)) {
+        if (const auto ram = invaders_.TryRam(player_.Position(), player_.HitRadius())) {
             if (!DamagePlayer("An alien crashed into your ship!")) {
                 OnAlienDestroyed(*ram);
             } else {
@@ -694,7 +699,7 @@ void Game::UpdatePlaying(float dt, const PlayerInput& input) {
     for (auto& powerUp : powerUps_) {
         if (playerAlive_ && powerUp.alive &&
             CheckCollisionSpheres(powerUp.position, config::kPowerUpRadius,
-                                  player_.Position(), config::kPlayerHitRadius + 0.3f)) {
+                                  player_.Position(), player_.HitRadius() + 0.3f)) {
             powerUp.alive = false;
             Collect(powerUp.type);
         }
@@ -768,7 +773,7 @@ void Game::Draw() const {
         const bool shieldVisible = playerAlive_ && shieldTimer_ > 0.0f &&
                                    (shieldTimer_ > 3.0f || std::fmod(shieldTimer_, 0.3f) > 0.15f);
         if (shieldVisible) {
-            DrawSphereWires(player_.Position(), 1.9f, 6, 12, Fade(Color{80, 220, 255, 255}, 0.55f));
+            DrawSphereWires(player_.Position(), ShieldRadius(), 6, 12, Fade(Color{80, 220, 255, 255}, 0.55f));
         }
 
         // Glow around the projectiles, drawn by our custom shader. Like the
@@ -789,7 +794,7 @@ void Game::Draw() const {
             glow_.Draw(camera_, powerUp.position, 2.6f, powerUp.MainColor());
         }
         if (shieldVisible) {
-            glow_.Draw(camera_, player_.Position(), 5.0f, Color{60, 160, 255, 255});
+            glow_.Draw(camera_, player_.Position(), ShieldRadius() * 2.6f, Color{60, 160, 255, 255});
         }
         glow_.End();
 
@@ -808,14 +813,21 @@ void Game::Draw() const {
     // stays the same size relative to the picture in a small and in a huge window.
     using display::Px;
     DrawText(TextFormat("SCORE  %06d", score_), Px(20), Px(16), Px(32), RAYWHITE);
-    if (touchMode_) {
-        DrawText("Drag anywhere to move. The ship fires by itself.", Px(20), Px(56), Px(20), LIGHTGRAY);
-    } else {
-        // Only the keys needed while playing; the window keys are listed in the menu.
-        DrawText("Move: A / D or arrows     Fire: Space (hold)     Pause: P     Mute: M",
-                 Px(20), Px(56), Px(20), LIGHTGRAY);
+
+    // The small lines under the score are stacked: each one that is shown moves
+    // the next one down, so there are never gaps.
+    int lineY = Px(56);
+    if (helpTimer_ > 0.0f) {
+        // The key help, only during the first seconds of a game (it fades out in
+        // the last second). The pause screen shows it again.
+        const float alpha = std::min(1.0f, helpTimer_);
+        DrawText(HelpLine(), Px(20), lineY, Px(20), Fade(LIGHTGRAY, alpha));
+        lineY += Px(28);
     }
-    DrawText(TextFormat("%d FPS", GetFPS()), Px(20), Px(84), Px(20), GREEN);
+    if (showFps_) {
+        DrawText(TextFormat("%d FPS", GetFPS()), Px(20), lineY, Px(20), GREEN);
+        lineY += Px(28);
+    }
     DrawLives();
 
     // The best score, in the middle at the top. While you beat it, it counts up with you.
@@ -823,7 +835,7 @@ void Game::Draw() const {
     DrawText(best, (GetScreenWidth() - MeasureText(best, Px(24))) / 2, Px(20), Px(24),
              Color{255, 200, 60, 255});
     if (audio_.Muted()) {
-        DrawText("SOUND OFF", Px(20), Px(112), Px(20), ORANGE);
+        DrawText("SOUND OFF", Px(20), lineY, Px(20), ORANGE);
     }
 
     // Level in the top right corner, right-aligned: measure the text, then
@@ -931,6 +943,15 @@ void Game::DrawPaused() const {
                                        : "Click the play button or press P to continue";
     DrawText(hint, (GetScreenWidth() - MeasureText(hint, Px(24))) / 2,
              static_cast<int>(play.y + play.height) + Px(28), Px(24), LIGHTGRAY);
+    // The controls, for anyone who missed them at the start.
+    DrawText(HelpLine(), (GetScreenWidth() - MeasureText(HelpLine(), Px(20))) / 2,
+             static_cast<int>(play.y + play.height) + Px(68), Px(20), GRAY);
+}
+
+const char* Game::HelpLine() const {
+    // Only the keys needed while playing; the window keys are listed in the menu.
+    return touchMode_ ? "Drag anywhere to move. The ship fires by itself."
+                      : "Move: A / D or arrows     Fire: Space (hold)     Pause: P     Mute: M     FPS: F3";
 }
 
 void Game::DrawGameOver() const {

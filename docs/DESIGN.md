@@ -1,6 +1,9 @@
 # Design
 
-## 1. What the 2D game does (reference)
+How the 3D game plays today is in sections 3 and 4. Section 1 keeps the numbers of the original 2D game,
+which were the starting point.
+
+## 1. What the 2D game did (the starting point)
 
 Taken from `space-invader/index.js`. Values are per frame at 60 fps; the 3D game uses **per-second** values
 (multiply by 60) so speed does not depend on the monitor's refresh rate. They are starting points to tune, not law.
@@ -47,17 +50,35 @@ smooth follow in X gives a feeling of speed. A tilted top-down camera can be add
 
 ### Player
 Low-poly ship, moves left/right within field bounds, banks (rolls) when moving like the 2D ship's rotation.
-Movement only along X for version 1; free 2-axis movement is a possible later mode.
+Movement only along X; free 2-axis movement is a possible later mode.
+
+- **3 lives** (at most 5). After a hit the next ship appears in the middle and blinks for 2.5 s, unhittable.
+- **Two designs:** the first ship (levels 1-4) and the **Claw** (levels 5-7), a copper ship with claw-shaped
+  wings. Its collision sphere is bigger (1.5 instead of 1.1), because it is wider.
+- **Upgrades by level:** 1 rocket (levels 1-3), 2 rockets (4-5), 3 rockets (6-7). The ship grows a little each time.
 
 ### Invaders
-A wall (grid in X and Y) that sweeps sideways, reverses at the field edge and steps **toward the player**
-(replaces "drops 30 px"). Random columns and rows as in 2D. Reaching the player's line can also end the game
-(new rule, optional).
+A wave (grid in X and Z) that sweeps sideways, reverses at the field edge and steps **toward the player**
+(replaces "drops 30 px"). Random columns and rows. Reaching the player's line ends the game.
+
+| Alien | Points | What it does |
+|---|---|---|
+| Scarab | 100 | the front rows |
+| Reaper | 200 | the middle rows, shoots more often than the others |
+| Drone | 150 | the back row, a spinning crystal |
+| Commander | 500 | back row, needs 3 hits, always drops a power-up |
+
+**Divers:** every few seconds one alien leaves the wave and swoops at the player in an S-curve. If it hits the
+ship, both are destroyed. If it misses, it flies back into its place.
+
+**Power-ups:** a destroyed alien drops one with an 8% chance: a **shield** (absorbs one hit, 20 s),
+**rapid fire** (twice as fast, 8 s) or, rarely, an **extra life**.
 
 ### Projectiles and bombs
 - Player rockets: fly along -Z with an emissive trail.
 - Invader shots: fly along +Z toward the player.
-- Bombs: glowing spheres that fall from above and toward the player; shoot them for +500, they explode on contact with the ship.
+- Bombs: glowing spheres that fly in from far away toward the player, one every 5 s; shoot them for +500, they
+  explode on contact with the ship. Every level has its own bomb (see section 4).
 - Collisions: simple spheres/boxes (raylib `CheckCollisionSpheres`, `CheckCollisionBoxes`). No physics engine needed.
 
 ### Visual style
@@ -66,12 +87,34 @@ and explosions, a starfield of points streaming past the camera (replaces the sc
 bursts that fade out (replaces the 2D fading circles). Bloom/glow via a post-process shader is a later learning step.
 
 ### UI
-Score (top left), level banner, Start screen, Game Over screen with restart. Drawn with raylib's 2D functions on top of the 3D scene.
+Drawn with raylib's 2D functions on top of the 3D scene, scaled with the window height:
+
+- **HUD:** score and lives (top left), high score (top middle), wave and level (top right), sound and pause buttons.
+  The key help shows for the first 6 seconds of a game and on the pause screen; F3 shows the FPS.
+- **Banners:** "LEVEL n" with a short intro text, "WAVE n / 3", and power-up names.
+- **Screens:** menu, pause (also automatic when the window or app goes to the background), game over with restart.
+- **Touch / mouse:** drag anywhere to move, the ship fires by itself while the finger is down.
 
 ## 4. Difficulty and levels
 
-Same 3 levels and thresholds as the 2D game. Level raises invader shot speed, bomb speed, bomb size and bomb colour.
-Ideas for later: boss wave, shields, power-ups, high-score table saved to disk (and local storage on web).
+**7 levels of 3 waves each.** A wave is cleared when all its aliens are destroyed; after the third wave the next
+level starts. After level 7: +10,000 points and endless bonus waves at level 7 strength. All numbers live in
+the "Levels" section of `src/Config.h`, one table entry per level.
+
+| Level | New | Rows | Wave speed | Shot every | Divers (every / at once) | Bomb | Ship |
+|---|---|---|---|---|---|---|---|
+| 1 | Scarabs | 2-3 | 4.0 | 2.4 s | none | yellow, calm | 1 rocket |
+| 2 | Drones, divers | 2-3 | 4.5 | 2.2 s | 5.0 s / 1 | green, pulsing cage | 1 rocket |
+| 3 | Reapers | 3-4 | 5.0 | 2.0 s | 4.5 s / 1 | cyan, energy ring | 1 rocket |
+| 4 | Commanders | 3-4 | 5.5 | 1.8 s | 4.0 s / 1 | violet, spikes | 2 rockets |
+| 5 | the Claw | 3-5 | 6.0 | 1.6 s | 3.5 s / 2 | orange, sparks | Claw, 2 rockets |
+| 6 | | 4-5 | 6.8 | 1.4 s | 3.0 s / 2 | red, flicker | Claw, 3 rockets |
+| 7 | | 4-5 | 7.5 | 1.2 s | 2.5 s / 3 | crimson, cracked core and lightning | Claw, 3 rockets |
+
+Every level also has its own **colours**: the aliens (body and glow), the bombs and the tint of the stars.
+Bombs get bigger and faster with every level (radius 0.9 to 1.5).
+
+Ideas for later: a boss after levels 3, 5 and 7, screen shake, combo bonus, a nebula background.
 
 ## 5. Audio mapping
 
@@ -89,5 +132,5 @@ Browsers only start audio after a user click; the Start button covers this.
 ## 6. Open questions
 
 - Final 3D models: make in Blender, use free CC0 packs, or generate from primitives in code first?
-- Mobile controls: on-screen buttons vs tilt vs touch-drag.
+- ~~Mobile controls~~: decided, touch-drag with automatic fire.
 - Name and license of the project.

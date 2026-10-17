@@ -79,6 +79,8 @@ constexpr float kPlayerMaxBankDegrees = 35.0f;  // roll angle at top speed
 constexpr float kPlayerHalfWidth      = 1.5f;   // wing tip to centre, used for the wall limit
 constexpr float kPlayerHeight         = 0.6f;   // ship centre above the ground
 constexpr float kPlayerHitRadius      = 1.1f;   // collision sphere of the ship (a bit smaller than the wings)
+constexpr float kHeroHitRadius        = 1.5f;   // the same for the wider Claw (see "Ship upgrades")
+constexpr float kHelpShowTime         = 6.0f;   // seconds the key help stays in the HUD after a start
 
 // ---- Touch / mouse steering -----------------------------------------------------------
 // Drag anywhere: the ship moves as far (in screen pixels) as the finger does, and
