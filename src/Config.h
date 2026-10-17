@@ -249,7 +249,7 @@ constexpr ShotPoint kHeroShots[kTierCount][3] = {
     {{-0.84f, -1.5f}, { 0.84f, -1.5f}, { 0.00f,  0.0f}},   // tier 1: both inner claw tips
     {{-0.94f, -1.7f}, { 0.00f, -2.6f}, { 0.94f, -1.7f}},   // tier 2: claw tips plus the nose
 };
-constexpr Color kHeroShotColor{255, 120, 60, 255};   // copper-orange
+constexpr Color kHeroShotColor{255, 245, 205, 255};  // white-gold: clearly not an alien shot (yellow)
 
 // ---- Bosses --------------------------------------------------------------------------
 // Levels 3, 5 and 7 end with a boss: after the third wave a huge alien flies in. It
@@ -279,6 +279,30 @@ constexpr int   kBossCoreDamage  = 3;       // damage of a hit on the open core
 constexpr float kBossDeathTime   = 2.5f;    // the explosions before it is gone
 constexpr float kBossOutroTime   = 3.5f;    // pause after the boss before the next level
 static_assert(std::size(kLevelBoss) == kLevelCount, "bosses: one value per level");
+
+// ---- Game feel ---------------------------------------------------------------------
+// Screen shake: big moments add "trauma" (0 .. 1); it fades by itself. The camera
+// moves by trauma squared, so small bumps stay subtle and big ones really shake.
+constexpr float kShakeFade        = 1.6f;    // trauma lost per second
+constexpr float kShakeMaxOffset   = 0.6f;    // camera offset at full trauma, world units
+constexpr float kShakePlayerHit   = 0.75f;   // the ship is destroyed
+constexpr float kShakeShieldBreak = 0.35f;   // the shield takes a hit
+constexpr float kShakeBomb        = 0.3f;    // a bomb explodes (shot down)
+constexpr float kShakeCommander   = 0.25f;   // a commander is destroyed
+constexpr float kShakeBossBlast   = 0.15f;   // each blast while a boss dies ...
+constexpr float kShakeBossDeath   = 1.0f;    // ... and the final one
+// Combo: kills in quick succession raise a points multiplier.
+constexpr float kComboWindow      = 1.5f;    // seconds to the next kill before the combo ends
+constexpr int   kComboStep        = 5;       // kills per +1 multiplier: x2 from the 6th kill
+constexpr int   kComboMaxMultiplier = 4;
+// Wave-clear bonus: points for a fast wave, and extra for not losing a ship.
+constexpr float kWaveParPerAlien  = 1.0f;    // "par time" of a wave: 1 second per alien
+constexpr int   kSpeedBonusPerSecond = 25;   // points per second faster than par
+constexpr int   kNoHitBonus       = 1000;    // no ship lost in this wave
+constexpr float kBonusTextTime    = 1.6f;    // seconds the bonus text shows (the pause before the next wave)
+// Bomb glow: smaller near the ship, so a big bomb never hides it.
+constexpr float kBombGlowNearDistance = 7.0f;   // closer than this the glow shrinks ...
+constexpr float kBombGlowNearFactor   = 0.5f;   // ... down to this share of its size
 
 // ---- Divers ------------------------------------------------------------------------
 // Now and then an alien leaves the formation and swoops at the player in an
