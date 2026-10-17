@@ -6,12 +6,18 @@ A 3D remake of my 2D browser game *Space Dash Invaders*, written in **C++17** wi
 [raylib](https://www.raylib.com/). It is also a learning project: the goal is to understand C++ and how
 real-time 3D graphics work, built one small, reviewed step at a time.
 
-![Level 7: the Claw ship against a wave of dark aliens and a cracked, lightning bomb](docs/img/bomb.png)
+![Level 7: the Claw ship with a x4 combo, a cracked lightning bomb above it](docs/img/bomb.png)
 
 | | |
 |---|---|
-| ![Level 3: Reapers, Scarabs and a diving alien](docs/img/action.png) | ![Level 5: the Claw ship firing from its claw tips](docs/img/claw.png) |
+| ![Level 3: a Reaper dives at the ship, a shield power-up floats by](docs/img/action.png) | ![Level 5: the Claw ship firing white-gold rockets into the wave, combo x3](docs/img/claw.png) |
 | ![The title screen](docs/img/menu.png) | ![Aliens and bombs of levels 1 to 7](docs/img/levels.png) |
+
+The three bosses: the **Hive Queen** (level 3), the **War Titan** (level 5) and the **Void Emperor** (level 7):
+
+| | | |
+|---|---|---|
+| ![The Hive Queen fires a fan of shots](docs/img/boss-hive-queen.png) | ![The War Titan's wing guns fire a rain of shots](docs/img/boss-war-titan.png) | ![The Void Emperor sweeps a spiral of shots, its core open](docs/img/boss-void-emperor.png) |
 
 Your ship through the levels:
 
