@@ -57,6 +57,7 @@ Each milestone ends with something you can run, and a short note on what it teac
 ## M7 - Bosses and polish
 - [x] A boss after levels 3, 5 and 7 (Hive Queen, War Titan, Void Emperor)
 - [x] Screen shake on hits, combo bonus, wave-clear bonus
+- [x] Music: menu, level and boss tracks with cross-fades
 - [ ] Nebula background that changes per level
 - [ ] Balance the level numbers after real play tests
 
