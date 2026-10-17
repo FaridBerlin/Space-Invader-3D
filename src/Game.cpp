@@ -12,6 +12,7 @@
 #include "LowPoly.h"
 #include "Random.h"
 #include "Util.h"
+#include "raymath.h"   // Vector3Add, Vector3Distance
 #include "rlgl.h"      // rlDisableDepthMask, rlDrawRenderBatchActive (see Game::Draw)
 
 namespace {
@@ -198,6 +199,11 @@ void Game::Restart() {
     helpTimer_        = config::kHelpShowTime;   // show the keys for the first seconds
     boss_.reset();
     bossDefeated_     = false;
+    shake_            = 0.0f;
+    comboCount_       = 0;
+    comboTimer_       = 0.0f;
+    bonusTimer_       = 0.0f;
+    StartWaveStats();
 }
 
 void Game::EndGame(const char* reason) {
@@ -264,6 +270,42 @@ void Game::NextWave() {
 
     invaders_.Respawn(level_);
     invaderShotTimer_ = config::kLevelShotInterval[level_];   // a short grace period
+    StartWaveStats();
+}
+
+void Game::StartWaveStats() {
+    waveActive_  = true;
+    waveTime_    = 0.0f;
+    waveAliens_  = invaders_.Count();
+    hitThisWave_ = false;
+}
+
+void Game::AwardWaveBonus() {
+    waveActive_ = false;
+    // Faster than par: 25 points for every second saved, rounded down to tens.
+    const float par = config::kWaveParPerAlien * static_cast<float>(waveAliens_);
+    const int speedBonus = static_cast<int>(std::max(0.0f, par - waveTime_) *
+                                            static_cast<float>(config::kSpeedBonusPerSecond)) / 10 * 10;
+    const int noHitBonus = hitThisWave_ ? 0 : config::kNoHitBonus;
+    if (speedBonus + noHitBonus == 0) return;
+    score_ += speedBonus + noHitBonus;
+
+    // Build the text from the parts that were earned. std::string can be added
+    // together with +, and std::to_string turns a number into text.
+    bonusText_.clear();
+    if (speedBonus > 0) bonusText_ += "SPEED BONUS +" + std::to_string(speedBonus);
+    if (speedBonus > 0 && noHitBonus > 0) bonusText_ += "     ";
+    if (noHitBonus > 0) bonusText_ += "NO HIT +" + std::to_string(noHitBonus);
+    bonusTimer_ = config::kBonusTextTime;
+}
+
+void Game::AddShake(float amount) {
+    shake_ = std::min(1.0f, shake_ + amount);
+}
+
+int Game::ComboMultiplier() const {
+    // 1 for the first 5 kills, 2 from the 6th, 3 from the 11th, at most 4.
+    return std::min(1 + std::max(comboCount_ - 1, 0) / config::kComboStep, config::kComboMaxMultiplier);
 }
 
 void Game::StartBoss() {
@@ -287,6 +329,7 @@ void Game::UpdateBoss(float dt) {
         particles_.Explode(blast, ExplosionStyle{60, 10.0f, 0.9f, 0.4f, boss_->GlowColor(),
                                                  Color{255, 240, 200, 255}});
         audio_.Play(Sfx::InvaderDestroyed);
+        AddShake(config::kShakeBossBlast);
     }
     if (events.finished) {
         // The final blast, the points, a reward, and the way to the next level.
@@ -295,6 +338,7 @@ void Game::UpdateBoss(float dt) {
             particles_.Explode(center, BombExplosion(boss_->GlowColor()));
         }
         audio_.Play(Sfx::BombExplosion);
+        AddShake(config::kShakeBossDeath);
         score_ += boss_->Points();
         bannerTitle_      = "BOSS DEFEATED!";
         bannerSubtitle_   = TextFormat("+%d points", boss_->Points());
@@ -339,9 +383,13 @@ void Game::FireRocket() {
 }
 
 void Game::OnAlienDestroyed(const InvaderHit& hit) {
-    score_ += ScoreFor(hit.type);
+    // Combo: a kill within the time window continues it, otherwise a new one starts.
+    comboCount_ = (comboTimer_ > 0.0f) ? comboCount_ + 1 : 1;
+    comboTimer_ = config::kComboWindow;
+    score_ += ScoreFor(hit.type) * ComboMultiplier();
     particles_.Explode(hit.position, AlienExplosion(hit.type, level_));
     const bool commander = (hit.type == AlienType::Commander);
+    if (commander) AddShake(config::kShakeCommander);
     audio_.Play(commander ? Sfx::BombExplosion : Sfx::InvaderDestroyed);
 
     // Maybe drop a power-up capsule. Commanders always drop one; the others
@@ -383,9 +431,14 @@ bool Game::DamagePlayer(const char* reason) {
                            ExplosionStyle{60, 10.0f, 0.7f, 0.25f,
                                           Color{80, 220, 255, 255}, Color{255, 255, 255, 255}});
         audio_.Play(Sfx::InvaderDestroyed);
+        AddShake(config::kShakeShieldBreak);
         return false;
     }
-    // The ship is destroyed. Its power-ups are lost with it.
+    // The ship is destroyed. Its power-ups (and the combo) are lost with it.
+    AddShake(config::kShakePlayerHit);
+    hitThisWave_ = true;
+    comboCount_  = 0;
+    comboTimer_  = 0.0f;
     playerAlive_    = false;
     shieldTimer_    = 0.0f;
     rapidFireTimer_ = 0.0f;
@@ -458,7 +511,16 @@ void Game::Update(float dt) {
         particles_.Update(dt);
         glow_.Update(dt);
         time_ += dt;
+        shake_ = std::max(0.0f, shake_ - config::kShakeFade * dt);
     }
+
+    // Screen shake: move the camera (and the point it looks at) by a small offset.
+    // Two sine waves with odd speeds give a jittery path that looks random, but
+    // needs no random numbers. Squaring the trauma keeps small shakes small.
+    const float amount = shake_ * shake_ * config::kShakeMaxOffset;
+    const Vector3 offset{amount * std::sin(time_ * 47.0f), amount * std::sin(time_ * 61.0f + 1.3f), 0.0f};
+    camera_.position = Vector3Add(config::kCameraPosition, offset);
+    camera_.target   = Vector3Add(config::kCameraTarget, offset);
 
     // What else happens each frame depends on the state we are in.
     switch (state_) {
@@ -629,6 +691,9 @@ void Game::UpdatePlaying(float dt, const PlayerInput& input) {
     shieldTimer_    = std::max(0.0f, shieldTimer_ - dt);
     rapidFireTimer_ = std::max(0.0f, rapidFireTimer_ - dt);
     pickupTimer_    = std::max(0.0f, pickupTimer_ - dt);
+    comboTimer_     = std::max(0.0f, comboTimer_ - dt);
+    bonusTimer_     = std::max(0.0f, bonusTimer_ - dt);
+    if (waveActive_) waveTime_ += dt;
 
     // ---- 2. The invaders fire back ------------------------------------------------
     if (!invaders_.Empty()) {
@@ -716,6 +781,7 @@ void Game::UpdatePlaying(float dt, const PlayerInput& input) {
                 bomb.alive   = false;
                 score_ += config::kScorePerBomb;
                 particles_.Explode(bomb.position, BombExplosion(bomb.color));
+                AddShake(config::kShakeBomb);
                 audio_.Play(Sfx::BombExplosion);
                 break;   // this rocket is gone: stop looking at more bombs
             }
@@ -784,6 +850,9 @@ void Game::UpdatePlaying(float dt, const PlayerInput& input) {
 
     // ---- 6. New wave ------------------------------------------------------------
     // (While a boss is there, the fight is not over, even without aliens.)
+    if (invaders_.Empty() && waveActive_) {
+        AwardWaveBonus();   // once per wave, in the frame its last alien dies
+    }
     if (invaders_.Empty() && !boss_) {
         respawnTimer_ -= dt;
         if (respawnTimer_ <= 0.0f) {
@@ -856,7 +925,11 @@ void Game::Draw() const {
                        Color{255, 220, 60, 255});   // yellow
         }
         for (const auto& bomb : bombs_) {
-            glow_.Draw(camera_, bomb.position, bomb.GlowSize(time_), bomb.color);
+            // Near the ship the glow shrinks, so even a huge bomb never hides it.
+            const float distance = Vector3Distance(bomb.position, player_.Position());
+            const float closeness = std::clamp(distance / config::kBombGlowNearDistance, 0.0f, 1.0f);
+            const float factor = config::kBombGlowNearFactor + (1.0f - config::kBombGlowNearFactor) * closeness;
+            glow_.Draw(camera_, bomb.position, bomb.GlowSize(time_) * factor, bomb.color);
         }
         for (const auto& powerUp : powerUps_) {
             glow_.Draw(camera_, powerUp.position, 2.6f, powerUp.MainColor());
@@ -940,6 +1013,16 @@ void Game::Draw() const {
     }
 
     // "SHIELD!" / "RAPID FIRE!" in the middle of the screen right after a pickup.
+    if (!boss_) {
+        DrawCombo();   // (during a boss fight the health bar is in that place)
+    }
+    if (bonusTimer_ > 0.0f) {
+        const float alpha = std::min(1.0f, bonusTimer_ / 0.5f);
+        const int size = Px(30);
+        DrawText(bonusText_.c_str(), (GetScreenWidth() - MeasureText(bonusText_.c_str(), size)) / 2,
+                 GetScreenHeight() * 36 / 100, size, Fade(Color{255, 200, 60, 255}, alpha));
+    }
+
     if (state_ == GameState::Playing && pickupTimer_ > 0.0f) {
         const float alpha = std::min(1.0f, pickupTimer_ / 0.5f);   // fades out at the end
         const int size = Px(46);
@@ -1132,4 +1215,20 @@ void Game::DrawBossBar() const {
         DrawText(hint, (GetScreenWidth() - MeasureText(hint, Px(20))) / 2, y + height + Px(8), Px(20),
                  Fade(fill, 0.6f + 0.4f * std::sin(time_ * 10.0f)));
     }
+}
+
+void Game::DrawCombo() const {
+    using display::Px;
+    if (comboTimer_ <= 0.0f || ComboMultiplier() < 2) return;   // only worth showing from x2
+    // "COMBO x3" under the high score, and a small bar that runs out with the time
+    // left to keep the combo going.
+    const char* text = TextFormat("COMBO x%d", ComboMultiplier());
+    const int size = Px(26);
+    const Color color = ComboMultiplier() >= config::kComboMaxMultiplier ? Color{255, 90, 200, 255}
+                                                                         : Color{120, 230, 255, 255};
+    DrawText(text, (GetScreenWidth() - MeasureText(text, size)) / 2, Px(50), size, color);
+    const int width = Px(120);
+    const int x = (GetScreenWidth() - width) / 2;
+    DrawRectangle(x, Px(80), static_cast<int>(static_cast<float>(width) * comboTimer_ / config::kComboWindow),
+                  Px(4), color);
 }

@@ -130,7 +130,21 @@ destroyed it explodes in a chain of blasts and drops two power-ups. The normal b
 
 All numbers are in the "Bosses" section of `src/Config.h`; the model and the attacks are in `src/Boss.cpp`.
 
-Ideas for later: screen shake, combo bonus, a nebula background.
+### Game feel
+
+- **Screen shake** when the ship is destroyed, the shield breaks, a bomb is shot down, a commander dies, and
+  strongest when a boss explodes. Big moments add "trauma" that fades within a second; the camera moves by trauma
+  squared, so small bumps stay subtle.
+- **Combo:** kills less than 1.5 s apart form a combo. The points multiplier is x2 from the 6th kill, x3 from the
+  11th, at most x4. "COMBO x2" and a small timer bar show under the high score. Losing a ship ends the combo.
+- **Wave-clear bonus:** a wave has a "par time" of 1 second per alien. Every second faster gives 25 points, and a
+  wave without losing a ship gives 1,000 more ("SPEED BONUS +300  NO HIT +1000").
+- **Readability:** the Claw fires white-gold rockets (alien shots are yellow), and a bomb's glow shrinks when it is
+  close to the ship, so it never hides it.
+
+All numbers are in the "Game feel" section of `src/Config.h`.
+
+Ideas for later: a nebula background, music.
 
 ## 5. Audio mapping
 

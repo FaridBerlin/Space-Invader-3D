@@ -42,6 +42,7 @@ public:
     std::optional<InvaderHit> TryRam(Vector3 center, float radius);
 
     bool Empty() const { return invaders_.empty(); }
+    int  Count() const { return static_cast<int>(invaders_.size()); }
 
     // Position of a randomly chosen invader that should fire next.
     // std::optional<Vector3> means "a Vector3, or nothing at all". It is the safe

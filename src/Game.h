@@ -53,6 +53,11 @@ private:
     void StartBoss();                       // the boss of this level flies in
     void UpdateBoss(float dt);              // its attacks, its death, the points
     void DrawBossBar() const;               // its name and health bar at the top
+    void AddShake(float amount);            // a screen shake (see "Game feel" in Config.h)
+    void StartWaveStats();                  // a new wave begins: reset its timer and "no hit" flag
+    void AwardWaveBonus();                  // the wave is cleared: speed and no-hit bonus
+    int  ComboMultiplier() const;           // 1, 2, 3 or 4
+    void DrawCombo() const;
     Color ShotColor() const;   // the colour of the player's rockets right now
     const char* HelpLine() const;   // the controls, for the HUD and the pause screen
     // The shield bubble: big enough to wrap the whole ship, also the wide Claw.
@@ -132,4 +137,15 @@ private:
     // created (emplace) when it appears and removed (reset) when it is destroyed.
     std::optional<Boss> boss_;
     bool  bossDefeated_    = false;  // this level's boss is beaten (or the level has none yet)
+
+    // Game feel.
+    float shake_           = 0.0f;   // screen shake "trauma", 0 .. 1
+    int   comboCount_      = 0;      // kills in the current combo
+    float comboTimer_      = 0.0f;   // seconds left to continue the combo
+    bool  waveActive_      = false;  // a wave is being fought (its bonus is not given yet)
+    float waveTime_        = 0.0f;   // seconds since this wave appeared
+    int   waveAliens_      = 0;      // how many aliens it started with
+    bool  hitThisWave_     = false;  // a ship was lost in this wave
+    std::string bonusText_;          // "SPEED BONUS +300   NO HIT +1000"
+    float bonusTimer_      = 0.0f;
 };

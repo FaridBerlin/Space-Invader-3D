@@ -38,6 +38,8 @@ Your ship through the levels:
 - Shot aliens sometimes drop a **power-up**: a **shield** that absorbs one hit, **rapid fire**, or rarely an **extra life**.
 - Your ship **upgrades** as you go: two rockets per shot from level 4, and from level 5 you fly the
   **Claw**, a copper ship with claw-shaped wings, which fires three rockets from level 6.
+- **Combos** multiply your points (up to x4) for quick kills in a row, and a fast wave without losing a ship
+  earns a **wave-clear bonus**. Big hits and explosions shake the screen.
 - A glowing **bomb** flies in every few seconds. Shoot it for **+500** points, or dodge it. Every level
   has its own bomb: from a calm yellow ball in level 1 to a cracked, crimson one with lightning in level 7.
 - **Boss fights** at the end of levels 3, 5 and 7: the **Hive Queen**, the **War Titan** and the
