@@ -26,11 +26,11 @@ jobs:
       - name: Install Emscripten
         uses: mymindstorm/setup-emsdk@v14
         with:
-          version: 3.1.74          # pinned, so the build does not change by surprise
+          version: 3.1.74 # pinned, so the build does not change by surprise
           actions-cache-folder: emsdk-cache
 
       - name: Configure
-        run: emcmake cmake -B build-web -DPLATFORM=Web -DCMAKE_BUILD_TYPE=Release
+        run: emcmake cmake -B build-web -DPLATFORM=Web -DCMAKE_BUILD_TYPE=Release -DSPACE_INVADER_DEMO=ON
 
       - name: Build
         run: cmake --build build-web --parallel

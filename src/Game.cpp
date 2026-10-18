@@ -204,6 +204,7 @@ void Game::Restart() {
     comboCount_       = 0;
     comboTimer_       = 0.0f;
     bonusTimer_       = 0.0f;
+    demoComplete_     = false;
     StartWaveStats();
 }
 
@@ -246,6 +247,13 @@ void Game::NextWave() {
         }
     } else {
         // ---- The next level ----------------------------------------------------
+        // The demo ends here: after the last demo level (and its boss), show the
+        // "get the full game" screen instead of the next level.
+        if (config::kDemo && level_ >= config::kDemoLastLevel) {
+            demoComplete_ = true;
+            EndGame("Demo complete");
+            return;
+        }
         ++level_;
         wave_ = 0;
         bossDefeated_ = false;
@@ -563,6 +571,13 @@ void Game::Update(float dt) {
         case GameState::GameOver:
             // The world is frozen. After a short pause, wait for Enter.
             gameOverTime_ += dt;
+            // Demo complete: G or a tap on the button opens the full game's store page
+            // (once it exists). OpenURL opens the browser, or the Play Store app on a phone.
+            if (demoComplete_ && config::kFullGameUrl[0] != '\0' &&
+                (input.openStore || (tap && CheckCollisionPointRec(input.pointer, StoreButtonRect())))) {
+                OpenURL(config::kFullGameUrl);
+                break;
+            }
             if (gameOverTime_ >= config::kGameOverDelay && (input.confirm || tap)) {
                 Restart();
             }
@@ -1126,6 +1141,10 @@ const char* Game::HelpLine() const {
 }
 
 void Game::DrawGameOver() const {
+    if (demoComplete_) {
+        DrawDemoEnd();
+        return;
+    }
     const int screenW = GetScreenWidth();
     const int screenH = GetScreenHeight();
 
@@ -1186,6 +1205,10 @@ void Game::DrawMenu() const {
 #if !defined(__EMSCRIPTEN__)
     drawCentered("Fullscreen: F     Window size: 1 - 5     Quit: Esc", Px(415), Px(22), LIGHTGRAY);
 #endif
+    if (config::kDemo) {
+        drawCentered("FREE DEMO: levels 1 to 3. The full game with all 7 levels is coming to Google Play.",
+                     screenH - Px(50), Px(22), Color{255, 170, 60, 255});
+    }
 }
 
 void Game::DrawLevelBanner() const {
@@ -1248,4 +1271,44 @@ void Game::DrawCombo() const {
     const int x = (GetScreenWidth() - width) / 2;
     DrawRectangle(x, y + Px(30), static_cast<int>(static_cast<float>(width) * comboTimer_ / config::kComboWindow),
                   Px(4), color);
+}
+
+Rectangle Game::StoreButtonRect() const {
+    using display::Px;
+    const float width  = static_cast<float>(Px(460));
+    const float height = static_cast<float>(Px(64));
+    return Rectangle{(static_cast<float>(GetScreenWidth()) - width) / 2.0f,
+                     static_cast<float>(GetScreenHeight() / 2 + Px(70)), width, height};
+}
+
+void Game::DrawDemoEnd() const {
+    using display::Px;
+    const int screenW = GetScreenWidth();
+    const int middle  = GetScreenHeight() / 2;
+    DrawRectangle(0, 0, screenW, GetScreenHeight(), Fade(BLACK, 0.65f));
+    auto drawCentered = [&](const char* text, int y, int fontSize, Color color) {
+        DrawText(text, (screenW - MeasureText(text, fontSize)) / 2, y, fontSize, color);
+    };
+
+    drawCentered("DEMO COMPLETE!", middle - Px(190), Px(70), Color{120, 230, 255, 255});
+    drawCentered("You beat the Hive Queen. Well done!", middle - Px(110), Px(28), RAYWHITE);
+    drawCentered(TextFormat("Score: %06d", score_), middle - Px(70), Px(30), YELLOW);
+    drawCentered("The full game has 4 more levels, the Claw ship,", middle - Px(20), Px(24), LIGHTGRAY);
+    drawCentered("the War Titan and the Void Emperor.", middle + Px(10), Px(24), LIGHTGRAY);
+
+    // The store button: a link once the app is published, otherwise "coming soon".
+    const Rectangle button = StoreButtonRect();
+    const bool live = config::kFullGameUrl[0] != '\0';
+    const float pulse = 0.6f + 0.4f * sinf(static_cast<float>(GetTime()) * 3.0f);
+    DrawRectangleRounded(button, 0.3f, 8, Fade(Color{40, 140, 90, 255}, live ? 0.9f : 0.4f));
+    DrawRectangleRoundedLinesEx(button, 0.3f, 8, 2.0f, Fade(Color{150, 255, 170, 255}, live ? pulse : 0.4f));
+    const char* label = live ? "Get the full game on Google Play" : "Full game coming soon to Google Play";
+    DrawText(label, static_cast<int>(button.x + (button.width - static_cast<float>(MeasureText(label, Px(24)))) / 2.0f),
+             static_cast<int>(button.y + (button.height - static_cast<float>(Px(24))) / 2.0f), Px(24), RAYWHITE);
+    if (live && !touchMode_) {
+        drawCentered("(or press G)", static_cast<int>(button.y + button.height) + Px(8), Px(20), GRAY);
+    }
+
+    drawCentered(touchMode_ ? "Tap anywhere else to play again" : "Press ENTER to play again",
+                 middle + Px(190), Px(24), LIGHTGRAY);
 }

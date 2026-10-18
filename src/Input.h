@@ -40,6 +40,9 @@ struct PlayerInput {
     // True ONLY in the frame F3 was pressed: show or hide the FPS counter.
     bool  toggleFps = false;
 
+    // True ONLY in the frame G was pressed: open the full game's store page (demo).
+    bool  openStore = false;
+
     // Which window size the player chose with the keys 1 .. 5 (counted from 0),
     // or -1 when no such key was pressed in this frame.
     int   windowPreset = -1;

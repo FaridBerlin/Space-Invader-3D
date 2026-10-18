@@ -108,6 +108,7 @@ PlayerInput ReadInput() {
     input.togglePause = IsKeyPressed(KEY_P);
     input.back = IsKeyPressed(KEY_ESCAPE);
     input.toggleFps = IsKeyPressed(KEY_F3);
+    input.openStore = IsKeyPressed(KEY_G);
 
     // The pointer: a finger (touch screen) or the left mouse button. A "tap" is
     // the frame in which it goes down: down now, but not in the previous frame.

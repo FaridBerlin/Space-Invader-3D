@@ -39,7 +39,7 @@ jobs:
             libxcursor-dev libxi-dev libgl1-mesa-dev libasound2-dev
 
       - name: Configure
-        run: cmake -B build -DCMAKE_BUILD_TYPE=Release
+        run: cmake -B build -DCMAKE_BUILD_TYPE=Release -DSPACE_INVADER_DEMO=ON
 
       - name: Build
         run: cmake --build build --config Release --parallel

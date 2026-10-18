@@ -251,6 +251,21 @@ constexpr ShotPoint kHeroShots[kTierCount][3] = {
 };
 constexpr Color kHeroShotColor{255, 245, 205, 255};  // white-gold: clearly not an alien shot (yellow)
 
+// ---- Demo ------------------------------------------------------------------------------
+// The free demo (built with the CMake option SPACE_INVADER_DEMO=ON, see CMakeLists.txt)
+// ends after the boss of level 3 with a screen that points to the full game.
+// "#if defined(...)" is decided by the compiler, before the program exists: the
+// demo and the full game are two different builds of the same code.
+#if defined(SPACE_INVADER_DEMO)
+constexpr bool kDemo = true;
+#else
+constexpr bool kDemo = false;
+#endif
+constexpr int kDemoLastLevel = 2;   // 0-based: the demo ends after level 3
+// The Play Store page of the full game. Empty until the app is published: the demo
+// then says "coming soon". Put the link here when it is live.
+constexpr const char* kFullGameUrl = "";
+
 // ---- Bosses --------------------------------------------------------------------------
 // Levels 3, 5 and 7 end with a boss: after the third wave a huge alien flies in. It
 // slides from side to side and attacks in patterns (see Boss.cpp). Every hit on its
