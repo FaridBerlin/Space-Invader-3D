@@ -62,6 +62,14 @@ add_executable(space-invader-3d
     src/Storage.cpp
 )
 
+# The free demo: levels 1-3 only, then a "get the full game" screen. The web
+# version and the GitHub downloads are built with -DSPACE_INVADER_DEMO=ON; the
+# full game (the paid Android app) is built without it.
+option(SPACE_INVADER_DEMO "Build the free demo (levels 1-3 only)" OFF)
+if(SPACE_INVADER_DEMO)
+    target_compile_definitions(space-invader-3d PRIVATE SPACE_INVADER_DEMO=1)
+endif()
+
 # Link against raylib (this also gives us its header files).
 target_link_libraries(space-invader-3d PRIVATE raylib)
 

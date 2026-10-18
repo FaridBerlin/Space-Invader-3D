@@ -59,6 +59,8 @@ private:
     void AwardWaveBonus();                  // the wave is cleared: speed and no-hit bonus
     int  ComboMultiplier() const;           // 1, 2, 3 or 4
     void DrawCombo() const;
+    void DrawDemoEnd() const;               // the "demo complete" screen (demo build only)
+    Rectangle StoreButtonRect() const;      // the "get the full game" button on it
     Color ShotColor() const;   // the colour of the player's rockets right now
     const char* HelpLine() const;   // the controls, for the HUD and the pause screen
     // The shield bubble: big enough to wrap the whole ship, also the wide Claw.
@@ -148,6 +150,7 @@ private:
     float waveTime_        = 0.0f;   // seconds since this wave appeared
     int   waveAliens_      = 0;      // how many aliens it started with
     bool  hitThisWave_     = false;  // a ship was lost in this wave
+    bool  demoComplete_    = false;  // the demo's last level is beaten (demo build only)
     std::string bonusText_;          // "SPEED BONUS +300   NO HIT +1000"
     float bonusTimer_      = 0.0f;
 };

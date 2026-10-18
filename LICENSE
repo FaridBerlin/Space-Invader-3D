@@ -1,0 +1,24 @@
+Space Invader 3D
+Copyright (c) 2026 Farid (https://github.com/FaridBerlin). All rights reserved.
+
+The source code, game design, 3D models made in code, graphics, screenshots and the
+original sound effects in this repository are the property of the author.
+
+You may view and read this code, for example to learn from it, and play the game
+through the official links (the web version and the official app releases).
+
+Without prior written permission from the author you may NOT:
+  - copy, modify, merge, publish, distribute, sublicense or sell this project or any
+    part of it;
+  - build, publish or distribute your own versions of the game, including releases
+    on Google Play or any other app store or website.
+
+GitHub's Terms of Service let other GitHub users view and fork public repositories
+on GitHub. This notice grants no rights beyond that.
+
+Third-party parts keep their own licences and are not covered by this notice:
+  - raylib (zlib licence), downloaded at build time;
+  - the music in assets/audio/music/ (CC0 public domain, artists and sources listed
+    in assets/audio/README.md).
+
+For permission requests, contact the author through GitHub.

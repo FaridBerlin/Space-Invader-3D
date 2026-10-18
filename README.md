@@ -1,6 +1,7 @@
 # Space Invader 3D
 
-**[▶ Play it in your browser](https://faridberlin.github.io/Space-Invader-3D/)** (keyboard, mouse or touch screen)
+**[▶ Play the free demo in your browser](https://faridberlin.github.io/Space-Invader-3D/)** (levels 1-3; keyboard, mouse or touch screen).
+The full game with all 7 levels is coming to Google Play.
 
 A 3D remake of my 2D browser game *Space Dash Invaders*, written in **C++17** with
 [raylib](https://www.raylib.com/). It is also a learning project: the goal is to understand C++ and how
@@ -27,9 +28,12 @@ Your ship through the levels:
 
 | Platform | How |
 |---|---|
-| **Web** | Open the link above. Click the game once so it gets the keyboard. |
-| **Windows / Linux** | Download the latest zip / tar.gz from [Releases](../../releases), unpack it and start `space-invader-3d`. |
-| **From source** | See [Build it yourself](#build-it-yourself). |
+| **Web (free demo)** | Open the link above. Click the game once so it gets the keyboard. |
+| **Windows / Linux (free demo)** | Download the latest zip / tar.gz from [Releases](../../releases), unpack it and start `space-invader-3d`. |
+| **Android (full game)** | Coming soon to Google Play. |
+
+The demo contains levels 1 to 3 and the first boss. The full game adds levels 4 to 7, the Claw ship, the War Titan
+and the Void Emperor.
 
 **Touch / mouse:** drag anywhere to move, the ship fires by itself while your finger (or the mouse button) is down; tap to start; the pause and sound buttons sit at the top right (a muted game stays muted next time). The game also pauses itself when you switch to another app or window.
 
@@ -57,8 +61,9 @@ Your ship through the levels:
   projectiles (both are custom GLSL shaders), sound effects and
   chiptune **music**: a calm menu track, a level track and a boss track that fade into each other.
 
-## Build it yourself
+## Building (for development)
 
+This is how the game is built while working on it. (Publishing your own builds is not allowed, see [License](#license).)
 You need a C++17 compiler, CMake and Git. On Linux also a few development libraries (see [`docs/SETUP.md`](docs/SETUP.md)).
 
 ```bash
@@ -68,6 +73,8 @@ cmake --build build
 ```
 
 The first run downloads raylib automatically. The web version needs Emscripten, see [`docs/WEB.md`](docs/WEB.md).
+Add `-DSPACE_INVADER_DEMO=ON` to the first command to build the demo (levels 1-3), as the web version and the
+downloads are built.
 
 ## Tech stack
 
@@ -110,4 +117,6 @@ space-invader-3d/
 
 ## License
 
-To be decided.
+**All rights reserved.** You may read the code and learn from it, and play the game through the official links,
+but you may not copy, modify, publish or sell it, or release your own builds (for example on an app store),
+without permission. See [`LICENSE`](LICENSE). Third-party parts (raylib, the CC0 music) keep their own licences.
