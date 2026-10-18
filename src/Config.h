@@ -281,6 +281,25 @@ constexpr float kBossDeathTime   = 2.5f;    // the explosions before it is gone
 constexpr float kBossOutroTime   = 3.5f;    // pause after the boss before the next level
 static_assert(std::size(kLevelBoss) == kLevelCount, "bosses: one value per level");
 
+// ---- Nebula ----------------------------------------------------------------------------
+// Colour clouds behind the stars (see Nebula.cpp). Two colours per level; a new
+// level fades to its colours. kNebulaStrength is how bright the clouds get: keep it
+// low, the clouds are background and must not compete with the action.
+constexpr Color kLevelNebulaA[] = {
+    { 40,  60, 160, 255}, { 20, 110, 120, 255}, { 50,  50, 170, 255}, {110,  40, 160, 255},
+    {170,  40, 110, 255}, {170,  50,  30, 255}, {160,  20,  50, 255},
+};
+constexpr Color kLevelNebulaB[] = {
+    {100,  40, 140, 255}, { 30,  70, 150, 255}, { 20, 120, 160, 255}, {170,  40, 120, 255},
+    {190,  90,  40, 255}, {140,  80,  20, 255}, { 70,  10,  90, 255},
+};
+static_assert(std::size(kLevelNebulaA) == kLevelCount && std::size(kLevelNebulaB) == kLevelCount,
+              "nebula: two colours per level");
+constexpr float kNebulaStrength  = 0.85f;   // 0 = no clouds, 1 = full colour
+constexpr int   kNebulaDownscale = 4;       // the clouds are calculated at 1/4 width and height
+constexpr float kNebulaDriftX    = 0.004f;  // drift speed, noise units per second
+constexpr float kNebulaDriftY    = 0.03f;
+
 // ---- Music ---------------------------------------------------------------------------
 // Three looping tracks in assets/audio/music/ (see Audio.cpp and the README credits).
 constexpr float kMusicVolume      = 0.45f;   // under the sound effects

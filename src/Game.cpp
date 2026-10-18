@@ -185,6 +185,7 @@ void Game::Restart() {
     bannerTitle_      = "LEVEL 1";
     bannerSubtitle_   = config::kLevelIntro[0];
     stars_.SetColor(config::kLevelStarColor[0]);
+    nebula_.SetColors(config::kLevelNebulaA[0], config::kLevelNebulaB[0]);
     fireCooldown_     = 0.0f;
     invaderShotTimer_ = config::kLevelShotInterval[0];
     bombTimer_        = config::kBombInterval;
@@ -252,6 +253,7 @@ void Game::NextWave() {
         bannerSubtitle_   = config::kLevelIntro[level_];
         levelBannerTimer_ = config::kLevelBannerTime;
         stars_.SetColor(config::kLevelStarColor[level_]);   // the new colour mood
+        nebula_.SetColors(config::kLevelNebulaA[level_], config::kLevelNebulaB[level_]);
 
         // Some levels upgrade the ship (a bigger tier, or the new "Claw" design):
         // new look, and a burst of sparkles in the new shot colour around it.
@@ -507,6 +509,7 @@ void Game::Update(float dt) {
     // death explosion plays out nicely before the Game Over screen appears.
     // While paused, explosions freeze too; only the stars keep drifting.
     stars_.Update(dt);
+    nebula_.Update(dt);
     if (state_ != GameState::Paused) {
         particles_.Update(dt);
         glow_.Update(dt);
@@ -873,6 +876,8 @@ void Game::UpdatePlaying(float dt, const PlayerInput& input) {
 }
 
 void Game::Draw() const {
+    nebula_.Draw();   // first: the background clouds fill the whole screen
+
     BeginMode3D(camera_);
 
         // Draw order matters: far things first, see-through effects last.
@@ -1235,9 +1240,12 @@ void Game::DrawCombo() const {
     const int size = Px(26);
     const Color color = ComboMultiplier() >= config::kComboMaxMultiplier ? Color{255, 90, 200, 255}
                                                                          : Color{120, 230, 255, 255};
-    DrawText(text, (GetScreenWidth() - MeasureText(text, size)) / 2, Px(50), size, color);
+    // While the key help is still showing (first seconds of a game), its long line
+    // runs under the middle of the screen: then the combo moves down a line.
+    const int y = (helpTimer_ > 0.0f) ? Px(84) : Px(50);
+    DrawText(text, (GetScreenWidth() - MeasureText(text, size)) / 2, y, size, color);
     const int width = Px(120);
     const int x = (GetScreenWidth() - width) / 2;
-    DrawRectangle(x, Px(80), static_cast<int>(static_cast<float>(width) * comboTimer_ / config::kComboWindow),
+    DrawRectangle(x, y + Px(30), static_cast<int>(static_cast<float>(width) * comboTimer_ / config::kComboWindow),
                   Px(4), color);
 }

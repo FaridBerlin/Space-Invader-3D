@@ -144,7 +144,10 @@ All numbers are in the "Bosses" section of `src/Config.h`; the model and the att
 
 All numbers are in the "Game feel" section of `src/Config.h`.
 
-Ideas for later: a nebula background, music.
+- **Nebula:** soft colour clouds behind the stars, calculated by a shader from layered noise ("fbm" with domain
+  warping, see `src/Nebula.cpp`). Two colours per level (`kLevelNebulaA/B`), fading when the level changes. They are
+  brighter at the top and calmer at the bottom, where the ship flies. For speed they are rendered at a quarter of
+  the window size and stretched smoothly over the screen.
 
 ## 5. Audio mapping
 

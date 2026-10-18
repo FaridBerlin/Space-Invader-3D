@@ -53,7 +53,8 @@ Your ship through the levels:
 - **7 levels of 3 waves each.** Every level adds something new (Drones, divers, Reapers, Commanders, ship upgrades),
   gets faster and has its own colours: the aliens, the bombs and the stars change with every level.
   After level 7: a bonus and endless bonus waves.
-- Particle explosions, a streaming starfield, glowing projectiles (a custom GLSL shader), sound effects and
+- Particle explosions, a streaming starfield over a drifting **nebula** in each level's colours, glowing
+  projectiles (both are custom GLSL shaders), sound effects and
   chiptune **music**: a calm menu track, a level track and a boss track that fade into each other.
 
 ## Build it yourself
