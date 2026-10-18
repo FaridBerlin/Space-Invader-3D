@@ -2,10 +2,9 @@
 
 #include "GlowRenderer.h"
 
-#include <string>
-
 #include "Config.h"
-#include "rlgl.h"
+#include "ShaderUtil.h"
+#include "rlgl.h"   // rlDisableDepthMask
 
 // =============================================================================
 //  THE SHADER
@@ -22,71 +21,10 @@
 //      Its job: decide the final colour of that pixel.
 //   5. Blending: the result is combined with what is already on screen.
 //
-// GLSL, the language of shaders, comes in different dialects:
-//   * desktop OpenGL 3.3        -> "#version 330"
-//   * OpenGL ES 2.0 (web, many Android phones) -> "#version 100"
-//   * OpenGL ES 3.0             -> "#version 300 es"
-// They differ only in small details (keywords like "in/out" vs "attribute/varying",
-// the name of the output colour). So we write the shader body ONCE, using a few
-// placeholder words (ATTRIBUTE, VARYING, FRAG_OUT, FRAG_COLOR), and put a small
-// per-dialect HEADER in front that defines them. The header is chosen at load time.
+// GLSL comes in different dialects for desktop, web and phones. ShaderUtil.h
+// explains how we write a shader once and make it work on all of them.
 
 namespace {
-
-// ---- Per-dialect headers ------------------------------------------------------------
-// "precision mediump float;" is required in ES fragment shaders: it says how many
-// bits the decimals get. Medium precision is plenty for colours.
-
-const char* const kVertexHeader330 =
-    "#version 330\n"
-    "#define ATTRIBUTE in\n"
-    "#define VARYING out\n";
-const char* const kFragmentHeader330 =
-    "#version 330\n"
-    "#define VARYING in\n"
-    "#define FRAG_OUT out vec4 finalColor;\n"
-    "#define FRAG_COLOR finalColor\n";
-
-const char* const kVertexHeaderES100 =
-    "#version 100\n"
-    "#define ATTRIBUTE attribute\n"
-    "#define VARYING varying\n";
-const char* const kFragmentHeaderES100 =
-    "#version 100\n"
-    "precision mediump float;\n"
-    "#define VARYING varying\n"
-    "#define FRAG_OUT\n"
-    "#define FRAG_COLOR gl_FragColor\n";
-
-const char* const kVertexHeaderES300 =
-    "#version 300 es\n"
-    "#define ATTRIBUTE in\n"
-    "#define VARYING out\n";
-const char* const kFragmentHeaderES300 =
-    "#version 300 es\n"
-    "precision mediump float;\n"
-    "#define VARYING in\n"
-    "#define FRAG_OUT out vec4 finalColor;\n"
-    "#define FRAG_COLOR finalColor\n";
-
-// ---- The vertex shader body ---------------------------------------------------------
-// The names vertexPosition / vertexTexCoord / vertexColor / mvp are the ones raylib
-// looks for: it fills them in automatically when it draws.
-const char* const kVertexBody = R"GLSL(
-ATTRIBUTE vec3 vertexPosition;   // corner position in the 3D world
-ATTRIBUTE vec2 vertexTexCoord;   // 0..1 across the square
-ATTRIBUTE vec4 vertexColor;      // the colour we pass to Draw (tint)
-uniform mat4 mvp;                // world -> screen
-
-VARYING vec2 fragTexCoord;       // handed on to the fragment shader
-VARYING vec4 fragColor;
-
-void main() {
-    fragTexCoord = vertexTexCoord;
-    fragColor    = vertexColor;
-    gl_Position  = mvp * vec4(vertexPosition, 1.0);
-}
-)GLSL";
 
 // ---- The fragment shader body -------------------------------------------------------
 const char* const kFragmentBody = R"GLSL(
@@ -133,28 +71,9 @@ void main() {
 // =============================================================================
 
 GlowRenderer::GlowRenderer() {
-    // Which dialect does the graphics driver speak? rlGetVersion tells us.
-    const char* vertexHeader   = kVertexHeader330;
-    const char* fragmentHeader = kFragmentHeader330;
-    switch (rlGetVersion()) {
-        case RL_OPENGL_ES_20:
-            vertexHeader   = kVertexHeaderES100;
-            fragmentHeader = kFragmentHeaderES100;
-            break;
-        case RL_OPENGL_ES_30:
-            vertexHeader   = kVertexHeaderES300;
-            fragmentHeader = kFragmentHeaderES300;
-            break;
-        default:   // desktop OpenGL
-            break;
-    }
-
-    // Header + body = the complete shader source.
-    const std::string vertexSource   = std::string(vertexHeader)   + kVertexBody;
-    const std::string fragmentSource = std::string(fragmentHeader) + kFragmentBody;
-
-    // The GPU driver compiles the source right now, while the game starts.
-    shader_ = LoadShaderFromMemory(vertexSource.c_str(), fragmentSource.c_str());
+    // Compile our fragment shader (with the shared pass-through vertex shader)
+    // in the dialect this graphics driver speaks. See ShaderUtil.h.
+    shader_ = LoadPortableShader(kPassThroughVertexShader, kFragmentBody);
     ready_  = IsShaderValid(shader_);
 
     // A 1x1 white pixel. DrawBillboard needs a texture to put on the square;

@@ -17,6 +17,7 @@
 #include "GlowRenderer.h"
 #include "InvaderGrid.h"
 #include "InvaderShot.h"
+#include "Nebula.h"
 #include "Particles.h"
 #include "Player.h"
 #include "PowerUp.h"
@@ -95,6 +96,7 @@ private:
     Starfield                 stars_;
     Audio                     audio_;     // sound effects, see Audio.h
     GlowRenderer              glow_;      // owns the shader; see GlowRenderer.h
+    Nebula                    nebula_;    // the colour clouds in the background; see Nebula.h
     AlienModels               alienModels_;   // optional 3D model files, see AlienModels.h
 
     GameState state_       = GameState::Menu;

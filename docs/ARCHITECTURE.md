@@ -22,7 +22,9 @@ src/
   PowerUp.h/.cpp      shield, rapid fire, extra life capsules
   Particles.h/.cpp    explosions made of small glowing cubes
   Starfield.h/.cpp    the stars, tinted per level
-  GlowRenderer.h/.cpp soft additive glow, our custom shader
+  GlowRenderer.h/.cpp soft additive glow, our first custom shader
+  Nebula.h/.cpp       the drifting colour clouds in the background, our second shader
+  ShaderUtil.h/.cpp   loads a shader in the right GLSL dialect for desktop, web or phone
   LowPoly.h/.cpp      flat-shaded triangles for the ship and the aliens
   Audio.h/.cpp        sound effects and mute
   Storage.h/.cpp      small saved numbers (high score, mute): a file on desktop, localStorage on the web

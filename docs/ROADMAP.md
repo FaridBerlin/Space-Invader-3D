@@ -58,7 +58,7 @@ Each milestone ends with something you can run, and a short note on what it teac
 - [x] A boss after levels 3, 5 and 7 (Hive Queen, War Titan, Void Emperor)
 - [x] Screen shake on hits, combo bonus, wave-clear bonus
 - [x] Music: menu, level and boss tracks with cross-fades
-- [ ] Nebula background that changes per level
+- [x] Nebula background that changes per level (our second shader, rendered at 1/16 of the pixels)
 - [ ] Balance the level numbers after real play tests
 
 ## M8 - Android (later)
