@@ -8,19 +8,27 @@
 // the assets into a small virtual file system inside the browser (see CMakeLists.txt,
 // "--preload-file"), and files are found by plain relative paths.
 //
-// "#if defined(__EMSCRIPTEN__)" is the PREPROCESSOR: before the compiler even
-// starts, it keeps one branch and throws the other away. The Emscripten compiler
-// defines the name __EMSCRIPTEN__ automatically; normal compilers do not.
+// On Android they are packed inside the app itself (see below).
+//
+// "#if defined(GAME_WEB)" is the PREPROCESSOR: before the compiler even
+// starts, it keeps one branch and throws the other away. GAME_WEB and friends
+// come from Platform.h.
 
 #pragma once
 
+#include "Platform.h"
 #include "raylib.h"
 
 // Usage: AssetPath("audio/laser.wav"). The returned text is only valid until a
 // few more TextFormat calls happen, so use it right away (LoadSound(AssetPath(...))).
 inline const char* AssetPath(const char* relativePath) {
-#if defined(__EMSCRIPTEN__)
+#if defined(GAME_WEB)
     return TextFormat("assets/%s", relativePath);
+#elif defined(GAME_ANDROID)
+    // On Android the assets are packed INSIDE the app (the .apk/.aab), and Gradle
+    // puts our assets folder at its root. raylib reads them from there with
+    // Android's AssetManager, so the plain relative path is all it needs.
+    return relativePath;
 #else
     return TextFormat("%sassets/%s", GetApplicationDirectory(), relativePath);
 #endif

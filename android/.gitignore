@@ -1,0 +1,17 @@
+*.iml
+.gradle
+/local.properties
+/.idea
+.DS_Store
+/build
+/app/build
+/app/release
+/captures
+.externalNativeBuild
+.cxx
+local.properties
+
+# Signing keys and their passwords: NEVER commit these. Keep a backup somewhere safe.
+*.jks
+*.keystore
+keystore.properties

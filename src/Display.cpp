@@ -5,13 +5,14 @@
 #include <cmath>   // std::lround
 
 #include "Config.h"
+#include "Platform.h"
 #include "raylib.h"
 
 namespace display {
 
 namespace {
 
-#if !defined(__EMSCRIPTEN__)
+#if defined(GAME_DESKTOP)
 // Our own fullscreen state. We remember where the window was and how big it
 // was, so leaving fullscreen puts it back exactly there.
 bool fullscreen = false;
@@ -45,10 +46,15 @@ bool FitsOnMonitor(int width, int height, float share) {
 }  // namespace
 
 void OpenWindow(const char* title) {
-#if defined(__EMSCRIPTEN__)
+#if defined(GAME_WEB)
     // MSAA = smooths jagged edges. Flags must be set BEFORE the window exists.
     SetConfigFlags(FLAG_MSAA_4X_HINT);
     InitWindow(config::kScreenWidth, config::kScreenHeight, title);
+#elif defined(GAME_ANDROID)
+    // On a phone the game always fills the whole screen; 0 x 0 means "the size
+    // of the display". (Landscape only: see android/app/src/main/AndroidManifest.xml.)
+    SetConfigFlags(FLAG_MSAA_4X_HINT | FLAG_FULLSCREEN_MODE);
+    InitWindow(0, 0, title);
 #else
     // Start hidden, so the player never sees the window jump from its first
     // size to the final one. RESIZABLE lets you also drag the window edges.
@@ -75,8 +81,8 @@ void OpenWindow(const char* title) {
 }
 
 void ApplyPreset(int index) {
-#if defined(__EMSCRIPTEN__)
-    (void)index;   // the browser decides the size
+#if !defined(GAME_DESKTOP)
+    (void)index;   // the browser or the phone decides the size
 #else
     if (index < 0 || index >= config::kWindowPresetCount) {
         return;
@@ -106,7 +112,7 @@ void ApplyPreset(int index) {
 // on some Linux desktops it can steal the keyboard focus or ignore later size
 // changes, and then the game no longer reacts to keys.
 void EnterFullscreen() {
-#if !defined(__EMSCRIPTEN__)
+#if defined(GAME_DESKTOP)
     if (fullscreen) return;
     savedPosition = GetWindowPosition();
     savedWidth    = GetScreenWidth();
@@ -128,7 +134,7 @@ void EnterFullscreen() {
 }
 
 void ExitFullscreen() {
-#if !defined(__EMSCRIPTEN__)
+#if defined(GAME_DESKTOP)
     if (!fullscreen) return;
     ClearWindowState(FLAG_WINDOW_UNDECORATED);   // the title bar comes back
     SetWindowSize(savedWidth, savedHeight);
@@ -148,7 +154,7 @@ void ToggleFullscreen() {
 }
 
 bool IsFullscreen() {
-#if defined(__EMSCRIPTEN__)
+#if !defined(GAME_DESKTOP)
     return false;
 #else
     return fullscreen;

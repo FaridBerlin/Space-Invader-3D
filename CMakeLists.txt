@@ -35,10 +35,18 @@ FetchContent_Declare(
     GIT_TAG        5.5
     GIT_SHALLOW    TRUE
 )
+# Android: tell raylib to build its Android version (OpenGL ES, touch, Android
+# audio). The Android Gradle build runs this file with the NDK's toolchain,
+# which sets ANDROID (see android/app/build.gradle.kts).
+if(ANDROID)
+    set(PLATFORM "Android" CACHE STRING "raylib platform" FORCE)
+endif()
+
 FetchContent_MakeAvailable(raylib)
 
 # --- Our game -----------------------------------------------------------------
-add_executable(space-invader-3d
+# One list of source files for every platform.
+set(GAME_SOURCES
     src/main.cpp
     src/Game.cpp
     src/Input.cpp
@@ -61,6 +69,14 @@ add_executable(space-invader-3d
     src/PowerUp.cpp
     src/Storage.cpp
 )
+
+if(ANDROID)
+    # On Android the game is not a program but a LIBRARY (libspace-invader-3d.so)
+    # that Android's NativeActivity loads and starts (see AndroidManifest.xml).
+    add_library(space-invader-3d SHARED ${GAME_SOURCES})
+else()
+    add_executable(space-invader-3d ${GAME_SOURCES})
+endif()
 
 # The free demo: levels 1-3 only, then a "get the full game" screen. The web
 # version and the GitHub downloads are built with -DSPACE_INVADER_DEMO=ON; the
@@ -90,6 +106,17 @@ if(EMSCRIPTEN)
         "SHELL:--preload-file ${CMAKE_SOURCE_DIR}/assets@/assets"
         "-sALLOW_MEMORY_GROWTH=1")
     set_target_properties(space-invader-3d PROPERTIES LINK_DEPENDS "${CMAKE_SOURCE_DIR}/web/shell.html")
+elseif(ANDROID)
+    # ---- Android build -------------------------------------------------------
+    # Gradle packs the assets folder into the app itself (android/app/build.gradle.kts),
+    # so there is nothing to copy here.
+    #  native_app_glue  the small NDK helper that connects NativeActivity to raylib;
+    #                   our Storage.cpp uses its "android_app" type.
+    #  -u ANativeActivity_onCreate  keep the function Android calls to start the app,
+    #                   even though none of our code calls it.
+    target_include_directories(space-invader-3d PRIVATE ${ANDROID_NDK}/sources/android/native_app_glue)
+    target_link_libraries(space-invader-3d PRIVATE android log EGL GLESv2 OpenSLES m)
+    target_link_options(space-invader-3d PRIVATE "-u" "ANativeActivity_onCreate")
 else()
     # Desktop: copy the assets folder next to the finished program. The game
     # looks for "assets/..." in the folder of its own executable (see
