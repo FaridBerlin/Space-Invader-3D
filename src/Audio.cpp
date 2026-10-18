@@ -6,6 +6,7 @@
 #include <cstddef>   // std::size_t
 
 #include "AssetPath.h"
+#include "Platform.h"
 #include "Config.h"
 
 namespace {
@@ -73,10 +74,14 @@ Audio::Audio() {
     for (std::size_t i = 0; i < songs_.size(); ++i) {
         Song& song = songs_[i];
         const char* path = AssetPath(kSongFiles[i]);
+#if !defined(GAME_ANDROID)
+        // (On Android, FileExists cannot look inside the app's packed assets, so
+        // there we just try to load and check the result below.)
         if (!FileExists(path)) {
             TraceLog(LOG_INFO, "AUDIO: no music file %s, playing without it", path);
             continue;
         }
+#endif
         song.music = LoadMusicStream(path);
         if (!IsMusicValid(song.music)) continue;
         song.music.looping = true;   // start again at the end, forever

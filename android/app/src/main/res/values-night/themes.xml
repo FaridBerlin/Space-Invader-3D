@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Full screen, no title bar, black behind the game while it starts. -->
+<resources xmlns:tools="http://schemas.android.com/tools">
+    <style name="Theme.SpaceInvader3D" parent="android:Theme.Material.NoActionBar.Fullscreen">
+        <item name="android:windowBackground">@android:color/black</item>
+        <!-- Use the whole screen, also next to a camera notch. -->
+        <item name="android:windowLayoutInDisplayCutoutMode" tools:targetApi="27">shortEdges</item>
+    </style>
+</resources>

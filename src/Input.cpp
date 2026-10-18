@@ -5,9 +5,10 @@
 
 #include "Input.h"
 
+#include "Platform.h"
 #include "raylib.h"
 
-#if defined(__EMSCRIPTEN__)
+#if defined(GAME_WEB)
 #include <emscripten/emscripten.h>
 
 // A little JavaScript: does this browser have a touch screen?
@@ -62,8 +63,10 @@ EM_JS(int, BrowserWasHidden, (), {
 #endif
 
 bool IsTouchDevice() {
-#if defined(__EMSCRIPTEN__)
+#if defined(GAME_WEB)
     return BrowserHasTouch() != 0;
+#elif defined(GAME_ANDROID)
+    return true;   // a phone or tablet
 #else
     return false;
 #endif
@@ -71,14 +74,21 @@ bool IsTouchDevice() {
 
 namespace {
 bool pointerWasDown = false;   // the pointer state in the previous frame
-#if !defined(__EMSCRIPTEN__)
+#if defined(GAME_DESKTOP)
 bool windowWasFocused = false; // desktop: was the window focused in the previous frame?
 #endif
 }  // namespace
 
 bool WentToBackground() {
-#if defined(__EMSCRIPTEN__)
+#if defined(GAME_WEB)
     return BrowserWasHidden() != 0;
+#elif defined(GAME_ANDROID)
+    // On Android, raylib simply stops our game loop while the app is in the
+    // background (a phone call, the home button) and lets it continue when the
+    // player comes back. So we never see a frame "without focus". What we DO see
+    // is one frame that took very long: the time the app was away. That frame
+    // tells us the game was in the background, and we pause it.
+    return GetFrameTime() > 0.5f;
 #else
     // Only the CHANGE from focused to not focused counts, so a window that never
     // had the focus does not pause the game again and again.
@@ -106,7 +116,7 @@ PlayerInput ReadInput() {
     input.toggleMute = IsKeyPressed(KEY_M);
     input.toggleFullscreen = IsKeyPressed(KEY_F);
     input.togglePause = IsKeyPressed(KEY_P);
-    input.back = IsKeyPressed(KEY_ESCAPE);
+    input.back = IsKeyPressed(KEY_ESCAPE) || IsKeyPressed(KEY_BACK);   // KEY_BACK: Android's back button
     input.toggleFps = IsKeyPressed(KEY_F3);
     input.openStore = IsKeyPressed(KEY_G);
 
@@ -122,7 +132,7 @@ PlayerInput ReadInput() {
     input.pointerPressed = input.pointerDown && !pointerWasDown;
     pointerWasDown = input.pointerDown;
 
-#if defined(__EMSCRIPTEN__)
+#if defined(GAME_WEB)
     // In the browser, also catch presses too short to be seen "down" (see above).
     float pressX = 0.0f;
     float pressY = 0.0f;

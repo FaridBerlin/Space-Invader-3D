@@ -2,7 +2,9 @@
 
 #include "Storage.h"
 
-#if defined(__EMSCRIPTEN__)
+#include "Platform.h"
+
+#if defined(GAME_WEB)
 #include <emscripten/emscripten.h>
 #else
 #include <fstream>   // std::ifstream, std::ofstream: reading and writing files
@@ -11,9 +13,17 @@
 #include "raylib.h"  // GetApplicationDirectory
 #endif
 
+#if defined(GAME_ANDROID)
+#include <android_native_app_glue.h>   // struct android_app (from the NDK)
+// raylib keeps the Android "app" object and hands it out with this function. It is
+// a C function that raylib.h does not declare, so we declare it ourselves.
+// extern "C" = "this function has a C name", so the linker finds it.
+extern "C" struct android_app* GetAndroidApp(void);
+#endif
+
 namespace storage {
 
-#if defined(__EMSCRIPTEN__)
+#if defined(GAME_WEB)
 
 // EM_JS lets us write a C++ function whose body is JAVASCRIPT. Emscripten puts
 // the JavaScript into the web page and connects the two. UTF8ToString turns the
@@ -36,9 +46,15 @@ void SaveInt(const char* name, int value) { SaveToBrowser(name, value); }
 #else
 
 namespace {
-// The file lives next to the game program, wherever it was started from.
 std::string FilePath(const char* name) {
+#if defined(GAME_ANDROID)
+    // On Android: the app's private folder. Only this app can read it, and Android
+    // deletes it when the app is uninstalled.
+    return std::string(GetAndroidApp()->activity->internalDataPath) + "/" + name + ".txt";
+#else
+    // On desktop the file lives next to the game program, wherever it was started from.
     return std::string(GetApplicationDirectory()) + name + ".txt";
+#endif
 }
 }  // namespace
 

@@ -9,6 +9,7 @@
 #include "Display.h"
 #include "Storage.h"
 #include "Input.h"
+#include "Platform.h"
 #include "LowPoly.h"
 #include "Random.h"
 #include "Util.h"
@@ -503,11 +504,21 @@ void Game::Update(float dt) {
     // Esc: first step out of fullscreen; if we are not in fullscreen, quit.
     // These window keys work in EVERY state: menu, playing and game over.
     if (input.back) {
+#if defined(GAME_ANDROID)
+        // Android's back button: a running game pauses; anywhere else the app closes
+        // (so pressing back twice during play leaves the game, as players expect).
+        if (state_ == GameState::Playing) {
+            state_ = GameState::Paused;
+        } else {
+            quitRequested_ = true;
+        }
+#else
         if (display::IsFullscreen()) {
             display::ExitFullscreen();
         } else {
             quitRequested_ = true;
         }
+#endif
     }
     if (input.windowPreset >= 0) {
         display::ApplyPreset(input.windowPreset);
@@ -1170,7 +1181,7 @@ void Game::DrawGameOver() const {
     drawCentered(touchMode_ ? (IsTouchDevice() ? "Tap to play again" : "Click to play again")
                             : "Press ENTER to play again",
                  middle + Px(100), Px(26), LIGHTGRAY);
-#if !defined(__EMSCRIPTEN__)
+#if defined(GAME_DESKTOP)
     drawCentered("Esc to quit", middle + Px(140), Px(22), GRAY);
 #endif
 }
@@ -1202,7 +1213,7 @@ void Game::DrawMenu() const {
         drawCentered("Press ENTER to start", Px(330), Px(32), Fade(RAYWHITE, pulse));
         drawCentered("Move: A / D or arrows     Fire: Space (hold)     Pause: P", Px(380), Px(22), LIGHTGRAY);
     }
-#if !defined(__EMSCRIPTEN__)
+#if defined(GAME_DESKTOP)
     drawCentered("Fullscreen: F     Window size: 1 - 5     Quit: Esc", Px(415), Px(22), LIGHTGRAY);
 #endif
     if (config::kDemo) {
