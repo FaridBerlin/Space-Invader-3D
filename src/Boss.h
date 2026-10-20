@@ -43,7 +43,8 @@ public:
     // and the colours (the level's alien colours).
     explicit Boss(int level);
 
-    BossEvents Update(float dt, float playerX, std::vector<InvaderShot>& shots, std::vector<Bomb>& bombs);
+    // player = where the ship is (the aimed bursts fly there).
+    BossEvents Update(float dt, Vector3 player, std::vector<InvaderShot>& shots, std::vector<Bomb>& bombs);
 
     // A rocket (a sphere) against the boss. Returns what happened, or nothing
     // when it missed (or the boss cannot be hurt right now).
@@ -74,7 +75,7 @@ private:
         float   speed;       // toward the player
     };
 
-    void StartAttack(float playerX, std::vector<Bomb>& bombs);
+    void StartAttack(Vector3 player, std::vector<Bomb>& bombs);
     Vector3 Mouth() const;   // where the shots leave the boss (a point of the model)
     Vector3 ToWorld(Vector3 local) const;   // a point of the model -> a point in the world
     Vector3 ToLocal(Vector3 world) const;   // and back

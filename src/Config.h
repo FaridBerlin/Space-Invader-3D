@@ -62,7 +62,7 @@ constexpr float kFieldLength    = 50.0f;   // field spans Z from 0 down to -50
 // ---- Camera -------------------------------------------------------------------
 // The camera is above and behind the player and looks DOWN on the field, so the
 // field stands upright on the tall screen: the aliens at the top, the ship at the
-// bottom. 50 degrees keeps a real 3D look (higher angles look flat, like 2D).
+// bottom. 40 degrees keeps a real 3D look (higher angles look flat, like 2D).
 // The camera places itself (see Game::FitCamera): it moves as close as it can
 // while this part of the field still fits on the screen:
 //   sideways: the whole field width (kFieldHalfWidth) plus kViewSideMargin
@@ -95,6 +95,13 @@ constexpr Color kGlassColor{40, 110, 190, 0};   // blue tint, alpha 55 of 255 (s
 
 // ---- Player ship --------------------------------------------------------------
 constexpr float kPlayerSpeed          = 14.0f;  // top sideways speed, units per second
+constexpr float kPlayerSpeedZ         = 11.0f;  // top speed up / down the screen
+// The ship may fly up and down in the lower part of the field: from its start line
+// (Z = 0, the bottom of the screen) up to kPlayerMinZ (about a third of the way).
+constexpr float kPlayerMinZ           = -10.0f;
+constexpr float kPlayerMaxZ           = 0.0f;
+constexpr float kPlayerBossMinZ       = -5.0f;  // in a boss fight: not as far up (the boss is big and low)
+constexpr float kPlayerMaxPitchDegrees = 12.0f; // the nose dips this much when flying forward at full speed
 constexpr float kPlayerResponsiveness = 12.0f;  // higher = reaches top speed / stops faster
 constexpr float kPlayerMaxBankDegrees = 35.0f;  // roll angle at top speed
 constexpr float kPlayerHalfWidth      = 1.5f;   // wing tip to centre, used for the wall limit
@@ -104,8 +111,8 @@ constexpr float kHeroHitRadius        = 1.5f;   // the same for the wider Claw (
 constexpr float kHelpShowTime         = 6.0f;   // seconds the key help stays in the HUD after a start
 
 // ---- Touch / mouse steering -----------------------------------------------------------
-// Drag anywhere: the ship moves as far (in screen pixels) as the finger does, and
-// fires by itself while the finger is down.
+// Drag anywhere: the ship moves as far (in screen pixels) as the finger does, in
+// both directions, and fires by itself while the finger is down.
 constexpr float kTouchDragGain    = 1.3f;    // 1.0 = the ship follows the finger 1:1 on screen
 constexpr float kTouchFollowRate  = 14.0f;   // how quickly the ship catches up with the finger
 constexpr float kTouchSpeedFactor = 1.8f;    // top speed with touch, times kPlayerSpeed

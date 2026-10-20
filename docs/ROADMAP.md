@@ -73,13 +73,14 @@ look and designs; we take over what makes those games good to play on a phone.
 Each step is its own branch and ends with something you can play.
 
 1. **Portrait screen and a higher camera** (all platforms)
-   - [ ] Tall picture: phone in portrait, a tall window on the desktop, a tall canvas on the web
-   - [ ] The camera looks down on the field from higher up; it fits itself to any screen shape
-   - [ ] HUD, menus and banners laid out for a tall screen
+   - [x] Tall picture: phone in portrait, a tall window on the desktop, a tall canvas on the web
+   - [x] The camera looks down on the field from higher up (40 degrees); it fits itself to any screen shape
+   - [x] HUD, menus and banners laid out for a tall screen
 2. **Move up and down too**
-   - [ ] The ship follows the finger in both directions (relative drag, as today)
-   - [ ] Keyboard: up / down arrows and W / S
-   - [ ] The ship may use about the bottom third of the field
+   - [x] The ship follows the finger in both directions (relative drag, as today)
+   - [x] Keyboard: up / down arrows and W / S
+   - [x] The ship may use about the bottom third of the field (less in a boss fight)
+   - [x] Flying into an alien of the formation is a crash, like a diver
 3. **Clear power-up orbs**
    - [ ] Glowing orbs with three arrows inside, one colour per kind
    - [ ] Weapon levels 1, 2, 3, ... collected with orbs (instead of fixed per level); a hit costs one

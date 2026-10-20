@@ -63,8 +63,12 @@ Aliens are drawn 1.35x bigger than designed and turn their face 30 degrees up to
 lean back 10 degrees for the same reason.
 
 ### Player
-Low-poly ship, moves left/right within field bounds, banks (rolls) when moving like the 2D ship's rotation.
-Movement only along X; free 2-axis movement is a possible later mode.
+Low-poly ship. It moves left/right across the field and up/down in the lower part of it: from its start line at
+the bottom (Z = 0) up to Z = -10, about a third of the field (in a boss fight only up to Z = -5, so it cannot fly
+into the boss). It banks (rolls) when moving sideways, and dips its nose a little when flying forward.
+Keys: arrows or W A S D. Touch: drag anywhere, the ship follows the finger in both directions.
+Flying into an alien (a diver, or one still in the formation) is a crash: the alien is destroyed, the ship too
+(unless the shield is up).
 
 - **3 lives** (at most 5). After a hit the next ship appears in the middle and blinks for 2.5 s, unhittable.
 - **Two designs:** the first ship (levels 1-4) and the **Claw** (levels 5-7), a copper ship with claw-shaped

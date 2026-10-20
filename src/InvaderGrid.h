@@ -37,8 +37,9 @@ public:
     // left), and we report what happened. If not: an empty optional.
     std::optional<InvaderHit> TryHit(Vector3 center, float radius);
 
-    // Is a DIVING alien touching the sphere (the player's ship)? If yes, that
-    // alien is destroyed (it crashed into the ship) and we report it.
+    // Is an alien touching the sphere (the player's ship)? A diver, or one in the
+    // formation that the ship flew into. If yes, that alien is destroyed (it
+    // crashed into the ship) and we report it.
     std::optional<InvaderHit> TryRam(Vector3 center, float radius);
 
     bool Empty() const { return invaders_.empty(); }

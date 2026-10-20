@@ -106,6 +106,9 @@ PlayerInput ReadInput() {
     if (IsKeyDown(KEY_LEFT)  || IsKeyDown(KEY_A)) input.move -= 1.0f;
     if (IsKeyDown(KEY_RIGHT) || IsKeyDown(KEY_D)) input.move += 1.0f;
 
+    if (IsKeyDown(KEY_UP)    || IsKeyDown(KEY_W)) input.moveUp += 1.0f;
+    if (IsKeyDown(KEY_DOWN)  || IsKeyDown(KEY_S)) input.moveUp -= 1.0f;
+
     // If both directions are held, -1 and +1 cancel out to 0, which is exactly
     // what we want.
 

@@ -21,8 +21,14 @@ public:
     // change the ship. The compiler enforces this promise.
     void Draw() const;
 
-    // A tiny "getter": lets other code read x_ without being able to change it.
+    // Tiny "getters": let other code read x_ and z_ without being able to change them.
     float X() const { return x_; }
+    float Z() const { return z_; }   // 0 = the start line at the bottom, negative = further up
+
+    // How far up the screen the ship may fly (a negative Z). Game makes it smaller
+    // during a boss fight. If the ship is beyond a new limit, it glides back.
+    void SetForwardLimit(float minZ) { minZ_ = minZ; }
+    float ForwardLimit() const { return minZ_; }
 
     // The centre of the ship in world space, used for collision tests.
     Vector3 Position() const;
@@ -49,7 +55,10 @@ private:
     // must go through the public functions, so the ship can never end up in an
     // invalid state. A trailing underscore marks member variables.
     float x_         = 0.0f;   // position along X (left/right)
+    float z_         = 0.0f;   // position along Z (0 = bottom line, negative = up the screen)
     float velocityX_ = 0.0f;   // current sideways speed in units per second
+    float velocityZ_ = 0.0f;   // current speed up / down the screen (negative = up)
+    float minZ_      = -10.0f; // forward limit, see SetForwardLimit (Player() sets it from Config.h)
     float time_      = 0.0f;   // seconds since creation, drives the engine flicker
     int   tier_      = 0;      // upgrade level, 0..kTierCount-1
     bool  hero_      = false;  // true = draw the Claw instead of the first ship

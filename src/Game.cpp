@@ -454,7 +454,7 @@ void Game::StartBoss() {
 
 void Game::UpdateBoss(float dt) {
     if (!boss_) return;
-    const BossEvents events = boss_->Update(dt, player_.X(), invaderShots_, bombs_);
+    const BossEvents events = boss_->Update(dt, player_.Position(), invaderShots_, bombs_);
     if (events.shot) {
         audio_.Play(Sfx::InvaderShot);
     }
@@ -510,7 +510,7 @@ void Game::FireRocket() {
     // A reference to one row of a 2D array: "the 3 shot points of this ship".
     const config::ShotPoint (&points)[3] = player_.Hero() ? config::kHeroShots[tier] : config::kTierShots[tier];
     for (int i = 0; i < config::kTierShotCount[tier]; ++i) {
-        rockets_.emplace_back(Vector3{player_.X() + points[i].x, config::kPlayerHeight, points[i].z},
+        rockets_.emplace_back(Vector3{player_.X() + points[i].x, config::kPlayerHeight, player_.Z() + points[i].z},
                               ShotColor());
     }
     audio_.Play(Sfx::PlayerShot);   // one sound per volley, so it does not get louder and louder
@@ -596,7 +596,7 @@ void Game::Update(float dt) {
     // Show touch hints after a tap, keyboard hints after a key: whatever the player uses.
     if (input.pointerPressed) {
         touchMode_ = true;
-    } else if (input.move != 0.0f || input.fire) {
+    } else if (input.move != 0.0f || input.moveUp != 0.0f || input.fire) {
         touchMode_ = false;
     }
     if (input.toggleMute) {
@@ -727,11 +727,15 @@ PlayerInput Game::ApplyTouchSteering(const PlayerInput& input) {
         return steer;            // no finger (or it is on a button): keyboard as usual
     }
 
-    // How many screen pixels is one world unit at the ship's distance? We ask the
-    // camera where two points 1 unit apart end up on screen.
-    const Vector2 a = GetWorldToScreen(Vector3{0.0f, config::kPlayerHeight, 0.0f}, camera_);
-    const Vector2 b = GetWorldToScreen(Vector3{1.0f, config::kPlayerHeight, 0.0f}, camera_);
-    const float pixelsPerUnit = std::max(1.0f, b.x - a.x);
+    // How many screen pixels is one world unit where the ship is? We ask the
+    // camera where points 1 unit apart end up on screen: sideways (X), and up the
+    // screen (Z). Because of the perspective, the two are not the same.
+    const Vector3 ship = player_.Position();
+    const Vector2 a = GetWorldToScreen(ship, camera_);
+    const Vector2 b = GetWorldToScreen(Vector3{ship.x + 1.0f, ship.y, ship.z}, camera_);
+    const Vector2 c = GetWorldToScreen(Vector3{ship.x, ship.y, ship.z - 1.0f}, camera_);
+    const float pixelsPerUnitX = std::max(1.0f, b.x - a.x);
+    const float pixelsPerUnitZ = std::max(1.0f, a.y - c.y);   // one unit further = higher on screen
 
     // A new drag remembers where the finger and the ship started. From then on
     // the ship moves as far as the finger has moved: a "relative" drag, so you can
@@ -739,18 +743,27 @@ PlayerInput Game::ApplyTouchSteering(const PlayerInput& input) {
     if (!dragActive_) {
         dragActive_        = true;
         dragStartPointerX_ = input.pointer.x;
+        dragStartPointerY_ = input.pointer.y;
         dragStartShipX_    = player_.X();
+        dragStartShipZ_    = player_.Z();
     }
-    float target = dragStartShipX_ +
-                   (input.pointer.x - dragStartPointerX_) / pixelsPerUnit * config::kTouchDragGain;
+    float targetX = dragStartShipX_ +
+                    (input.pointer.x - dragStartPointerX_) / pixelsPerUnitX * config::kTouchDragGain;
+    // Finger up the screen (smaller y) = ship up the screen (smaller z).
+    float targetZ = dragStartShipZ_ +
+                    (input.pointer.y - dragStartPointerY_) / pixelsPerUnitZ * config::kTouchDragGain;
 
     // At a wall: slide the start point along, so moving the finger back moves the
     // ship back immediately (instead of first "unwinding" the extra distance).
     const float limit = config::kFieldHalfWidth - player_.HalfWidth();
-    if (target > limit)  { dragStartShipX_ -= target - limit;  target = limit; }
-    if (target < -limit) { dragStartShipX_ += -limit - target; target = -limit; }
+    if (targetX > limit)  { dragStartShipX_ -= targetX - limit;  targetX = limit; }
+    if (targetX < -limit) { dragStartShipX_ += -limit - targetX; targetX = -limit; }
+    const float minZ = player_.ForwardLimit();
+    if (targetZ < minZ) { dragStartShipZ_ += minZ - targetZ; targetZ = minZ; }
+    if (targetZ > config::kPlayerMaxZ) { dragStartShipZ_ -= targetZ - config::kPlayerMaxZ; targetZ = config::kPlayerMaxZ; }
 
-    steer.targetX = target;
+    steer.targetX = targetX;
+    steer.targetZ = targetZ;
     steer.fire    = true;   // while the finger is down, the ship fires by itself
     return steer;
 }
@@ -838,6 +851,8 @@ void Game::UpdatePlaying(float dt, const PlayerInput& input) {
     }
 
     if (playerAlive_) {
+        // A boss is big and hangs low: during the fight the ship may not fly as far up.
+        player_.SetForwardLimit(boss_ ? config::kPlayerBossMinZ : config::kPlayerMinZ);
         const PlayerInput steer = ApplyTouchSteering(input);
         player_.Update(dt, steer);
 
@@ -1272,7 +1287,7 @@ void Game::DrawPaused() const {
 const char* Game::HelpLine() const {
     // Only the keys needed while playing; the window keys are listed in the menu.
     return touchMode_ ? "Drag anywhere to move. The ship fires by itself."
-                      : "Move: A / D or arrows     Fire: Space (hold)\nPause: P     Mute: M     FPS: F3";
+                      : "Move: arrows or W A S D     Fire: Space (hold)\nPause: P     Mute: M     FPS: F3";
 }
 
 void Game::DrawGameOver() const {
@@ -1333,7 +1348,7 @@ void Game::DrawMenu() const {
                      LIGHTGRAY);
     } else {
         y = DrawCentered("Press ENTER to start", centerX, y, Px(32), textWidth, Fade(RAYWHITE, pulse));
-        y = DrawCentered("Move: A / D or arrows\nFire: Space (hold)     Pause: P", centerX, y + Px(16), Px(18),
+        y = DrawCentered("Move: arrows or W A S D\nFire: Space (hold)     Pause: P", centerX, y + Px(16), Px(18),
                          textWidth, LIGHTGRAY);
 #if defined(GAME_DESKTOP)
         DrawCentered("Fullscreen: F     Window size: 1 - 5     Quit: Esc", centerX, y + Px(6), Px(18), textWidth,
