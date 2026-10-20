@@ -17,6 +17,7 @@
 #include "GlowRenderer.h"
 #include "InvaderGrid.h"
 #include "InvaderShot.h"
+#include "Laser.h"
 #include "Nebula.h"
 #include "Particles.h"
 #include "Player.h"
@@ -35,6 +36,13 @@ enum class GameState {
     GameOver,
 };
 
+// The ship's three weapons (see "Weapons" in Config.h).
+enum class WeaponType {
+    Blaster,   // straight rockets
+    Spread,    // a fan of rockets
+    Laser,     // a lightning beam
+};
+
 class Game {
 public:
     Game();
@@ -51,6 +59,11 @@ private:
     void EndGame(const char* reason);     // switch to GameOver
     void UpdatePlaying(float dt, const PlayerInput& input);
     void FireRocket();
+    void UpdateLaser(float dt);               // where the beam ends, and its damage ticks
+    bool RaiseWeaponLevel();                  // +1 (true), or false when already at the top
+    void SwitchWeapon(WeaponType type);       // a SPREAD or LASER orb was collected
+    Color WeaponColor() const;                // the colour of the current weapon (HUD meter)
+    const char* WeaponName() const;
     void StartBoss();                       // the boss of this level flies in
     void UpdateBoss(float dt);              // its attacks, its death, the points
     void DrawBossBar() const;               // its name and health bar at the top
@@ -142,7 +155,12 @@ private:
     bool  newHighScore_    = false;  // did this game beat it?
     float shieldTimer_     = 0.0f;   // > 0 while the shield is up (seconds left)
     float rapidFireTimer_  = 0.0f;   // > 0 while rapid fire is active (seconds left)
-    int   weaponLevel_     = 1;      // 1 .. kWeaponLevels: how many shots per volley (see Config.h)
+    int   weaponLevel_     = 1;      // 1 .. kWeaponLevels: how strong the weapon is (see Config.h)
+    WeaponType weaponType_ = WeaponType::Blaster;
+    Laser laser_;                    // the lightning beam's look (Game decides what it hits)
+    bool  laserFiring_     = false;  // the laser is the weapon and fire is held
+    float laserTick_       = 0.0f;   // seconds until the beam hurts its target again
+    float laserSoundTimer_ = 0.0f;   // seconds until the laser sound plays again
     float pickupTimer_     = 0.0f;   // > 0 while the "SHIELD!" / "RAPID FIRE!" text shows
     const char* pickupText_ = "";
     Color pickupColor_{255, 255, 255, 255};

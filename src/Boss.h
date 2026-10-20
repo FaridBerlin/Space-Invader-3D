@@ -50,6 +50,10 @@ public:
     // when it missed (or the boss cannot be hurt right now).
     std::optional<BossHit> TryHit(Vector3 center, float radius);
 
+    // Only asks: does this sphere touch the boss (while it can be hurt)? Nothing
+    // happens to it. The laser uses this to find where its beam ends.
+    bool Touches(Vector3 center, float radius) const;
+
     void Draw() const;
     void DrawGlow(const GlowRenderer& glow, const Camera3D& camera) const;   // between glow.Begin/End
 

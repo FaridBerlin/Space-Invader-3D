@@ -268,3 +268,16 @@ std::optional<InvaderHit> InvaderGrid::TryHit(Vector3 center, float radius) {
     }
     return std::nullopt;
 }
+
+std::optional<Vector3> InvaderGrid::FirstInLine(float x, float halfWidth, float fromZ) const {
+    std::optional<Vector3> nearest;
+    for (const auto& invader : invaders_) {
+        const bool inLine  = std::fabs(invader.position.x - x) <= invader.Radius() + halfWidth;
+        const bool inFront = invader.position.z < fromZ;
+        // "Nearest" to the ship = the biggest z (the ship is at the bottom, +z).
+        if (inLine && inFront && (!nearest || invader.position.z > nearest->z)) {
+            nearest = invader.position;
+        }
+    }
+    return nearest;
+}

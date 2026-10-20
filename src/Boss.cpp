@@ -240,21 +240,23 @@ Vector3 Boss::ToLocal(Vector3 world) const {
     return Vector3Scale(p, 1.0f / scale_);
 }
 
-std::optional<BossHit> Boss::TryHit(Vector3 center, float radius) {
-    if (state_ != State::Fighting) return std::nullopt;   // flying in or dying: no damage
-
+bool Boss::Touches(Vector3 center, float radius) const {
+    if (state_ != State::Fighting) return false;   // flying in or dying: cannot be hurt
     // Work in the boss's own space: move the point so the boss centre is the
     // origin, and undo the scale. Then the numbers match the model below.
     const Vector3 local = ToLocal(center);
     const float r = radius / scale_;
+    return (CoreOpen() && Vector3Distance(local, kCoreCenter) < kCoreRadius + 0.3f + r) ||
+           Vector3Distance(local, Vector3{0.0f, 0.4f, 0.0f}) < 3.3f + r ||      // the body
+           Vector3Distance(local, Vector3{-4.3f, 0.3f, -0.2f}) < 2.0f + r ||    // left wing
+           Vector3Distance(local, Vector3{4.3f, 0.3f, -0.2f}) < 2.0f + r ||     // right wing
+           Vector3Distance(local, Vector3{0.0f, 0.0f, 3.6f}) < 1.4f + r;        // mandibles
+}
 
-    bool core = CoreOpen() && Vector3Distance(local, kCoreCenter) < kCoreRadius + 0.3f + r;
-    bool armour = core ||
-                  Vector3Distance(local, Vector3{0.0f, 0.4f, 0.0f}) < 3.3f + r ||      // the body
-                  Vector3Distance(local, Vector3{-4.3f, 0.3f, -0.2f}) < 2.0f + r ||    // left wing
-                  Vector3Distance(local, Vector3{4.3f, 0.3f, -0.2f}) < 2.0f + r ||     // right wing
-                  Vector3Distance(local, Vector3{0.0f, 0.0f, 3.6f}) < 1.4f + r;        // mandibles
-    if (!armour) return std::nullopt;
+std::optional<BossHit> Boss::TryHit(Vector3 center, float radius) {
+    if (!Touches(center, radius)) return std::nullopt;   // missed (or it cannot be hurt now)
+    const Vector3 local = ToLocal(center);
+    const bool core = CoreOpen() && Vector3Distance(local, kCoreCenter) < kCoreRadius + 0.3f + radius / scale_;
 
     hitPoints_ -= core ? config::kBossCoreDamage : 1;
     flash_ = config::kBossHitFlashTime;

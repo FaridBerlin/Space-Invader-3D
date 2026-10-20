@@ -74,9 +74,16 @@ Flying into an alien (a diver, or one still in the formation) is a crash: the al
 - **Two designs:** the first ship (levels 1-4) and the **Claw** (levels 5-7), a copper ship with claw-shaped
   wings. Its collision sphere is bigger (1.5 instead of 1.1), because it is wider.
 - **Ship looks by level:** three colour tiers (levels 1-3, 4-5, 6-7); the ship grows a little each time.
-- **Weapon levels 1-5**, collected with purple weapon orbs (not tied to the level): 1, 2 and 3 shots side by side,
-  then 5 (two angled 9 degrees to the sides) and 7 (a fan up to 18 degrees). Every game starts at 1; losing a
-  ship costs one level. A weapon orb at level 5 gives 500 points. The HUD shows the level as a "POWER" meter.
+- **Three weapons, each with levels 1-5** (not tied to the game level). Every game starts with the blaster at 1.
+  - **Blaster:** 1, 2 and 3 shots side by side, then 5 (two angled 9 degrees) and 7 (a fan up to 18 degrees).
+  - **Spread:** a fan of 3 to 7 shots, from +-12 to +-32 degrees: best against big waves.
+  - **Laser:** a lightning beam (zig-zag with forks, re-drawn 25 times a second) that stops at the first alien,
+    bomb or boss in its way and hits it every 0.13 s (level 1) to 0.06 s (level 5); higher levels are also
+    thicker. Best against commanders and bosses. (`Laser.cpp` draws it; `Game::UpdateLaser` decides the hits.)
+  - A **purple** orb raises the level of the weapon you have; a **green** (spread) or **orange** (laser) orb
+    switches to that weapon at the same level, or raises its level if you already have it. At level 5 an orb
+    gives 500 points instead. Losing a ship costs one level; you keep the weapon.
+  - The HUD shows a "POWER" meter and the weapon's name in its colour.
 
 ### Invaders
 A wave (grid in X and Z) that sweeps sideways, reverses at the field edge and steps **toward the player**
@@ -94,8 +101,9 @@ ship, both are destroyed. If it misses, it flies back into its place.
 
 **Power-ups:** a destroyed alien drops a glowing **orb** with a 10% chance (commanders always; a boss drops two,
 one of them a weapon orb). Each kind has its own colour and symbol, drawn in 2D over the ball so it stays sharp:
-**weapon** (purple, three arrows gliding upward, 45%), **shield** (cyan, a shield, absorbs one hit, 20 s, 25%),
-**rapid fire** (orange, a lightning bolt, twice as fast for 8 s, 20%), **extra life** (pink, "+1", 10%).
+**weapon** (purple, three arrows gliding upward, 33%), **spread** (green, a fan, 10%), **laser** (orange, a
+lightning bolt, 10%), **shield** (cyan, a shield, absorbs one hit, 20 s, 20%), **rapid fire** (yellow, "x2", twice
+as fast for 8 s, 17%), **extra life** (pink, "+1", 10%).
 
 ### Projectiles and bombs
 - Player rockets: fly along -Z with an emissive trail.

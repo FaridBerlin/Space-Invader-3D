@@ -255,7 +255,7 @@ static_assert(std::size(kLevelShipTier) == kLevelCount && std::size(kLevelHeroSh
 // The ship has three looks ("tiers"); kLevelShipTier above says which level gets which.
 // Each tier is a little bigger and fires a different colour. (The colours and parts
 // of the ship itself are in Player.cpp.) HOW MANY shots it fires is not the look: that
-// is the weapon level, see "Weapon levels" below.
+// is the weapon level, see "Weapons" below.
 constexpr int   kTierCount = 3;
 constexpr float kTierScale[kTierCount] = {1.0f, 1.12f, 1.25f};   // 1.0 = original size
 constexpr Color kTierShotColor[kTierCount] = {
@@ -269,10 +269,19 @@ constexpr Color kTierShotColor[kTierCount] = {
 constexpr float kHeroHalfWidth = 2.05f;   // outer claw to centre, before the tier scale
 constexpr Color kHeroShotColor{255, 245, 205, 255};  // white-gold: clearly not an alien shot (yellow)
 
-// ---- Weapon levels ---------------------------------------------------------------------
-// Every game starts at weapon level 1. A purple WEAPON orb (dropped by aliens, see
-// "Power-ups") raises it by one, up to 5. Losing a ship costs one level.
-// Each level is a list of shots fired together: where a shot leaves the ship
+// ---- Weapons ---------------------------------------------------------------------------
+// The ship has three weapons. It starts every game with the BLASTER; a green SPREAD
+// orb or an orange LASER orb (see "Power-ups") switches to that weapon. Every weapon
+// has levels 1 to 5: a purple WEAPON orb raises the level of the weapon you have, and
+// so does an orb of the weapon you already carry. Losing a ship costs one level, but
+// you keep the weapon.
+//
+//   BLASTER  straight rockets; more of them per level (the table below)
+//   SPREAD   a fan of rockets; wider and fuller per level: good against big waves
+//   LASER    a lightning beam that burns the first thing in its way, many times a
+//            second; thicker and faster per level: good against commanders and bosses
+
+// Blaster: each level is a list of shots fired together: where a shot leaves the ship
 // (x, sideways from its centre) and in which direction it flies (angle in degrees:
 // 0 = straight ahead, negative = to the left, positive = to the right).
 struct WeaponShot {
@@ -293,6 +302,21 @@ constexpr WeaponShot kWeaponShots[kWeaponLevels][kMaxWeaponShots] = {
 };
 constexpr float kWeaponMuzzleZ = -2.0f;   // the shots leave this far in front of the ship's centre (times the tier size)
 constexpr int   kMaxPowerBonus = 500;     // a WEAPON orb at level 5: these points instead
+
+// Spread: how many rockets per volley, fanned out evenly from -angle to +angle.
+constexpr int   kSpreadShots[kWeaponLevels]    = {3, 4, 5, 6, 7};
+constexpr float kSpreadAngle[kWeaponLevels]    = {12.0f, 17.0f, 22.0f, 27.0f, 32.0f};   // degrees, to each side
+constexpr Color kSpreadShotColor{110, 255, 150, 255};   // green, like its orb
+
+// Laser: while you hold fire, the beam "ticks": every tick hurts the first alien,
+// bomb or boss in its way by 1 (like one rocket). Higher levels tick faster and
+// the beam is thicker (easier to aim). Rapid fire halves the tick time.
+constexpr float kLaserTick[kWeaponLevels]      = {0.13f, 0.11f, 0.09f, 0.075f, 0.06f};   // seconds per hit
+constexpr float kLaserHalfWidth[kWeaponLevels] = {0.25f, 0.35f, 0.45f, 0.55f, 0.70f};    // hit width, to each side
+constexpr Color kLaserColor{255, 170, 50, 255};       // orange-gold lightning
+constexpr Color kLaserCoreColor{255, 250, 225, 255};  // the white-hot middle
+constexpr float kLaserJitterTime = 0.04f;   // the lightning changes its zig-zag this often (seconds)
+constexpr float kLaserSoundTime  = 0.22f;   // the laser sound repeats this often while firing
 
 // ---- Demo ------------------------------------------------------------------------------
 // The free demo (built with the CMake option SPACE_INVADER_DEMO=ON, see CMakeLists.txt)
@@ -408,18 +432,22 @@ constexpr float kInvincibleTime     = 2.5f;   // the new ship blinks and cannot 
 // ---- Power-ups -----------------------------------------------------------------------
 // A destroyed alien sometimes drops a glowing orb that drifts toward the player.
 // Fly into it to collect it. Each kind has its own colour and symbol (PowerUp.cpp):
-//   WEAPON      purple, three arrows   weapon level +1 (see "Weapon levels")
-//   RAPID FIRE  orange, a lightning    shoot twice as fast for a while
+//   WEAPON      purple, three arrows   weapon level +1 (see "Weapons")
+//   SPREAD      green, a fan           switch to the spread gun (or its level +1)
+//   LASER       orange, a lightning    switch to the laser (or its level +1)
+//   RAPID FIRE  yellow, "x2"           shoot twice as fast for a while
 //   SHIELD      cyan, a shield         absorbs one hit
 //   EXTRA LIFE  pink, "+1"             one more ship
 constexpr float kPowerUpDropChance = 0.10f;   // 10% per alien; commanders always drop one
 // Which kind a drop is, in percent (together 100):
-constexpr int   kWeaponOrbChance   = 45;
-constexpr int   kShieldChance      = 25;
-constexpr int   kRapidFireChance   = 20;
+constexpr int   kWeaponOrbChance   = 33;
+constexpr int   kSpreadOrbChance   = 10;
+constexpr int   kLaserOrbChance    = 10;
+constexpr int   kShieldChance      = 20;
+constexpr int   kRapidFireChance   = 17;
 constexpr int   kExtraLifeChance   = 10;
-static_assert(kWeaponOrbChance + kShieldChance + kRapidFireChance + kExtraLifeChance == 100,
-              "power-up chances must add up to 100");
+static_assert(kWeaponOrbChance + kSpreadOrbChance + kLaserOrbChance + kShieldChance + kRapidFireChance +
+              kExtraLifeChance == 100, "power-up chances must add up to 100");
 constexpr int   kMaxPowerUps       = 3;       // orbs on the field at the same time
 constexpr float kPowerUpSpeed      = 7.0f;    // units per second toward the player
 constexpr float kPowerUpRadius     = 0.9f;    // what the ship must touch to collect it

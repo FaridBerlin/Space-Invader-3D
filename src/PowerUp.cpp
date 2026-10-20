@@ -24,8 +24,10 @@ void PowerUp::Update(float dt) {
 Color PowerUp::MainColor() const {
     switch (type) {
         case PowerUpType::Weapon:    return Color{170,  80, 255, 255};   // purple
+        case PowerUpType::Spread:    return config::kSpreadShotColor;    // green
+        case PowerUpType::Laser:     return config::kLaserColor;         // orange
         case PowerUpType::Shield:    return Color{ 80, 220, 255, 255};   // cyan
-        case PowerUpType::RapidFire: return Color{255, 150,  40, 255};   // orange
+        case PowerUpType::RapidFire: return Color{255, 225,  60, 255};   // yellow
         case PowerUpType::ExtraLife: return Color{255,  90, 150, 255};   // pink
     }
     return Color{255, 255, 255, 255};
@@ -37,6 +39,8 @@ PowerUpType PowerUp::RandomType() {
     // kShieldChance a shield, and so on.
     int roll = GetRandomValue(1, 100);
     if ((roll -= config::kWeaponOrbChance) <= 0) return PowerUpType::Weapon;
+    if ((roll -= config::kSpreadOrbChance) <= 0) return PowerUpType::Spread;
+    if ((roll -= config::kLaserOrbChance) <= 0)  return PowerUpType::Laser;
     if ((roll -= config::kShieldChance) <= 0)    return PowerUpType::Shield;
     if ((roll -= config::kRapidFireChance) <= 0) return PowerUpType::RapidFire;
     return PowerUpType::ExtraLife;
@@ -100,7 +104,26 @@ void PowerUp::DrawIcon(const Camera3D& camera) const {
             }
             break;
         }
+        case PowerUpType::Spread: {
+            // A fan: five rays from one point at the bottom, each with a dot at its end.
+            const Vector2 root{c.x, c.y + r * 0.55f};
+            for (int i = 0; i < 5; ++i) {
+                const float angle = (-50.0f + 25.0f * static_cast<float>(i)) * DEG2RAD;
+                const Vector2 tip{root.x + std::sin(angle) * r * 0.95f, root.y - std::cos(angle) * r * 0.95f};
+                DrawLineEx(root, tip, thick * 0.7f, white);
+                DrawCircleV(tip, thick * 0.75f, white);
+            }
+            break;
+        }
         case PowerUpType::RapidFire: {
+            // "x2": twice as fast.
+            const int size = static_cast<int>(r * 0.95f);
+            const char* text = "x2";
+            DrawText(text, static_cast<int>(c.x) - MeasureText(text, size) / 2, static_cast<int>(c.y) - size / 2,
+                     size, white);
+            break;
+        }
+        case PowerUpType::Laser: {
             // A lightning bolt: two triangles (corners counter-clockwise on screen).
             const float s = r * 0.62f;
             DrawTriangle(Vector2{c.x + s * 0.25f, c.y - s}, Vector2{c.x - s * 0.55f, c.y + s * 0.15f},
