@@ -14,10 +14,12 @@
 // player wants to do during this frame.
 struct PlayerInput {
     float move = 0.0f;    // -1 = full left, 0 = nothing, +1 = full right
+    float moveUp = 0.0f;  // -1 = full down (toward the bottom), +1 = full up the screen
 
-    // Touch / mouse steering: when set, the ship flies to this X position (in
-    // world units) instead of using "move". Game fills it in from the finger.
+    // Touch / mouse steering: when set, the ship flies to this X / Z position (in
+    // world units) instead of using "move" / "moveUp". Game fills them in from the finger.
     std::optional<float> targetX;
+    std::optional<float> targetZ;
     bool  fire = false;   // true while the fire button is held
 
     // True ONLY during the single frame in which Enter was pressed. This is

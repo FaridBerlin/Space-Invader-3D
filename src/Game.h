@@ -78,7 +78,7 @@ private:
     void RespawnPlayer();
     void NextWave();   // after a wave is destroyed: the next wave, or the next level
     void DrawPauseButton() const;
-    // Turns a finger drag into steering (targetX) and auto-fire. Returns the input
+    // Turns a finger drag into steering (targetX, targetZ) and auto-fire. Returns the input
     // the ship should use this frame.
     PlayerInput ApplyTouchSteering(const PlayerInput& input);
     Rectangle PauseButtonRect() const;   // the on-screen pause button (top right)
@@ -129,7 +129,9 @@ private:
     bool  dragActive_      = false;  // a finger is down and steering the ship
     bool  touchOnButton_   = false;  // this touch began on a button: it must not steer or fire
     float dragStartPointerX_ = 0.0f; // where the finger was when the drag began (pixels)
+    float dragStartPointerY_ = 0.0f;
     float dragStartShipX_  = 0.0f;   // where the ship was when the drag began (world units)
+    float dragStartShipZ_  = 0.0f;
     int   lives_           = 0;      // ships left, including the one flying now
     float playerRespawnTimer_ = 0.0f;   // > 0 while waiting for the next ship
     float invincibleTimer_ = 0.0f;   // > 0 while a fresh ship blinks and cannot be hit

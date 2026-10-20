@@ -238,7 +238,9 @@ float InvaderGrid::FrontZ() const {
 
 std::optional<InvaderHit> InvaderGrid::TryRam(Vector3 center, float radius) {
     for (auto it = invaders_.begin(); it != invaders_.end(); ++it) {
-        if (it->dive == DiveState::Diving &&
+        // Divers, and (now that the ship can fly up) aliens still in the formation.
+        // A returning alien flies in from far away and is not a danger yet.
+        if (it->dive != DiveState::Returning &&
             CheckCollisionSpheres(it->position, it->Radius(), center, radius)) {
             const InvaderHit hit{it->position, it->type, true};
             invaders_.erase(it);

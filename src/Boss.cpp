@@ -83,7 +83,7 @@ Vector3 Boss::Mouth() const {
     return Vector3{0.0f, kCoreCenter.y, kCoreCenter.z + 1.2f};   // just in front of the core
 }
 
-BossEvents Boss::Update(float dt, float playerX, std::vector<InvaderShot>& shots, std::vector<Bomb>& bombs) {
+BossEvents Boss::Update(float dt, Vector3 player, std::vector<InvaderShot>& shots, std::vector<Bomb>& bombs) {
     BossEvents events;
     time_      += dt;
     stateTime_ += dt;
@@ -115,7 +115,7 @@ BossEvents Boss::Update(float dt, float playerX, std::vector<InvaderShot>& shots
             // Next attack, when the last one has fired all its shots.
             attackTimer_ -= dt;
             if (attackTimer_ <= 0.0f && pending_.empty()) {
-                StartAttack(playerX, bombs);
+                StartAttack(player, bombs);
                 attackTimer_ = config::kBossAttackPause[index_] * (Angry() ? config::kBossRageFactor : 1.0f);
             }
 
@@ -157,7 +157,7 @@ BossEvents Boss::Update(float dt, float playerX, std::vector<InvaderShot>& shots
     return events;
 }
 
-void Boss::StartAttack(float playerX, std::vector<Bomb>& bombs) {
+void Boss::StartAttack(Vector3 player, std::vector<Bomb>& bombs) {
     const auto attack = static_cast<Attack>(kPatterns[index_][attackStep_ % kPatternLength]);
     ++attackStep_;
     const int   extra = Angry() ? 2 : 0;
@@ -177,9 +177,10 @@ void Boss::StartAttack(float playerX, std::vector<Bomb>& bombs) {
         }
         case Attack::Aimed: {
             // A quick burst at the ship. Sideways speed = sideways distance / flight time.
+            // (The ship can fly up and down, so the distance is measured to where it is now.)
             const int n = kAimedShots[index_] + extra;
-            const float flightTime = -ToWorld(mouth).z / speed;
-            const float side = (playerX - position_.x) / flightTime;
+            const float flightTime = std::max(0.3f, (player.z - ToWorld(mouth).z) / speed);
+            const float side = (player.x - position_.x) / flightTime;
             for (int i = 0; i < n; ++i) {
                 pending_.push_back({0.16f * static_cast<float>(i), mouth, side, speed});
             }

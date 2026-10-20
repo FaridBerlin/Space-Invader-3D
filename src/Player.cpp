@@ -48,7 +48,7 @@ static_assert(std::size(kStyles) == static_cast<std::size_t>(config::kTierCount)
 
 }  // namespace
 
-Player::Player() = default;   // all members already have starting values in Player.h
+Player::Player() : minZ_(config::kPlayerMinZ) {}   // the other members have starting values in Player.h
 
 void Player::Update(float dt, const PlayerInput& input) {
     time_ += dt;
@@ -73,6 +73,25 @@ void Player::Update(float dt, const PlayerInput& input) {
 
     // 3. Move: distance = speed * time.
     x_ += velocityX_ * dt;
+
+    // The same for up and down (along Z). Up the screen is -Z, so "moveUp = +1"
+    // means a NEGATIVE speed.
+    float targetVelocityZ = -input.moveUp * config::kPlayerSpeedZ;
+    if (input.targetZ) {
+        const float maxSpeed = config::kPlayerSpeedZ * config::kTouchSpeedFactor;
+        targetVelocityZ = std::clamp((*input.targetZ - z_) * config::kTouchFollowRate, -maxSpeed, maxSpeed);
+    }
+    velocityZ_ += (targetVelocityZ - velocityZ_) * blend;
+    z_ += velocityZ_ * dt;
+    if (z_ < minZ_) {
+        // Beyond the limit: stop there. If the limit just moved (a boss arrived),
+        // glide back to it at normal speed instead of jumping.
+        z_ = std::min(minZ_, z_ - velocityZ_ * dt + config::kPlayerSpeedZ * dt);
+        velocityZ_ = 0.0f;
+    } else if (z_ > config::kPlayerMaxZ) {
+        z_ = config::kPlayerMaxZ;
+        velocityZ_ = 0.0f;
+    }
 
     // 4. Stay inside the play field. If we hit the wall, stop dead there.
     const float limit = config::kFieldHalfWidth - HalfWidth();
@@ -100,7 +119,7 @@ float Player::HitRadius() const {
 }
 
 Vector3 Player::Position() const {
-    return Vector3{x_, config::kPlayerHeight, 0.0f};
+    return Vector3{x_, config::kPlayerHeight, z_};
 }
 
 void Player::Draw() const {
@@ -112,6 +131,10 @@ void Player::Draw() const {
     // tilt should not go beyond the maximum.)
     const float bankDegrees =
         -std::clamp(velocityX_ / config::kPlayerSpeed, -1.0f, 1.0f) * config::kPlayerMaxBankDegrees;
+    // Pitching: flying forward (up the screen, negative Z speed) dips the nose a
+    // little, flying back lifts it. That is a turn around the X axis.
+    const float pitchDegrees =
+        std::clamp(velocityZ_ / config::kPlayerSpeedZ, -1.0f, 1.0f) * config::kPlayerMaxPitchDegrees;
 
     // ---- Transform stack ---------------------------------------------------------
     // Instead of calculating the position of every part by hand, we MOVE and
@@ -122,8 +145,9 @@ void Player::Draw() const {
     //   rlPopMatrix   = go back, so other objects are not affected
     // Every Draw call in between happens in the ship's own "local" space.
     rlPushMatrix();
-    rlTranslatef(x_, config::kPlayerHeight, 0.0f);
+    rlTranslatef(x_, config::kPlayerHeight, z_);
     rlRotatef(bankDegrees, 0.0f, 0.0f, 1.0f);
+    rlRotatef(pitchDegrees, 1.0f, 0.0f, 0.0f);
     const float scale = config::kTierScale[tier_];
     rlScalef(scale, scale, scale);   // bigger ship at higher tiers (x, y, z factors)
 
