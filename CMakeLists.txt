@@ -60,6 +60,7 @@ set(GAME_SOURCES
     src/GlowRenderer.cpp
     src/ShaderUtil.cpp
     src/Nebula.cpp
+    src/Laser.cpp
     src/Bomb.cpp
     src/Boss.cpp
     src/Audio.cpp

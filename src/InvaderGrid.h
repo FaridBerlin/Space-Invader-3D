@@ -42,6 +42,11 @@ public:
     // crashed into the ship) and we report it.
     std::optional<InvaderHit> TryRam(Vector3 center, float radius);
 
+    // The laser: the alien nearest to the ship in a straight line up the screen.
+    // x = the beam's x, halfWidth = half its thickness, fromZ = where it starts.
+    // Returns that alien's position, or nothing when the line is free.
+    std::optional<Vector3> FirstInLine(float x, float halfWidth, float fromZ) const;
+
     bool Empty() const { return invaders_.empty(); }
     int  Count() const { return static_cast<int>(invaders_.size()); }
 

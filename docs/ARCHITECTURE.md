@@ -19,7 +19,8 @@ src/
   InvaderShot.h/.cpp  the aliens' shots
   Bomb.h/.cpp         the bombs, one design per level
   Boss.h/.cpp         the three bosses: model, movement, attack patterns, weak core
-  PowerUp.h/.cpp      the orbs: weapon, shield, rapid fire, extra life (3D ball + 2D symbol)
+  PowerUp.h/.cpp      the orbs: weapon, spread, laser, shield, rapid fire, extra life (3D ball + 2D symbol)
+  Laser.h/.cpp        the lightning laser's look (Game::UpdateLaser decides what it hits)
   Particles.h/.cpp    explosions made of small glowing cubes
   Starfield.h/.cpp    the stars, tinted per level
   GlowRenderer.h/.cpp soft additive glow, our first custom shader

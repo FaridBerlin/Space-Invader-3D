@@ -45,8 +45,9 @@ and the Void Emperor.
 - Four alien types: **Scarabs** (100), **Reapers** (200, shoot more often), crystal **Drones** (150) and
   **Commanders** (500, three hits). Every few seconds one alien **dives** at you in an S-curve.
 - **3 lives** (up to 5), and your **high score** is saved (on desktop and in the browser).
-- Shot aliens sometimes drop a glowing **orb**: purple **weapon** orbs give you more shots (5 weapon levels, up to a
-  fan of seven), plus a **shield** that absorbs one hit, **rapid fire**, or rarely an **extra life**.
+- Shot aliens sometimes drop a glowing **orb**: purple **weapon** orbs make your weapon stronger (5 levels), green
+  and orange orbs switch to the **spread shot** or the **lightning laser**, plus a **shield** that absorbs one hit,
+  **rapid fire**, or rarely an **extra life**.
 - Your ship changes its look as you go, and from level 5 you fly the **Claw**, a copper ship with claw-shaped wings.
 - **Combos** multiply your points (up to x4) for quick kills in a row, and a fast wave without losing a ship
   earns a **wave-clear bonus**. Big hits and explosions shake the screen.

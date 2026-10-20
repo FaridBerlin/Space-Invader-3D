@@ -338,6 +338,9 @@ void Game::Restart() {
     shieldTimer_      = 0.0f;
     rapidFireTimer_   = 0.0f;
     weaponLevel_      = 1;
+    weaponType_       = WeaponType::Blaster;
+    laserFiring_      = false;
+    laserTick_        = 0.0f;
     pickupTimer_      = 0.0f;
     helpTimer_        = config::kHelpShowTime;   // show the keys for the first seconds
     boss_.reset();
@@ -523,9 +526,21 @@ Color Game::ShotColor() const {
 
 void Game::FireRocket() {
     // The weapon level decides how many rockets fly at once, and where to (the
-    // table is in Config.h). The ship's look only changes their colour and spacing.
+    // tables are in Config.h). The ship's look only changes their colour and spacing.
     const int level = weaponLevel_ - 1;   // the tables count from 0
     const float scale = config::kTierScale[player_.Tier()];
+    if (weaponType_ == WeaponType::Spread) {
+        // A fan: n rockets from the nose, their angles spread evenly from -max to +max.
+        const int n = config::kSpreadShots[level];
+        const float maxAngle = config::kSpreadAngle[level];
+        const Vector3 nose{player_.X(), config::kPlayerHeight, player_.Z() + config::kWeaponMuzzleZ * scale};
+        for (int i = 0; i < n; ++i) {
+            const float angle = -maxAngle + 2.0f * maxAngle * static_cast<float>(i) / static_cast<float>(n - 1);
+            rockets_.emplace_back(nose, config::kSpreadShotColor, angle);
+        }
+        audio_.Play(Sfx::PlayerShot);
+        return;
+    }
     // A reference to one row of a 2D array: "the shots of this weapon level".
     const config::WeaponShot (&shots)[config::kMaxWeaponShots] = config::kWeaponShots[level];
     for (int i = 0; i < config::kWeaponShotCount[level]; ++i) {
@@ -557,16 +572,18 @@ void Game::OnAlienDestroyed(const InvaderHit& hit) {
 void Game::Collect(PowerUpType type) {
     switch (type) {
         case PowerUpType::Weapon:
-            if (weaponLevel_ < config::kWeaponLevels) {
-                ++weaponLevel_;
+            if (RaiseWeaponLevel()) {
                 pickupText_ = (weaponLevel_ == config::kWeaponLevels) ? "MAX POWER!" : "POWER UP!";
-                // A burst of sparks in the shot colour: the ship is stronger now.
-                particles_.Explode(player_.Position(), ExplosionStyle{50, 8.0f, 0.8f, 0.25f, ShotColor(),
-                                                                     Color{200, 140, 255, 255}});
             } else {
                 score_ += config::kMaxPowerBonus;   // already at the top: points instead
                 pickupText_ = TextFormat("+%d", config::kMaxPowerBonus);
             }
+            break;
+        case PowerUpType::Spread:
+            SwitchWeapon(WeaponType::Spread);
+            break;
+        case PowerUpType::Laser:
+            SwitchWeapon(WeaponType::Laser);
             break;
         case PowerUpType::Shield:
             shieldTimer_ = config::kShieldDuration;
@@ -584,6 +601,136 @@ void Game::Collect(PowerUpType type) {
     pickupTimer_ = config::kPickupBannerTime;
     pickupColor_ = PowerUp(Vector3{}, type).MainColor();
     audio_.Play(Sfx::PowerUp);
+}
+
+bool Game::RaiseWeaponLevel() {
+    if (weaponLevel_ >= config::kWeaponLevels) return false;
+    ++weaponLevel_;
+    // A burst of sparks in the weapon's colour: the ship is stronger now.
+    particles_.Explode(player_.Position(), ExplosionStyle{50, 8.0f, 0.8f, 0.25f, WeaponColor(),
+                                                         Color{255, 255, 255, 255}});
+    return true;
+}
+
+void Game::SwitchWeapon(WeaponType type) {
+    if (type == weaponType_) {
+        // The weapon you already have: it gets stronger instead (or points at the top).
+        if (RaiseWeaponLevel()) {
+            pickupText_ = (weaponLevel_ == config::kWeaponLevels) ? "MAX POWER!" : "POWER UP!";
+        } else {
+            score_ += config::kMaxPowerBonus;
+            pickupText_ = TextFormat("+%d", config::kMaxPowerBonus);
+        }
+        return;
+    }
+    // A new weapon, at the level you had.
+    weaponType_ = type;
+    pickupText_ = (type == WeaponType::Spread) ? "SPREAD SHOT!" : "LIGHTNING LASER!";
+    particles_.Explode(player_.Position(), ExplosionStyle{60, 9.0f, 0.9f, 0.25f, WeaponColor(),
+                                                         Color{255, 255, 255, 255}});
+}
+
+Color Game::WeaponColor() const {
+    switch (weaponType_) {
+        case WeaponType::Spread: return config::kSpreadShotColor;
+        case WeaponType::Laser:  return config::kLaserColor;
+        default:                 return Color{170, 80, 255, 255};   // the blaster: purple, like the weapon orb
+    }
+}
+
+const char* Game::WeaponName() const {
+    switch (weaponType_) {
+        case WeaponType::Spread: return "SPREAD";
+        case WeaponType::Laser:  return "LASER";
+        default:                 return "BLASTER";
+    }
+}
+
+void Game::UpdateLaser(float dt) {
+    const int level = weaponLevel_ - 1;   // the tables count from 0
+    const float scale = config::kTierScale[player_.Tier()];
+    const Vector3 start{player_.X(), config::kPlayerHeight, player_.Z() + config::kWeaponMuzzleZ * scale};
+    const float halfWidth = config::kLaserHalfWidth[level];
+
+    // Where does the beam end? At the NEAREST thing in its way: an alien, a bomb or
+    // the boss. If nothing is there, it reaches the far end of the field.
+    enum class Target { None, Alien, Bomb, Boss };
+    Target target = Target::None;
+    float endZ = -config::kFieldLength;
+    Vector3 alienPosition{};
+    Bomb* bombInWay = nullptr;   // a pointer to the bomb in the vector (or none)
+    if (laserFiring_) {
+        if (const auto alien = invaders_.FirstInLine(start.x, halfWidth, start.z)) {
+            alienPosition = *alien;
+            endZ = alien->z;
+            target = Target::Alien;
+        }
+        for (auto& bomb : bombs_) {
+            if (bomb.alive && bomb.position.z < start.z && bomb.position.z > endZ &&
+                std::fabs(bomb.position.x - start.x) <= bomb.radius + halfWidth) {
+                endZ = bomb.position.z;
+                target = Target::Bomb;
+                bombInWay = &bomb;
+            }
+        }
+        if (boss_) {
+            // The boss is not a simple ball: walk up the beam in small steps until
+            // a step touches it (Touches only looks, it does no damage).
+            for (float z = start.z; z > endZ; z -= 0.4f) {
+                if (boss_->Touches(Vector3{start.x, config::kPlayerHeight, z}, halfWidth)) {
+                    endZ = z;
+                    target = Target::Boss;
+                    break;
+                }
+            }
+        }
+    }
+    laser_.Update(dt, laserFiring_, start, endZ, target != Target::None, weaponLevel_);
+    if (!laserFiring_) {
+        laserTick_ = 0.0f;   // the next press hits at once
+        return;
+    }
+
+    // The buzz of the laser, repeated while it fires.
+    laserSoundTimer_ -= dt;
+    if (laserSoundTimer_ <= 0.0f) {
+        audio_.Play(Sfx::PlayerShot);
+        laserSoundTimer_ = config::kLaserSoundTime;
+    }
+
+    // The damage comes in "ticks": every kLaserTick seconds one hit on the target.
+    laserTick_ -= dt;
+    if (laserTick_ > 0.0f || target == Target::None) return;
+    laserTick_ = config::kLaserTick[level] * (rapidFireTimer_ > 0.0f ? 0.5f : 1.0f);
+
+    const Vector3 hitPoint{start.x, config::kPlayerHeight, endZ};
+    const ExplosionStyle sparks{6, 5.0f, 0.3f, 0.18f, config::kLaserColor, Color{255, 255, 255, 255}};
+    switch (target) {
+        case Target::Alien:
+            if (const auto hit = invaders_.TryHit(alienPosition, 0.05f)) {
+                if (hit->destroyed) {
+                    OnAlienDestroyed(*hit);
+                } else {
+                    particles_.Explode(hitPoint, sparks);
+                }
+            }
+            break;
+        case Target::Bomb:
+            bombInWay->alive = false;
+            score_ += config::kScorePerBomb;
+            particles_.Explode(bombInWay->position, BombExplosion(bombInWay->color));
+            AddShake(config::kShakeBomb);
+            audio_.Play(Sfx::BombExplosion);
+            break;
+        case Target::Boss:
+            if (const auto hit = boss_->TryHit(hitPoint, halfWidth)) {
+                particles_.Explode(hitPoint, sparks);
+                if (hit->destroyed) audio_.Play(Sfx::BombExplosion);
+            }
+            break;
+        case Target::None:
+            break;
+    }
 }
 
 bool Game::DamagePlayer(const char* reason) {
@@ -885,6 +1032,7 @@ void Game::UpdatePlaying(float dt, const PlayerInput& input) {
         }
     }
 
+    laserFiring_ = false;   // (set again below while the ship is alive and firing)
     if (playerAlive_) {
         // A boss is big and hangs low: during the fight the ship may not fly as far up.
         player_.SetZLimits(boss_ ? std::max(playerMinZ_, config::kPlayerBossMinZ) : playerMinZ_, playerMaxZ_);
@@ -894,8 +1042,11 @@ void Game::UpdatePlaying(float dt, const PlayerInput& input) {
         // A cooldown limits the fire rate: it counts down, and we may only shoot
         // when it has reached zero. Holding the button fires every 0.2 seconds.
         // With rapid fire the cooldown is shorter, so we shoot more often.
+        // The laser fires as long as the button is held (see UpdateLaser); the
+        // other weapons fire volleys of rockets.
         fireCooldown_ -= dt;
-        if (steer.fire && fireCooldown_ <= 0.0f) {
+        laserFiring_ = weaponType_ == WeaponType::Laser && steer.fire;
+        if (weaponType_ != WeaponType::Laser && steer.fire && fireCooldown_ <= 0.0f) {
             FireRocket();
             fireCooldown_ = (rapidFireTimer_ > 0.0f) ? config::kRapidFireInterval
                                                      : config::kRocketFireInterval;
@@ -958,6 +1109,7 @@ void Game::UpdatePlaying(float dt, const PlayerInput& input) {
     }
     invaders_.Update(dt, level_, player_.X());
     UpdateBoss(dt);
+    UpdateLaser(dt);
 
     // ---- 4. Collisions ----------------------------------------------------------
     // 4a. Our rockets against the invaders.
@@ -1112,6 +1264,7 @@ void Game::Draw() const {
         for (const auto& rocket : rockets_) {
             rocket.Draw();
         }
+        laser_.Draw();
         for (const auto& shot : invaderShots_) {
             shot.Draw();
         }
@@ -1155,6 +1308,7 @@ void Game::Draw() const {
             glow_.Draw(camera_, player_.Position(), ShieldRadius() * 2.6f, Color{60, 160, 255, 255});
         }
         if (boss_) boss_->DrawGlow(glow_, camera_);
+        laser_.DrawGlow(glow_, camera_);
         glow_.End();
 
         particles_.Draw();   // last: additive blending must be drawn on top of the solid objects
@@ -1229,7 +1383,7 @@ void Game::Draw() const {
     }
     if (rapidFireTimer_ > 0.0f) {
         DrawRight(TextFormat("RAPID FIRE %d", static_cast<int>(std::ceil(rapidFireTimer_))), right, statusY,
-                  Px(16), Color{255, 150, 40, 255});
+                  Px(16), Color{255, 225, 60, 255});
     }
 
     if (boss_) {
@@ -1297,23 +1451,25 @@ void Game::DrawLives() const {
     }
 }
 
-// "POWER" and five small bars under the lives; the filled ones are the weapon level.
+// "POWER", five small bars and the weapon's name under the lives; the filled bars
+// are the weapon level.
 // The bars get taller from left to right, like a signal meter.
 void Game::DrawPowerMeter() const {
     using display::Px;
     const Rectangle column = display::Column();
     const int x = static_cast<int>(column.x) + Px(14);
     const int y = Px(88);
+    // The bars and the weapon's name are in the weapon's colour.
+    const Color color = lowpoly::Mix(WeaponColor(), Color{255, 255, 255, 255}, 0.25f);
     DrawText("POWER", x, y + Px(3), Px(12), Fade(LIGHTGRAY, 0.75f));
-    const Color purple{170, 80, 255, 255};
     int barX = x + MeasureText("POWER", Px(12)) + Px(6);
     for (int i = 0; i < config::kWeaponLevels; ++i) {
         const int height = Px(6 + 2 * i);
         const bool on = i < weaponLevel_;
-        DrawRectangle(barX, y + Px(14) - height, Px(7), height,
-                      on ? lowpoly::Mix(purple, Color{255, 255, 255, 255}, 0.25f) : Fade(GRAY, 0.35f));
+        DrawRectangle(barX, y + Px(14) - height, Px(7), height, on ? color : Fade(GRAY, 0.35f));
         barX += Px(10);
     }
+    DrawText(WeaponName(), barX + Px(4), y + Px(3), Px(12), color);
 }
 
 void Game::DrawPaused() const {

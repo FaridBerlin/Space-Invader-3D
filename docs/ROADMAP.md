@@ -85,9 +85,9 @@ Each step is its own branch and ends with something you can play.
    - [x] Glowing orbs with a symbol inside, one colour per kind (weapon: three arrows)
    - [x] Weapon levels 1 to 5 collected with orbs (instead of fixed per level); a hit costs one
 4. **New weapons**
-   - [ ] Lightning laser: a beam with jagged electric branches
-   - [ ] Spread shot: a fan of shots that widens with the weapon level
-   - [ ] Special orbs switch the weapon type
+   - [x] Lightning laser: a beam with jagged electric branches
+   - [x] Spread shot: a fan of shots that widens with the weapon level
+   - [x] Special orbs switch the weapon type (green: spread, orange: laser)
 5. **More aliens and fly-in attacks**
    - [ ] New low-poly aliens (insect-like, winged, ...)
    - [ ] Aliens fly in on curved paths before they take their places (like Galaga)
