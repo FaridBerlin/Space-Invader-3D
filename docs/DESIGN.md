@@ -87,14 +87,30 @@ Flying into an alien (a diver, or one still in the formation) is a crash: the al
 
 ### Invaders
 A wave (grid in X and Z) that sweeps sideways, reverses at the field edge and steps **toward the player**
-(replaces "drops 30 px"). Random columns and rows. Reaching the player's line ends the game.
+(replaces "drops 30 px"). Random columns (4-6) and rows. Reaching the player's line ends the game.
 
-| Alien | Points | What it does |
-|---|---|---|
-| Scarab | 100 | the front rows |
-| Reaper | 200 | the middle rows, shoots more often than the others |
-| Drone | 150 | the back row, a spinning crystal |
-| Commander | 500 | back row, needs 3 hits, always drops a power-up |
+**Fly-in:** a new wave flies in from outside the screen, alien after alien in streams, along curved paths
+(cubic Bezier curves) into its places, like in Galaga. Three entries take turns: a **side swoop** (from both top
+corners, down through the middle and up into place), **rain** (down from above each column, past its place and
+back up) and a **cross loop** (whole rows low in from one side, across the field and up in a wide arc). The
+formation only starts moving when everybody has arrived. Aliens on the way in do not shoot or ram, but can be
+shot; the wave's clock for the speed bonus starts when they have arrived.
+
+**Formations:** besides the full block, a wave can be an **arrow** (pointing at the player), a **diamond**, a
+**pincer** (a gap in the middle), a **checkerboard** or a **chevron**. The shape changes from wave to wave; the
+very first wave of a game is always the block.
+
+Rows, front to back: Scarabs, Wasps, Reapers, Moths, and Drones with the Commanders in the back row (only the
+types the level has; extra rows are Scarabs).
+
+| Alien | Points | From level | What it does |
+|---|---|---|---|
+| Scarab | 100 | 1 | the front rows |
+| Wasp | 150 | 2 | a striped insect with buzzing wings; dives 3x as often as the others |
+| Drone | 150 | 2 | the back row, a spinning crystal |
+| Reaper | 200 | 3 | the middle rows, shoots more often than the others |
+| Commander | 500 | 4 | back row, needs 3 hits, always drops a power-up |
+| Moth | 250 | 6 | a big insect with glowing eye-spots on its wings; 2 hits, drops an orb 30% of the time |
 
 **Divers:** every few seconds one alien leaves the wave and swoops at the player in an S-curve. If it hits the
 ship, both are destroyed. If it misses, it flies back into its place.

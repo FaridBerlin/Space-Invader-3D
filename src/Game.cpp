@@ -43,6 +43,15 @@ ExplosionStyle AlienExplosion(AlienType type, int level) {
             style.colorA = palette.glow;                  // crystal
             style.colorB = Color{235, 250, 255, 255};     // white
             break;
+        case AlienType::Wasp:
+            style.colorA = palette.glow;                  // its stripes
+            style.colorB = Color{255, 245, 200, 255};     // glassy wing bits
+            break;
+        case AlienType::Moth:
+            style.count  = style.count * 3 / 2;           // a cloud of wing dust
+            style.colorA = bodyLight;
+            style.colorB = palette.glow;
+            break;
         case AlienType::Commander:
             style.count *= 2;
             style.speed *= 1.3f;
@@ -61,6 +70,8 @@ int ScoreFor(AlienType type) {
         case AlienType::Reaper:    return config::kScorePerReaper;
         case AlienType::Drone:     return config::kScorePerDrone;
         case AlienType::Commander: return config::kScorePerCommander;
+        case AlienType::Wasp:      return config::kScorePerWasp;
+        case AlienType::Moth:      return config::kScorePerMoth;
     }
     return 0;   // not reached: the switch above covers every type
 }
@@ -423,7 +434,7 @@ void Game::NextWave() {
         }
     }
 
-    invaders_.Respawn(level_);
+    invaders_.Respawn(level_, wave_);
     invaderShotTimer_ = config::kLevelShotInterval[level_];   // a short grace period
     StartWaveStats();
 }
@@ -561,9 +572,10 @@ void Game::OnAlienDestroyed(const InvaderHit& hit) {
     if (commander) AddShake(config::kShakeCommander);
     audio_.Play(commander ? Sfx::BombExplosion : Sfx::InvaderDestroyed);
 
-    // Maybe drop a power-up capsule. Commanders always drop one; the others
-    // with a small chance. RandomFloat(0, 1) < 0.08 is true 8% of the time.
-    const bool lucky = commander || RandomFloat(0.0f, 1.0f) < config::kPowerUpDropChance;
+    // Maybe drop a power-up orb. Commanders always drop one, Moths often; the others
+    // with a small chance. RandomFloat(0, 1) < 0.10 is true 10% of the time.
+    const float chance = (hit.type == AlienType::Moth) ? config::kMothOrbChance : config::kPowerUpDropChance;
+    const bool lucky = commander || RandomFloat(0.0f, 1.0f) < chance;
     if (lucky && static_cast<int>(powerUps_.size()) < config::kMaxPowerUps) {
         powerUps_.emplace_back(hit.position, PowerUp::RandomType());
     }
@@ -1059,7 +1071,8 @@ void Game::UpdatePlaying(float dt, const PlayerInput& input) {
     pickupTimer_    = std::max(0.0f, pickupTimer_ - dt);
     comboTimer_     = std::max(0.0f, comboTimer_ - dt);
     bonusTimer_     = std::max(0.0f, bonusTimer_ - dt);
-    if (waveActive_) waveTime_ += dt;
+    // The wave's clock (for the speed bonus) starts when the aliens have flown in.
+    if (waveActive_ && !invaders_.Entering()) waveTime_ += dt;
 
     // ---- 2. The invaders fire back ------------------------------------------------
     if (!invaders_.Empty()) {

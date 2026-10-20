@@ -143,14 +143,27 @@ constexpr float kAlienScale    = 1.35f;
 constexpr float kAlienFaceTilt = 30.0f;   // degrees
 
 // ---- Alien types -----------------------------------------------------------------
+// The rows of a wave, front to back: Scarabs, Wasps, Reapers, Moths, and Drones with
+// the Commanders in the back row (only the types the level has, see "Levels").
+//   Wasp   a striped insect with fast wings; it likes to dive (kWaspDiveWeight)
+//   Moth   a big soft insect with eye-spots on its wings; 2 hits, often drops an orb
 // Most aliens are Scarabs (one hit). Commanders sit in the back row: bigger,
 // three hits, more points. A commander is drawn with a 3D model file when
 // assets/models/commander.glb exists, otherwise with a built-in look.
 constexpr int   kScorePerReaper      = 200;
 constexpr int   kScorePerDrone       = 150;
 constexpr int   kScorePerCommander   = 500;
+constexpr int   kScorePerWasp        = 150;
+constexpr int   kScorePerMoth        = 250;
+constexpr int   kMothHitPoints       = 2;
+constexpr float kWaspRadius          = 0.8f;    // collision spheres (before kAlienScale)
+constexpr float kMothRadius          = 1.05f;
+constexpr int   kWaspDiveWeight      = 3;       // a Wasp is 3x as likely to be the next diver
+constexpr float kMothOrbChance       = 0.30f;   // a Moth drops an orb 30% of the time
 constexpr float kReaperScale         = 0.95f;   // drawing size of each type (1.0 = as designed)
 constexpr float kDroneScale          = 1.05f;
+constexpr float kWaspScale           = 0.9f;
+constexpr float kMothScale           = 0.78f;   // its wings are wide: smaller, so neighbours do not overlap
 constexpr float kDroneRadius         = 0.75f;   // collision sphere of a Drone
 constexpr int   kReaperShotWeight    = 3;       // a Reaper is 3x as likely to be the next shooter
 constexpr int   kCommanderHitPoints  = 3;
@@ -173,11 +186,11 @@ constexpr float kInvaderShotDespawnZ = 14.0f;  // shots that fly past the ship a
 // thing, so the player keeps discovering something:
 //
 //   level 1  Scarabs only, slow, no divers          (learn the controls)
-//   level 2  Drones join, first divers
+//   level 2  Drones and Wasps join, first divers
 //   level 3  Reapers join (they shoot more), faster bombs
 //   level 4  Commanders join, ship look 2
 //   level 5  two divers at once, new ship design (the "Claw")
-//   level 6  faster waves, ship look 3
+//   level 6  faster waves, giant Moths, ship look 3
 //   level 7  everything at full speed, three divers
 //
 // Every table below has one value per level. Arrays are indexed from 0: level 1 is
@@ -190,11 +203,11 @@ constexpr int   kAllLevelsBonus  = 10000;  // points for clearing level 7
 
 constexpr const char* kLevelIntro[] = {
     "Scarabs incoming. Catch the purple orbs for more firepower!",
-    "Drones join - and aliens start to dive!",
+    "Wasps and Drones join - and aliens start to dive!",
     "Reapers join: they shoot more often",
     "Commanders arrive. New ship look!",
     "Two divers at once. New ship: the Claw!",
-    "Faster waves. New ship look!",
+    "Giant Moths and faster waves. New ship look!",
     "Final level: everything at full speed",
 };
 
@@ -202,6 +215,8 @@ constexpr const char* kLevelIntro[] = {
 constexpr bool  kLevelHasDrones[]     = {false, true,  true,  true,  true,  true,  true};
 constexpr bool  kLevelHasReapers[]    = {false, false, true,  true,  true,  true,  true};
 constexpr bool  kLevelHasCommanders[] = {false, false, false, true,  true,  true,  true};
+constexpr bool  kLevelHasWasps[]      = {false, true,  true,  true,  true,  true,  true};
+constexpr bool  kLevelHasMoths[]      = {false, false, false, false, false, true,  true};
 
 // The size of a wave: rows of aliens, from ... to (picked at random).
 constexpr int   kLevelMinRows[] = {2, 2, 3, 3, 3, 4, 4};
@@ -239,7 +254,8 @@ constexpr Color kLevelStarColor[] = {
 // but forgets a table, the build stops right here with a clear message.
 static_assert(std::size(kLevelIntro) == kLevelCount, "one intro text per level");
 static_assert(std::size(kLevelHasDrones) == kLevelCount && std::size(kLevelHasReapers) == kLevelCount &&
-              std::size(kLevelHasCommanders) == kLevelCount, "alien types: one value per level");
+              std::size(kLevelHasCommanders) == kLevelCount && std::size(kLevelHasWasps) == kLevelCount &&
+              std::size(kLevelHasMoths) == kLevelCount, "alien types: one value per level");
 static_assert(std::size(kLevelMinRows) == kLevelCount && std::size(kLevelMaxRows) == kLevelCount,
               "wave size: one value per level");
 static_assert(std::size(kLevelInvaderSpeed) == kLevelCount && std::size(kLevelShotInterval) == kLevelCount &&
@@ -422,6 +438,16 @@ constexpr float kDiveSwing      = 4.0f;    // how far the S-curve swings sideway
 constexpr float kDiveMaxRoll    = 35.0f;   // degrees the alien tilts in the curve
 constexpr float kReturnStartZ   = -62.0f;  // a diver that missed re-enters from here ...
 constexpr float kReturnDuration = 1.8f;    // ... and takes this long to reach its place
+
+// ---- Fly-in -------------------------------------------------------------------------
+// A new wave does not just appear: its aliens fly in from outside the screen, one
+// after the other in streams, along curved paths into their places (like Galaga).
+// The formation waits until everybody has arrived; aliens on the way in do not shoot
+// and do not ram, but you can shoot them. Which entry and which formation shape a
+// wave gets changes from wave to wave (see InvaderGrid::Respawn).
+constexpr float kEntryDuration = 2.2f;    // seconds for one alien's flight into its place
+constexpr float kEntryStagger  = 0.11f;   // seconds between two aliens of the same stream
+constexpr float kEntryMaxRoll  = 40.0f;   // degrees they tilt in the curves
 
 // ---- Lives ---------------------------------------------------------------------------
 constexpr int   kStartLives         = 3;

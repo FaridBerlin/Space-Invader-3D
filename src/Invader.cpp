@@ -356,6 +356,151 @@ void DrawDrone(float flash, float spin, Color color) {
     rlPopMatrix();
 }
 
+// ---- Helpers for the insects -----------------------------------------------------------
+
+// A round body made of rings, like a vase turned on a lathe: "profile" lists
+// (height y, radius) from top to bottom. Every band between two rings is made of
+// flat quads, so it gets the faceted low-poly look. Bands take their colour from
+// "colors" in turn: two colours give stripes.
+struct Ring {
+    float y;
+    float radius;
+};
+template <std::size_t N>
+void DrawLathe(const Ring (&profile)[N], int sides, const Color* colors, int colorCount) {
+    for (std::size_t band = 0; band + 1 < N; ++band) {
+        const Color color = colors[band % static_cast<std::size_t>(colorCount)];
+        const Ring top = profile[band];
+        const Ring bottom = profile[band + 1];
+        for (int k = 0; k < sides; ++k) {
+            const float a0 = 2.0f * PI * static_cast<float>(k) / static_cast<float>(sides);
+            const float a1 = 2.0f * PI * static_cast<float>(k + 1) / static_cast<float>(sides);
+            const Vector3 p0{top.radius * std::cos(a0), top.y, top.radius * std::sin(a0)};
+            const Vector3 p1{top.radius * std::cos(a1), top.y, top.radius * std::sin(a1)};
+            const Vector3 p2{bottom.radius * std::cos(a1), bottom.y, bottom.radius * std::sin(a1)};
+            const Vector3 p3{bottom.radius * std::cos(a0), bottom.y, bottom.radius * std::sin(a0)};
+            // Outward = away from the middle line of the body, at this face's height.
+            const Vector3 mid = Vector3Scale(Vector3Add(Vector3Add(p0, p1), Vector3Add(p2, p3)), 0.25f);
+            DrawQuadFace(p0, p1, p2, p3, color, Vector3{mid.x, 0.0f, mid.z});
+        }
+    }
+}
+
+// A flat wing: a "fan" of triangles from the first point to all the others, seen
+// from both sides (front and back), with a glowing outline.
+template <std::size_t N>
+void DrawWing(const Vector3 (&points)[N], Color front, Color back, Color outline) {
+    for (std::size_t i = 1; i + 1 < N; ++i) {
+        DrawFace(points[0], points[i], points[i + 1], front, Vector3{0.0f, 0.0f, 1.0f});
+        DrawFace(points[0], points[i], points[i + 1], back, Vector3{0.0f, 0.0f, -1.0f});
+    }
+    for (std::size_t i = 0; i < N; ++i) {
+        DrawLine3D(points[i], points[(i + 1) % N], outline);
+    }
+}
+
+// ---- The Wasp -----------------------------------------------------------------------
+// A striped insect hanging head-up: a small head with glowing eyes, a thorax, and a
+// long striped abdomen ending in a sting that points at the player. Two pairs of
+// glassy wings buzz up and down.
+//   flash 0..1, beat -1..1 (the wing position), body / glow = the level's colours
+void DrawWasp(float flash, float beat, Color body, Color glow) {
+    const Color white{255, 255, 255, 255};
+    const Color dark   = Mix(Darker(body, 0.45f), white, flash);
+    const Color shell  = Mix(body, white, flash);
+    const Color stripe = Mix(glow, white, flash);
+
+    // Head, thorax and abdomen, top to bottom. The abdomen bands take turns:
+    // glow colour, dark, glow colour, ... and end in a point (the sting).
+    const Ring head[] = {{0.62f, 0.0f}, {0.56f, 0.14f}, {0.44f, 0.17f}, {0.34f, 0.0f}};
+    const Color headColors[] = {shell};
+    DrawLathe(head, 6, headColors, 1);
+    const Ring thorax[] = {{0.36f, 0.0f}, {0.30f, 0.20f}, {0.12f, 0.22f}, {0.02f, 0.0f}};
+    const Color thoraxColors[] = {dark};
+    DrawLathe(thorax, 6, thoraxColors, 1);
+    const Ring abdomen[] = {{0.04f, 0.10f}, {-0.10f, 0.24f}, {-0.28f, 0.27f}, {-0.46f, 0.24f},
+                            {-0.62f, 0.18f}, {-0.76f, 0.10f}, {-0.98f, 0.0f}};
+    const Color abdomenColors[] = {stripe, dark};
+    DrawLathe(abdomen, 6, abdomenColors, 2);
+
+    // Two glowing eyes on the head, and two antennae.
+    for (const float side : {-1.0f, 1.0f}) {
+        DrawSphereEx(Vector3{side * 0.09f, 0.52f, 0.12f}, 0.055f, 6, 6, Mix(glow, white, 0.4f));
+        DrawLine3D(Vector3{side * 0.05f, 0.60f, 0.08f}, Vector3{side * 0.16f, 0.80f, 0.10f}, stripe);
+        DrawLine3D(Vector3{side * 0.16f, 0.80f, 0.10f}, Vector3{side * 0.30f, 0.86f, 0.10f}, stripe);
+    }
+
+    // The wings: see-through, rooted at the thorax, flicking up and down.
+    const Color wingFront = Fade(Mix(Mix(glow, white, 0.55f), white, flash), 0.55f);
+    const Color wingBack  = Fade(Mix(body, white, 0.4f), 0.45f);
+    for (const float side : {-1.0f, 1.0f}) {
+        rlPushMatrix();
+        rlTranslatef(side * 0.12f, 0.24f, 0.0f);
+        rlRotatef(side * (10.0f + 28.0f * beat), 0.0f, 0.0f, 1.0f);   // up and down
+        // The big front wing, and a smaller one under it.
+        const Vector3 big[] = {{0.0f, 0.0f, 0.0f}, {side * 0.35f, 0.24f, 0.0f}, {side * 0.88f, 0.22f, 0.0f},
+                               {side * 1.02f, 0.05f, 0.0f}, {side * 0.80f, -0.08f, 0.0f}};
+        DrawWing(big, wingFront, wingBack, stripe);
+        const Vector3 small[] = {{0.0f, -0.04f, -0.02f}, {side * 0.62f, -0.12f, -0.02f},
+                                 {side * 0.66f, -0.26f, -0.02f}, {side * 0.30f, -0.24f, -0.02f}};
+        DrawWing(small, wingFront, wingBack, Fade(stripe, 0.6f));
+        rlPopMatrix();
+    }
+}
+
+// ---- The Moth -----------------------------------------------------------------------
+// A big furry insect with wide wings. Each upper wing has a glowing "eye-spot" (a
+// ring with a bright centre) to scare enemies, like real moths. Feathery antennae.
+//   flash 0..1, beat -1..1 (slow wing beat), body / glow = the level's colours
+void DrawMoth(float flash, float beat, Color body, Color glow) {
+    const Color white{255, 255, 255, 255};
+    const Color fur   = Mix(Mix(body, white, 0.25f), white, flash);
+    const Color furB  = Mix(Darker(body, 0.7f), white, flash);
+    const Color spot  = Mix(glow, white, flash);
+
+    // The body: a fat furry spindle, its bands alternating light and dark.
+    const Ring profile[] = {{0.50f, 0.0f}, {0.44f, 0.16f}, {0.28f, 0.24f}, {0.08f, 0.27f},
+                            {-0.14f, 0.25f}, {-0.36f, 0.19f}, {-0.56f, 0.10f}, {-0.68f, 0.0f}};
+    const Color bodyColors[] = {fur, furB};
+    DrawLathe(profile, 7, bodyColors, 2);
+    for (const float side : {-1.0f, 1.0f}) {
+        DrawSphereEx(Vector3{side * 0.10f, 0.40f, 0.12f}, 0.06f, 6, 6, Mix(spot, white, 0.3f));   // eyes
+        // Feathery antennae: a curved line with little side hairs.
+        const Vector3 a{side * 0.06f, 0.48f, 0.05f};
+        const Vector3 b{side * 0.30f, 0.82f, 0.05f};
+        const Vector3 c{side * 0.52f, 0.92f, 0.05f};
+        DrawLine3D(a, b, fur);
+        DrawLine3D(b, c, fur);
+        for (int i = 1; i <= 3; ++i) {
+            const Vector3 p = Vector3Lerp(a, b, 0.3f * static_cast<float>(i));
+            DrawLine3D(p, Vector3{p.x + side * 0.07f, p.y - 0.05f, p.z}, Fade(fur, 0.8f));
+        }
+    }
+
+    // The wings, beating slowly around the shoulders.
+    const Color wingFront = Mix(Mix(body, white, 0.30f), white, flash);
+    const Color wingBack  = Mix(Darker(body, 0.5f), white, flash);
+    for (const float side : {-1.0f, 1.0f}) {
+        rlPushMatrix();
+        rlTranslatef(side * 0.16f, 0.18f, 0.0f);
+        rlRotatef(side * (8.0f + 16.0f * beat), 0.0f, 0.0f, 1.0f);
+        // Upper wing: broad, reaching up and out; lower wing: rounder, below it.
+        const Vector3 upper[] = {{0.0f, 0.0f, 0.0f}, {side * 0.30f, 0.52f, 0.0f}, {side * 0.92f, 0.70f, 0.0f},
+                                 {side * 1.28f, 0.42f, 0.0f}, {side * 1.10f, 0.02f, 0.0f}, {side * 0.50f, -0.16f, 0.0f}};
+        DrawWing(upper, wingFront, wingBack, Fade(spot, 0.7f));
+        const Vector3 lower[] = {{0.0f, -0.12f, -0.02f}, {side * 0.58f, -0.20f, -0.02f},
+                                 {side * 0.86f, -0.52f, -0.02f}, {side * 0.58f, -0.80f, -0.02f},
+                                 {side * 0.18f, -0.60f, -0.02f}};
+        DrawWing(lower, Mix(wingFront, wingBack, 0.35f), wingBack, Fade(spot, 0.5f));
+        // The eye-spot on the upper wing: a glowing ring with a bright centre.
+        const Vector3 eye{side * 0.78f, 0.36f, 0.03f};
+        DrawCircle3D(eye, 0.17f, Vector3{0.0f, 1.0f, 0.0f}, 0.0f, spot);
+        DrawCircle3D(eye, 0.12f, Vector3{0.0f, 1.0f, 0.0f}, 0.0f, Fade(spot, 0.6f));
+        DrawSphereEx(eye, 0.06f, 6, 6, Mix(spot, white, 0.5f));
+        rlPopMatrix();
+    }
+}
+
 }  // namespace
 
 LevelAlienColors AlienColorsForLevel(int level) {
@@ -365,7 +510,9 @@ LevelAlienColors AlienColorsForLevel(int level) {
 Invader::Invader(Vector3 start, AlienType alienType)
     : position(start),
       type(alienType),
-      hitPoints(alienType == AlienType::Commander ? config::kCommanderHitPoints : 1) {}
+      hitPoints(alienType == AlienType::Commander ? config::kCommanderHitPoints
+                : alienType == AlienType::Moth   ? config::kMothHitPoints
+                                                 : 1) {}
 
 void Invader::Update(float dt) {
     if (flash > 0.0f) {
@@ -377,6 +524,8 @@ float Invader::Radius() const {
     switch (type) {
         case AlienType::Commander: return config::kCommanderRadius * config::kAlienScale;
         case AlienType::Drone:     return config::kDroneRadius * config::kAlienScale;
+        case AlienType::Wasp:      return config::kWaspRadius * config::kAlienScale;
+        case AlienType::Moth:      return config::kMothRadius * config::kAlienScale;
         default:                   return config::kInvaderRadius * config::kAlienScale;
     }
 }
@@ -414,6 +563,14 @@ void Invader::Draw(float time, const Model* commanderModel, int level) const {
         const float wings = 6.0f * std::sin(time * 2.5f + position.x * 0.5f);   // degrees
         // The armour: the level's body colour mixed with grey metal, so it still looks armoured.
         DrawReaper(flashAmount, pulse, wings, Mix(palette.body, Color{92, 92, 108, 255}, 0.45f), palette.glow);
+    } else if (type == AlienType::Wasp) {
+        // Wings beat fast: 22 times a second, a little out of step between wasps.
+        rlScalef(config::kWaspScale, config::kWaspScale, config::kWaspScale);
+        DrawWasp(flashAmount, std::sin(time * 44.0f + position.x * 1.7f), palette.body, palette.glow);
+    } else if (type == AlienType::Moth) {
+        // Big wings beat slowly.
+        rlScalef(config::kMothScale, config::kMothScale, config::kMothScale);
+        DrawMoth(flashAmount, std::sin(time * 4.0f + position.x * 0.6f), palette.body, palette.glow);
     } else if (type == AlienType::Drone) {
         rlScalef(config::kDroneScale, config::kDroneScale, config::kDroneScale);
         DrawDrone(flashAmount, time * 90.0f + position.x * 20.0f,   // 90 degrees per second

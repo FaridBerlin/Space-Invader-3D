@@ -2,8 +2,9 @@
 //
 // It owns all invaders in a std::vector (a resizable array) and moves them as
 // one group: sideways until the wave touches the field edge, then it reverses
-// and steps toward the player. Every few seconds one alien leaves the group and
-// dives at the player ("divers", see UpdateDivers).
+// and steps toward the player. A new wave first flies in along curves (see
+// FlyIn), in one of several shapes. Every few seconds one alien leaves the group
+// and dives at the player ("divers", see UpdateDivers).
 
 #pragma once
 
@@ -25,9 +26,13 @@ class InvaderGrid {
 public:
     InvaderGrid();
 
-    // Creates a fresh wave for this level (0-based): its size, speed and alien
-    // types depend on the level (see "Levels" in Config.h).
-    void Respawn(int level);
+    // Creates a fresh wave for this level (0-based) and wave (0-based): its size,
+    // speed and alien types depend on the level (see "Levels" in Config.h), its
+    // shape and the way it flies in change from wave to wave.
+    void Respawn(int level, int wave = 0);
+
+    // True while aliens of the new wave are still flying in to their places.
+    bool Entering() const;
     // level = 0-based level (more divers later), playerX = where the ship is (divers aim there).
     void Update(float dt, int level, float playerX);
     void Draw(const AlienModels& models) const;
@@ -38,7 +43,7 @@ public:
     std::optional<InvaderHit> TryHit(Vector3 center, float radius);
 
     // Is an alien touching the sphere (the player's ship)? A diver, or one in the
-    // formation that the ship flew into. If yes, that alien is destroyed (it
+    // formation that the ship flew into. (Aliens flying in do not count.) If yes, that alien is destroyed (it
     // crashed into the ship) and we report it.
     std::optional<InvaderHit> TryRam(Vector3 center, float radius);
 
@@ -61,6 +66,8 @@ public:
 
 private:
     void MoveFormation(float dt);
+    void FlyIn(int entryKind);         // gives every alien its fly-in curve (see Respawn)
+    void UpdateEntering(float dt);     // moves the aliens that are flying in
     void UpdateDivers(float dt, int level, float playerX);
 
     std::vector<Invader> invaders_;

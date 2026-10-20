@@ -12,8 +12,8 @@ src/
   Input.h/.cpp        the only place that reads keys, mouse and touch
   Display.h/.cpp      window size presets, fullscreen, scaling of the 2D text
   Player.h/.cpp       the ship: movement, upgrade tiers, the Claw design
-  Invader.h/.cpp      one alien: the four types, colours per level, dive state
-  InvaderGrid.h/.cpp  the wave: sideways sweep, step forward, divers, who shoots
+  Invader.h/.cpp      one alien: the six types (Wasp and Moth too), colours per level, dive / fly-in state
+  InvaderGrid.h/.cpp  the wave: shapes, fly-in curves, sideways sweep, step forward, divers, who shoots
   AlienModels.h/.cpp  optional .glb models (the Commander), with a built-in fallback
   Rocket.h/.cpp       the player's rockets
   InvaderShot.h/.cpp  the aliens' shots
