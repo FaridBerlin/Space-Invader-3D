@@ -14,6 +14,8 @@ enum class AlienType {
     Reaper,      // middle rows: black and red, horn-wings, shoots more often
     Drone,       // back row: a small spinning cyan crystal with a ring of light
     Commander,   // 1-2 per wave in the back row: bigger, takes several hits
+    Wasp,        // a striped insect with fast wings; dives more often
+    Moth,        // a big soft insect with eye-spot wings; takes two hits
 };
 
 // The colours of the aliens in one level: every level paints the whole wave in
@@ -28,6 +30,7 @@ LevelAlienColors AlienColorsForLevel(int level);   // level is 0-based
 
 // What an alien is doing right now. Divers leave the formation (see InvaderGrid).
 enum class DiveState {
+    Entering,      // flying in along a curve to its place, when the wave appears
     InFormation,   // moving with the wave
     Diving,        // swooping at the player in an S-curve
     Returning,     // missed: flying back from the far end into its place
@@ -46,7 +49,14 @@ struct Invader {
     float     diveTargetX = 0.0f;  // the player's X when the dive started
     float     diveSide  = 1.0f;    // +1 or -1: which way the S-curve swings first
     Vector3   slot{};              // its place in the formation, relative to the wave
-    float     roll      = 0.0f;    // tilt in degrees while diving
+    float     roll      = 0.0f;    // tilt in degrees while diving or flying in
+
+    // Flying in (Entering): it waits entryDelay seconds outside the screen at
+    // diveStart, then follows a curve pulled toward entryPull1 and entryPull2 into
+    // its place (a "cubic Bezier curve", see InvaderGrid.cpp).
+    float     entryDelay = 0.0f;
+    Vector3   entryPull1{};
+    Vector3   entryPull2{};
 
     Invader(Vector3 start, AlienType alienType);
 

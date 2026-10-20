@@ -89,9 +89,9 @@ Each step is its own branch and ends with something you can play.
    - [x] Spread shot: a fan of shots that widens with the weapon level
    - [x] Special orbs switch the weapon type (green: spread, orange: laser)
 5. **More aliens and fly-in attacks**
-   - [ ] New low-poly aliens (insect-like, winged, ...)
-   - [ ] Aliens fly in on curved paths before they take their places (like Galaga)
-   - [ ] Different formations per level
+   - [x] New low-poly aliens: the Wasp (level 2) and the Moth (level 6)
+   - [x] Aliens fly in on curved paths before they take their places (like Galaga): 3 entry patterns
+   - [x] Different formations: block, arrow, diamond, pincer, checkerboard, chevron
 6. **Google Play release**
    - [ ] Signed app bundle (.aab), store page, screenshots of the new portrait game
    - [ ] Closed test (12 testers, 14 days), then the paid release

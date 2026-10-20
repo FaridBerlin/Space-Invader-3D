@@ -42,8 +42,10 @@ and the Void Emperor.
 ## The game
 
 - Waves of invaders sweep sideways and step toward you. Shoot them before they reach you. They shoot back.
-- Four alien types: **Scarabs** (100), **Reapers** (200, shoot more often), crystal **Drones** (150) and
-  **Commanders** (500, three hits). Every few seconds one alien **dives** at you in an S-curve.
+- Six alien types: **Scarabs** (100), striped **Wasps** (150, dive a lot), crystal **Drones** (150), **Reapers**
+  (200, shoot more often), big **Moths** (250, two hits) and **Commanders** (500, three hits). Every few seconds
+  one alien **dives** at you in an S-curve.
+- Every wave **flies in** along curved paths, in changing **formations** (block, arrow, diamond, pincer, ...).
 - **3 lives** (up to 5), and your **high score** is saved (on desktop and in the browser).
 - Shot aliens sometimes drop a glowing **orb**: purple **weapon** orbs make your weapon stronger (5 levels), green
   and orange orbs switch to the **spread shot** or the **lightning laser**, plus a **shield** that absorbs one hit,
