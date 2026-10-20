@@ -284,7 +284,7 @@ void Boss::Draw() const {
     rlPushMatrix();
     rlTranslatef(position_.x, position_.y, position_.z);
     rlRotatef(roll_, 0.0f, 0.0f, 1.0f);
-    rlRotatef(config::kBossPitch, 1.0f, 0.0f, 0.0f);   // lean forward, top toward the camera
+    rlRotatef(config::kBossPitch, 1.0f, 0.0f, 0.0f);   // lean back: the face turns up toward the camera
     rlScalef(scale_, scale_, scale_);
 
     // ---- The dome: two rings of 12 points and a top, like a faceted shell ----------

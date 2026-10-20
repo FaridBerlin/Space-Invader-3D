@@ -86,8 +86,15 @@ private:
     Rectangle MuteButtonRect() const;    // the sound on/off button, left of the pause button
     void DrawMuteButton() const;
     void ToggleSound();                  // mute or unmute, and remember the choice
+    // Places the camera so the field fits the window (see "Camera" in Config.h).
+    // Runs only when the window size has changed.
+    void FitCamera();
 
     Camera3D camera_{};
+    Vector3  cameraBasePosition_{};   // where FitCamera put the camera (before screen shake)
+    Vector3  cameraBaseTarget_{};
+    int      fittedWidth_  = 0;       // the window size FitCamera was last run for
+    int      fittedHeight_ = 0;
     Player   player_;
     InvaderGrid invaders_;
     std::vector<Rocket>       rockets_;

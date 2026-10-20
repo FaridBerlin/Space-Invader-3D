@@ -44,9 +44,22 @@ raylib is right-handed, Y up. Our play field:
 - **Y**: up (small vertical offset only, for look)
 - **-Z**: forward, into the screen. Invaders start far away and advance toward the player.
 
-### Camera
-Third-person, behind and slightly above the ship, looking down the field toward the invader wall. A slight
-smooth follow in X gives a feeling of speed. A tilted top-down camera can be added later as an option.
+### Screen and camera
+The game is **tall (portrait)**, like most phone shooters: the phone is held upright, the desktop window is
+9:16 (sizes 450x800 up to 900x1600), the web canvas is 720x1280. The field is 19 units wide (X from -9.5 to
++9.5); waves of at most 6 columns fill it.
+
+The camera is high above and behind the ship and looks down at 66 degrees, so the field stands upright on the
+screen: aliens at the top, the ship at the bottom, with a little perspective for the 3D look. It is not placed
+by hand: `Game::FitCamera` moves it as close as possible while the whole field width and the depth from just
+behind the ship (Z = +3) to the back rows (Z = -36) still fit. So it works on every screen shape.
+
+On a wider screen (a landscape monitor in fullscreen, a tablet) the game uses a tall **play column** in the
+middle (at most 0.62 x its height wide); the sides show only space. The HUD is laid out inside the column and
+scaled with it (`display::Column`, `display::Px`, design size 540 x 960).
+
+Aliens are drawn 1.35x bigger than designed and turn their face 45 degrees up toward the camera; the bosses
+lean back 25 degrees for the same reason.
 
 ### Player
 Low-poly ship, moves left/right within field bounds, banks (rolls) when moving like the 2D ship's rotation.

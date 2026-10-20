@@ -61,10 +61,39 @@ Each milestone ends with something you can run, and a short note on what it teac
 - [x] Nebula background that changes per level (our second shader, rendered at 1/16 of the pixels)
 - [ ] Balance the level numbers after real play tests
 
-## M8 - Android (later)
+## M8 - Android
 - [x] Touch controls (done for the web version)
-- [ ] Android NDK build
+- [x] Android NDK build (Android Studio, NativeActivity, no Kotlin code), see `android/`
+- [x] App icon and Play Store icon
 - [ ] Performance pass for phones
 
+## M9 - A mobile arcade shooter
+Ideas from playing popular phone shooters (Galaxy Invaders and others). We keep our own
+look and designs; we take over what makes those games good to play on a phone.
+Each step is its own branch and ends with something you can play.
+
+1. **Portrait screen and a higher camera** (all platforms)
+   - [ ] Tall picture: phone in portrait, a tall window on the desktop, a tall canvas on the web
+   - [ ] The camera looks down on the field from higher up; it fits itself to any screen shape
+   - [ ] HUD, menus and banners laid out for a tall screen
+2. **Move up and down too**
+   - [ ] The ship follows the finger in both directions (relative drag, as today)
+   - [ ] Keyboard: up / down arrows and W / S
+   - [ ] The ship may use about the bottom third of the field
+3. **Clear power-up orbs**
+   - [ ] Glowing orbs with three arrows inside, one colour per kind
+   - [ ] Weapon levels 1, 2, 3, ... collected with orbs (instead of fixed per level); a hit costs one
+4. **New weapons**
+   - [ ] Lightning laser: a beam with jagged electric branches
+   - [ ] Spread shot: a fan of shots that widens with the weapon level
+   - [ ] Special orbs switch the weapon type
+5. **More aliens and fly-in attacks**
+   - [ ] New low-poly aliens (insect-like, winged, ...)
+   - [ ] Aliens fly in on curved paths before they take their places (like Galaga)
+   - [ ] Different formations per level
+6. **Google Play release**
+   - [ ] Signed app bundle (.aab), store page, screenshots of the new portrait game
+   - [ ] Closed test (12 testers, 14 days), then the paid release
+
 ## Ideas backlog
-High-score table with names, bloom post-processing, free 2-axis movement, gamepad support.
+High-score table with names, bloom post-processing, gamepad support.
