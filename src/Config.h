@@ -68,7 +68,7 @@ constexpr float kFieldLength    = 50.0f;   // field spans Z from 0 down to -50
 //   sideways: the whole field width (kFieldHalfWidth) plus kViewSideMargin
 //   in depth: from kViewNearZ (just behind the ship) to kViewFarZ (the back rows)
 // So it works on every screen shape, from a long phone to a square-ish tablet.
-constexpr float kCameraPitchDegrees = 50.0f;   // 90 = straight down, 0 = flat behind the ship
+constexpr float kCameraPitchDegrees = 40.0f;   // 90 = straight down, 0 = flat behind the ship
 constexpr float kCameraFovDegrees   = 34.0f;   // vertical field of view: lower = less perspective
 constexpr float kViewNearZ     = 1.8f;         // the bottom edge of the picture ...
 constexpr float kViewFarZ      = -36.0f;       // ... and the top edge (the back rows of a big wave)
