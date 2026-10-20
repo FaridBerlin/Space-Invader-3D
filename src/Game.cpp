@@ -13,7 +13,7 @@
 #include "LowPoly.h"
 #include "Random.h"
 #include "Util.h"
-#include "raymath.h"   // Vector3Add, Vector3Distance
+#include "raymath.h"   // Vector3Add, Vector3Scale, Vector3Distance
 #include "rlgl.h"      // rlDisableDepthMask, rlDrawRenderBatchActive (see Game::Draw)
 
 namespace {
@@ -147,15 +147,72 @@ void DrawGlassFloor() {
 }
 
 
+// ---- Text helpers for the 2D screens ------------------------------------------------
+// The tall screen is narrow, so long sentences must be broken into several lines.
+
+// Splits a text into lines that are at most maxWidth pixels wide, breaking between
+// words. A '\n' in the text always starts a new line. Several spaces in a row stay
+// as they are (they separate groups, like "Fire: Space     Pause: P").
+std::vector<std::string> WrapText(const std::string& text, int fontSize, int maxWidth) {
+    std::vector<std::string> lines;
+    std::string line;
+    std::string word;
+    std::string gap;   // the spaces before the current word
+    // Adds the word to the line, or starts a new line when it would get too wide.
+    auto addWord = [&]() {
+        if (word.empty()) return;
+        const std::string candidate = line.empty() ? word : line + gap + word;
+        if (!line.empty() && MeasureText(candidate.c_str(), fontSize) > maxWidth) {
+            lines.push_back(line);
+            line = word;
+        } else {
+            line = candidate;
+        }
+        word.clear();
+        gap.clear();
+    };
+    for (const char c : text) {
+        if (c == ' ') {
+            if (!word.empty()) addWord();
+            gap += c;
+        } else if (c == '\n') {
+            addWord();
+            lines.push_back(line);
+            line.clear();
+            gap.clear();
+        } else {
+            word += c;
+        }
+    }
+    addWord();
+    if (!line.empty()) lines.push_back(line);
+    return lines;
+}
+
+// Draws a text centred on the vertical line x = centerX, wrapped to maxWidth.
+// Returns the y just below the last line, so the next text can follow it.
+int DrawCentered(const std::string& text, float centerX, int y, int fontSize, int maxWidth, Color color) {
+    for (const std::string& line : WrapText(text, fontSize, maxWidth)) {
+        const int width = MeasureText(line.c_str(), fontSize);
+        DrawText(line.c_str(), static_cast<int>(centerX) - width / 2, y, fontSize, color);
+        y += fontSize + fontSize / 4;   // line height: the font size plus a little gap
+    }
+    return y;
+}
+
+// Draws a text so that it ENDS at x = rightX (right-aligned).
+void DrawRight(const char* text, float rightX, int y, int fontSize, Color color) {
+    DrawText(text, static_cast<int>(rightX) - MeasureText(text, fontSize), y, fontSize, color);
+}
+
 }  // namespace
 
 Game::Game() {
-    // The camera (explained in M1).
-    camera_.position   = config::kCameraPosition;
-    camera_.target     = config::kCameraTarget;
+    // The camera (explained in M1). Where it stands is worked out by FitCamera.
     camera_.up         = Vector3{0.0f, 1.0f, 0.0f};
     camera_.fovy       = config::kCameraFovDegrees;
     camera_.projection = CAMERA_PERSPECTIVE;
+    FitCamera();
 
     highScore_ = storage::LoadInt("highscore");   // the best score from earlier games (0 the first time)
     audio_.SetMuted(storage::LoadInt("muted") != 0);   // muted last time? Then stay muted.
@@ -163,6 +220,72 @@ Game::Game() {
 
     Restart();                 // builds a fresh game ...
     state_ = GameState::Menu;  // ... but we wait on the title screen until Enter is pressed
+}
+
+void Game::FitCamera() {
+    const int screenW = GetScreenWidth();
+    const int screenH = GetScreenHeight();
+    if (screenW == fittedWidth_ && screenH == fittedHeight_) return;   // nothing changed
+    fittedWidth_  = screenW;
+    fittedHeight_ = screenH;
+
+    // The camera looks down at kCameraPitchDegrees and always points at a spot
+    // on the floor (target). It stands "distance" units back from that spot, in
+    // the direction it looks from. Two numbers are open: how far back (distance)
+    // and which spot (targetZ). We find both by trying, with a "binary search":
+    // guess the middle of a range, see if it is too much or too little, and halve
+    // the range. 40 halvings are far more exact than a pixel.
+    const float pitch = config::kCameraPitchDegrees * DEG2RAD;
+    const Vector3 back{0.0f, std::sin(pitch), std::cos(pitch)};   // from the target to the camera
+
+    const Rectangle column = display::Column();
+    const float top    = column.y + static_cast<float>(display::Px(config::kViewTopPx));
+    const float bottom = column.y + column.height - static_cast<float>(display::Px(config::kViewBottomPx));
+    const float halfW  = config::kFieldHalfWidth + config::kViewSideMargin;
+    const Vector3 nearMid{0.0f, 0.0f, config::kViewNearZ};
+    const Vector3 farMid {0.0f, 0.0f, config::kViewFarZ};
+    const Vector3 nearRight{halfW, 0.0f, config::kViewNearZ};   // the widest point on screen
+
+    Camera3D test = camera_;
+    auto place = [&](float distance, float targetZ) {
+        test.target   = Vector3{0.0f, 0.0f, targetZ};
+        test.position = Vector3Add(test.target, Vector3Scale(back, distance));
+    };
+    auto screenPos = [&](Vector3 point) { return GetWorldToScreenEx(point, test, screenW, screenH); };
+
+    // For one distance: the targetZ that puts the field in the middle (vertically)
+    // of the free space between the HUD and the bottom edge.
+    auto centerTarget = [&](float distance) {
+        float lo = -80.0f, hi = 40.0f;   // targetZ range to search in
+        for (int i = 0; i < 40; ++i) {
+            const float mid = 0.5f * (lo + hi);
+            place(distance, mid);
+            const float middleY = 0.5f * (screenPos(nearMid).y + screenPos(farMid).y);
+            // A target further away (smaller z) moves the picture down the screen.
+            if (middleY > 0.5f * (top + bottom)) lo = mid; else hi = mid;
+        }
+        return 0.5f * (lo + hi);
+    };
+    // Does the field fit at this distance?
+    auto fits = [&](float distance) {
+        place(distance, centerTarget(distance));
+        const Vector2 n = screenPos(nearMid);
+        const Vector2 f = screenPos(farMid);
+        const Vector2 r = screenPos(nearRight);
+        const float halfColumn = 0.5f * column.width;
+        return f.y >= top && n.y <= bottom && (r.x - n.x) <= halfColumn;
+    };
+
+    float lo = 5.0f, hi = 400.0f;   // closest and furthest distance we consider
+    for (int i = 0; i < 40; ++i) {
+        const float mid = 0.5f * (lo + hi);
+        if (fits(mid)) hi = mid; else lo = mid;   // fits: try closer; else further away
+    }
+    place(hi, centerTarget(hi));
+    cameraBasePosition_ = test.position;
+    cameraBaseTarget_   = test.target;
+    camera_.position    = test.position;
+    camera_.target      = test.target;
 }
 
 void Game::Restart() {
@@ -305,7 +428,7 @@ void Game::AwardWaveBonus() {
     // together with +, and std::to_string turns a number into text.
     bonusText_.clear();
     if (speedBonus > 0) bonusText_ += "SPEED BONUS +" + std::to_string(speedBonus);
-    if (speedBonus > 0 && noHitBonus > 0) bonusText_ += "     ";
+    if (speedBonus > 0 && noHitBonus > 0) bonusText_ += "\n";   // a new line (the screen is narrow)
     if (noHitBonus > 0) bonusText_ += "NO HIT +" + std::to_string(noHitBonus);
     bonusTimer_ = config::kBonusTextTime;
 }
@@ -541,8 +664,9 @@ void Game::Update(float dt) {
     // needs no random numbers. Squaring the trauma keeps small shakes small.
     const float amount = shake_ * shake_ * config::kShakeMaxOffset;
     const Vector3 offset{amount * std::sin(time_ * 47.0f), amount * std::sin(time_ * 61.0f + 1.3f), 0.0f};
-    camera_.position = Vector3Add(config::kCameraPosition, offset);
-    camera_.target   = Vector3Add(config::kCameraTarget, offset);
+    FitCamera();   // the window may have been resized (or the phone rotated)
+    camera_.position = Vector3Add(cameraBasePosition_, offset);
+    camera_.target   = Vector3Add(cameraBaseTarget_, offset);
 
     // Music: calm on the menu and after a game, the level track while playing,
     // and the boss track during a boss fight. Audio fades between them by itself.
@@ -638,7 +762,7 @@ void Game::ToggleSound() {
 
 Rectangle Game::MuteButtonRect() const {
     const Rectangle pause = PauseButtonRect();   // same size, just left of it
-    return Rectangle{pause.x - pause.width - static_cast<float>(display::Px(12)), pause.y,
+    return Rectangle{pause.x - pause.width - static_cast<float>(display::Px(10)), pause.y,
                      pause.width, pause.height};
 }
 
@@ -674,17 +798,20 @@ void Game::DrawMuteButton() const {
 
 Rectangle Game::PlayButtonRect() const {
     using display::Px;
+    const Rectangle column = display::Column();
     const float size = static_cast<float>(Px(120));
-    return Rectangle{(static_cast<float>(GetScreenWidth()) - size) / 2.0f,
-                     static_cast<float>(GetScreenHeight()) / 2.0f - size / 2.0f + static_cast<float>(Px(20)),
+    return Rectangle{column.x + (column.width - size) / 2.0f,
+                     column.y + column.height / 2.0f - size / 2.0f + static_cast<float>(Px(20)),
                      size, size};
 }
 
 Rectangle Game::PauseButtonRect() const {
+    // Top right of the column, under the level number.
     using display::Px;
-    const float size = static_cast<float>(Px(52));
-    return Rectangle{static_cast<float>(GetScreenWidth() - Px(20)) - size,
-                     static_cast<float>(Px(62)), size, size};
+    const Rectangle column = display::Column();
+    const float size = static_cast<float>(Px(44));
+    return Rectangle{column.x + column.width - static_cast<float>(Px(14)) - size,
+                     column.y + static_cast<float>(Px(64)), size, size};
 }
 
 void Game::DrawPauseButton() const {
@@ -991,87 +1118,86 @@ void Game::Draw() const {
     }
 
     // 2D text on top of the 3D picture (the HUD = "heads-up display").
-    // Px() scales every size and position with the window height, so the text
-    // stays the same size relative to the picture in a small and in a huge window.
+    // Everything is placed inside the play column (see display::Column), and Px()
+    // scales every size and position with it, so the HUD looks the same on a small
+    // phone, a big tablet and a desktop window.
     using display::Px;
-    DrawText(TextFormat("SCORE  %06d", score_), Px(20), Px(16), Px(32), RAYWHITE);
+    const Rectangle column = display::Column();
+    const float left    = column.x + static_cast<float>(Px(14));
+    const float right   = column.x + column.width - static_cast<float>(Px(14));
+    const float centerX = column.x + column.width / 2.0f;
+    const int   textWidth = static_cast<int>(column.width) - Px(40);   // longest line for wrapped text
+    const int   screenH = GetScreenHeight();
+    const Color label = Fade(LIGHTGRAY, 0.75f);
 
-    // The small lines under the score are stacked: each one that is shown moves
-    // the next one down, so there are never gaps.
-    int lineY = Px(56);
-    if (helpTimer_ > 0.0f) {
-        // The key help, only during the first seconds of a game (it fades out in
-        // the last second). The pause screen shows it again.
-        const float alpha = std::min(1.0f, helpTimer_);
-        DrawText(HelpLine(), Px(20), lineY, Px(20), Fade(LIGHTGRAY, alpha));
-        lineY += Px(28);
-    }
-    if (showFps_) {
-        DrawText(TextFormat("%d FPS", GetFPS()), Px(20), lineY, Px(20), GREEN);
-        lineY += Px(28);
-    }
+    // Top left: the score, with a small label over it, and the lives under it.
+    DrawText("SCORE", static_cast<int>(left), Px(10), Px(14), label);
+    DrawText(TextFormat("%06d", score_), static_cast<int>(left), Px(26), Px(30), RAYWHITE);
     DrawLives();
 
-    // The best score, in the middle at the top. While you beat it, it counts up with you.
-    const char* best = TextFormat("HI %06d", std::max(highScore_, score_));
-    DrawText(best, (GetScreenWidth() - MeasureText(best, Px(24))) / 2, Px(20), Px(24),
-             Color{255, 200, 60, 255});
-    if (audio_.Muted()) {
-        DrawText("SOUND OFF", Px(20), lineY, Px(20), ORANGE);
-    }
+    // Top middle: the best score. While you beat it, it counts up with you.
+    const Color gold{255, 200, 60, 255};
+    DrawCentered("BEST", centerX, Px(10), Px(14), textWidth, Fade(gold, 0.75f));
+    DrawCentered(TextFormat("%06d", std::max(highScore_, score_)), centerX, Px(28), Px(22), textWidth, gold);
 
-    // Level in the top right corner, right-aligned: measure the text, then
-    // start that far left of the screen edge.
-    // "WAVE 2/3   LEVEL 3" in the top right corner, right-aligned: measure the
-    // text, then start that far left of the screen edge.
-    const char* levelText = TextFormat("LEVEL %d", level_ + 1);
-    const int levelX = GetScreenWidth() - Px(20) - MeasureText(levelText, Px(32));
-    DrawText(levelText, levelX, Px(16), Px(32), SKYBLUE);
+    // Top right: the level, and the wave under it.
+    DrawRight(TextFormat("LEVEL %d", level_ + 1), right, Px(10), Px(26), SKYBLUE);
     const char* waveText = boss_ ? "BOSS"
         : (wave_ < config::kWavesPerLevel)
         ? TextFormat("WAVE %d/%d", wave_ + 1, config::kWavesPerLevel)
         : TextFormat("BONUS WAVE %d", wave_ - config::kWavesPerLevel + 1);
-    DrawText(waveText, levelX - Px(18) - MeasureText(waveText, Px(22)), Px(24), Px(22),
-             Fade(SKYBLUE, 0.75f));
+    DrawRight(waveText, right, Px(40), Px(16), Fade(SKYBLUE, 0.75f));
 
-    // Active power-ups under the level, right-aligned, with the seconds left.
-    auto drawRight = [&](const char* text, int y, Color color) {
-        DrawText(text, GetScreenWidth() - Px(20) - MeasureText(text, Px(22)), y, Px(22), color);
-    };
+    // Small lines on the left, under the lives: FPS and "SOUND OFF". Each one that
+    // is shown moves the next one down, so there are never gaps.
+    int lineY = Px(92);
+    if (showFps_) {
+        DrawText(TextFormat("%d FPS", GetFPS()), static_cast<int>(left), lineY, Px(16), GREEN);
+        lineY += Px(22);
+    }
+    if (audio_.Muted()) {
+        DrawText("SOUND OFF", static_cast<int>(left), lineY, Px(16), ORANGE);
+    }
+
+    // Active power-ups on the right, under the buttons, with the seconds left.
     if (state_ == GameState::Playing) {
         DrawPauseButton();
     }
-    int statusY = Px(126);   // below the pause button
+    int statusY = Px(116);
     if (shieldTimer_ > 0.0f) {
-        drawRight(TextFormat("SHIELD %d", static_cast<int>(std::ceil(shieldTimer_))), statusY,
+        DrawRight(TextFormat("SHIELD %d", static_cast<int>(std::ceil(shieldTimer_))), right, statusY, Px(16),
                   Color{80, 220, 255, 255});
-        statusY += Px(28);
+        statusY += Px(22);
     }
     if (rapidFireTimer_ > 0.0f) {
-        drawRight(TextFormat("RAPID FIRE %d", static_cast<int>(std::ceil(rapidFireTimer_))), statusY,
-                  Color{255, 150, 40, 255});
-    }
-
-    // "SHIELD!" / "RAPID FIRE!" in the middle of the screen right after a pickup.
-    if (!boss_) {
-        DrawCombo();   // (during a boss fight the health bar is in that place)
-    }
-    if (bonusTimer_ > 0.0f) {
-        const float alpha = std::min(1.0f, bonusTimer_ / 0.5f);
-        const int size = Px(30);
-        DrawText(bonusText_.c_str(), (GetScreenWidth() - MeasureText(bonusText_.c_str(), size)) / 2,
-                 GetScreenHeight() * 36 / 100, size, Fade(Color{255, 200, 60, 255}, alpha));
-    }
-
-    if (state_ == GameState::Playing && pickupTimer_ > 0.0f) {
-        const float alpha = std::min(1.0f, pickupTimer_ / 0.5f);   // fades out at the end
-        const int size = Px(46);
-        DrawText(pickupText_, (GetScreenWidth() - MeasureText(pickupText_, size)) / 2,
-                 GetScreenHeight() * 2 / 5, size, Fade(pickupColor_, alpha));   // above the ship
+        DrawRight(TextFormat("RAPID FIRE %d", static_cast<int>(std::ceil(rapidFireTimer_))), right, statusY,
+                  Px(16), Color{255, 150, 40, 255});
     }
 
     if (boss_) {
-        DrawBossBar();
+        DrawBossBar();   // the boss's health bar sits where the combo would be
+    } else {
+        DrawCombo();
+    }
+
+    // The controls, only during the first seconds of a game (they fade out in the
+    // last second), low in the middle where no aliens are yet. The pause screen
+    // shows them again.
+    if (helpTimer_ > 0.0f) {
+        const float alpha = std::min(1.0f, helpTimer_);
+        DrawCentered(HelpLine(), centerX, screenH * 60 / 100, Px(18), textWidth, Fade(LIGHTGRAY, alpha));
+    }
+
+    // The wave-clear bonus, one line per part.
+    if (bonusTimer_ > 0.0f) {
+        const float alpha = std::min(1.0f, bonusTimer_ / 0.5f);
+        DrawCentered(bonusText_, centerX, screenH * 36 / 100, Px(24), textWidth, Fade(gold, alpha));
+    }
+
+    // "SHIELD!" / "RAPID FIRE!" in the middle of the screen right after a pickup.
+    if (state_ == GameState::Playing && pickupTimer_ > 0.0f) {
+        const float alpha = std::min(1.0f, pickupTimer_ / 0.5f);   // fades out at the end
+        DrawCentered(pickupText_, centerX, screenH * 46 / 100, Px(40), textWidth, Fade(pickupColor_, alpha));
     }
 
     if (state_ == GameState::Playing && levelBannerTimer_ > 0.0f) {
@@ -1082,8 +1208,7 @@ void Game::Draw() const {
         const char* text = (wave_ < config::kWavesPerLevel)
             ? TextFormat("WAVE %d / %d", wave_ + 1, config::kWavesPerLevel)
             : TextFormat("BONUS WAVE %d", wave_ - config::kWavesPerLevel + 1);
-        DrawText(text, (GetScreenWidth() - MeasureText(text, Px(44))) / 2, GetScreenHeight() / 4,
-                 Px(44), Fade(SKYBLUE, alpha));
+        DrawCentered(text, centerX, screenH * 26 / 100, Px(38), textWidth, Fade(SKYBLUE, alpha));
     }
 
     if (state_ == GameState::Paused) {
@@ -1097,32 +1222,32 @@ void Game::Draw() const {
     DrawMuteButton();   // last, so the dark pause and game-over screens do not cover it
 }
 
-// One small ship icon per life, right of the score: a triangle with an orange flame.
+// One small ship icon per life, under the score: a triangle with an orange flame.
 void Game::DrawLives() const {
     using display::Px;
-    const int scoreWidth = MeasureText(TextFormat("SCORE  %06d", score_), Px(32));
-    int x = Px(20) + scoreWidth + Px(28);
-    const float y = static_cast<float>(Px(32));
-    const float s = static_cast<float>(Px(10));   // icon size
+    const Rectangle column = display::Column();
+    float x = column.x + static_cast<float>(Px(14 + 8));
+    const float y = static_cast<float>(Px(72));
+    const float s = static_cast<float>(Px(8));   // icon size
     for (int i = 0; i < lives_; ++i) {
-        const float cx = static_cast<float>(x);
         // raylib wants the three corners counter-clockwise (as seen on screen).
-        DrawTriangle(Vector2{cx, y - s}, Vector2{cx - s, y + s * 0.8f}, Vector2{cx + s, y + s * 0.8f},
+        DrawTriangle(Vector2{x, y - s}, Vector2{x - s, y + s * 0.8f}, Vector2{x + s, y + s * 0.8f},
                      Color{190, 205, 230, 255});                         // the ship
-        DrawTriangle(Vector2{cx, y + s * 1.5f}, Vector2{cx + s * 0.35f, y + s * 0.8f},
-                     Vector2{cx - s * 0.35f, y + s * 0.8f}, Color{255, 140, 40, 255});   // flame
-        x += Px(26);
+        DrawTriangle(Vector2{x, y + s * 1.5f}, Vector2{x + s * 0.35f, y + s * 0.8f},
+                     Vector2{x - s * 0.35f, y + s * 0.8f}, Color{255, 140, 40, 255});   // flame
+        x += static_cast<float>(Px(22));
     }
 }
 
 void Game::DrawPaused() const {
     using display::Px;
+    const Rectangle column = display::Column();
+    const float centerX = column.x + column.width / 2.0f;
+    const int textWidth = static_cast<int>(column.width) - Px(40);
     DrawRectangle(0, 0, GetScreenWidth(), GetScreenHeight(), Fade(BLACK, 0.55f));
 
     const Rectangle play = PlayButtonRect();
-    const char* title = "PAUSED";
-    DrawText(title, (GetScreenWidth() - MeasureText(title, Px(70))) / 2,
-             static_cast<int>(play.y) - Px(100), Px(70), RAYWHITE);
+    DrawCentered("PAUSED", centerX, static_cast<int>(play.y) - Px(96), Px(60), textWidth, RAYWHITE);
 
     // The play button: a glowing circle with a triangle pointing right ("play").
     const Vector2 c{play.x + play.width / 2.0f, play.y + play.height / 2.0f};
@@ -1138,17 +1263,16 @@ void Game::DrawPaused() const {
 
     const char* hint = IsTouchDevice() ? "Tap the play button to continue"
                                        : "Click the play button or press P to continue";
-    DrawText(hint, (GetScreenWidth() - MeasureText(hint, Px(24))) / 2,
-             static_cast<int>(play.y + play.height) + Px(28), Px(24), LIGHTGRAY);
+    int y = DrawCentered(hint, centerX, static_cast<int>(play.y + play.height) + Px(28), Px(20), textWidth,
+                         LIGHTGRAY);
     // The controls, for anyone who missed them at the start.
-    DrawText(HelpLine(), (GetScreenWidth() - MeasureText(HelpLine(), Px(20))) / 2,
-             static_cast<int>(play.y + play.height) + Px(68), Px(20), GRAY);
+    DrawCentered(HelpLine(), centerX, y + Px(16), Px(17), textWidth, GRAY);
 }
 
 const char* Game::HelpLine() const {
     // Only the keys needed while playing; the window keys are listed in the menu.
     return touchMode_ ? "Drag anywhere to move. The ship fires by itself."
-                      : "Move: A / D or arrows     Fire: Space (hold)     Pause: P     Mute: M     FPS: F3";
+                      : "Move: A / D or arrows     Fire: Space (hold)\nPause: P     Mute: M     FPS: F3";
 }
 
 void Game::DrawGameOver() const {
@@ -1156,99 +1280,98 @@ void Game::DrawGameOver() const {
         DrawDemoEnd();
         return;
     }
-    const int screenW = GetScreenWidth();
-    const int screenH = GetScreenHeight();
+    using display::Px;
+    const Rectangle column = display::Column();
+    const float centerX = column.x + column.width / 2.0f;
+    const int textWidth = static_cast<int>(column.width) - Px(40);
+    const int middle = GetScreenHeight() / 2;
 
     // Darken the whole picture. Fade(color, alpha) makes a colour see-through.
-    DrawRectangle(0, 0, screenW, screenH, Fade(BLACK, 0.6f));
+    DrawRectangle(0, 0, GetScreenWidth(), GetScreenHeight(), Fade(BLACK, 0.6f));
 
-    // A small helper that centres a line of text horizontally.
-    auto drawCentered = [&](const char* text, int y, int fontSize, Color color) {
-        const int width = MeasureText(text, fontSize);
-        DrawText(text, (screenW - width) / 2, y, fontSize, color);
-    };
-
-    using display::Px;
-    const int middle = screenH / 2;
-    drawCentered("GAME OVER", middle - Px(120), Px(80), RED);
-    drawCentered(gameOverReason_, middle - Px(30), Px(30), RAYWHITE);
-    drawCentered(TextFormat("Final score: %06d", score_), middle + Px(20), Px(36), YELLOW);
+    int y = DrawCentered("GAME OVER", centerX, middle - Px(160), Px(64), textWidth, RED);
+    y = DrawCentered(gameOverReason_, centerX, y + Px(16), Px(24), textWidth, RAYWHITE);
+    y = DrawCentered(TextFormat("Final score: %06d", score_), centerX, y + Px(16), Px(30), textWidth, YELLOW);
     if (newHighScore_) {
         // Blinks twice per second: on while the fraction of the time is below one half.
         const bool on = std::fmod(static_cast<float>(GetTime()) * 2.0f, 1.0f) < 0.5f;
-        if (on) drawCentered("NEW HIGH SCORE!", middle + Px(60), Px(26), Color{255, 200, 60, 255});
+        if (on) DrawCentered("NEW HIGH SCORE!", centerX, y + Px(8), Px(24), textWidth, Color{255, 200, 60, 255});
     }
-    drawCentered(touchMode_ ? (IsTouchDevice() ? "Tap to play again" : "Click to play again")
-                            : "Press ENTER to play again",
-                 middle + Px(100), Px(26), LIGHTGRAY);
+    y += Px(8) + Px(30);   // room for the blinking line, also while it is off
+    y = DrawCentered(touchMode_ ? (IsTouchDevice() ? "Tap to play again" : "Click to play again")
+                                : "Press ENTER to play again",
+                     centerX, y + Px(24), Px(24), textWidth, LIGHTGRAY);
 #if defined(GAME_DESKTOP)
-    drawCentered("Esc to quit", middle + Px(140), Px(22), GRAY);
+    DrawCentered("Esc to quit", centerX, y + Px(10), Px(18), textWidth, GRAY);
 #endif
 }
 
 void Game::DrawMenu() const {
-    const int screenW = GetScreenWidth();
-    const int screenH = GetScreenHeight();
-    DrawRectangle(0, 0, screenW, screenH, Fade(BLACK, 0.55f));
-
-    auto drawCentered = [&](const char* text, int y, int fontSize, Color color) {
-        const int width = MeasureText(text, fontSize);
-        DrawText(text, (screenW - width) / 2, y, fontSize, color);
-    };
+    using display::Px;
+    const Rectangle column = display::Column();
+    const float centerX = column.x + column.width / 2.0f;
+    const int textWidth = static_cast<int>(column.width) - Px(40);
+    DrawRectangle(0, 0, GetScreenWidth(), GetScreenHeight(), Fade(BLACK, 0.55f));
 
     // A gentle pulse for the "press Enter" line: sin() swings between -1 and +1,
     // we turn that into an opacity between 0.4 and 1.
     const float pulse = 0.7f + 0.3f * sinf(static_cast<float>(GetTime()) * 4.0f);
 
-    using display::Px;
-    drawCentered("SPACE INVADER", Px(70), Px(90), Color{190, 120, 255, 255});
-    drawCentered("3D", Px(160), Px(90), SKYBLUE);
+    const Color purple{190, 120, 255, 255};
+    DrawCentered("SPACE", centerX, Px(170), Px(76), textWidth, purple);
+    DrawCentered("INVADER", centerX, Px(250), Px(76), textWidth, purple);
+    DrawCentered("3D", centerX, Px(330), Px(96), textWidth, SKYBLUE);
     if (highScore_ > 0) {
-        drawCentered(TextFormat("HIGH SCORE  %06d", highScore_), Px(275), Px(26), Color{255, 200, 60, 255});
+        DrawCentered(TextFormat("HIGH SCORE  %06d", highScore_), centerX, Px(470), Px(22), textWidth,
+                     Color{255, 200, 60, 255});
     }
+    int y = Px(530);
     if (touchMode_) {
-        drawCentered(IsTouchDevice() ? "Tap to start" : "Click to start", Px(330), Px(32), Fade(RAYWHITE, pulse));
-        drawCentered("Drag anywhere to move. The ship fires by itself.", Px(380), Px(22), LIGHTGRAY);
+        y = DrawCentered(IsTouchDevice() ? "Tap to start" : "Click to start", centerX, y, Px(32), textWidth,
+                         Fade(RAYWHITE, pulse));
+        DrawCentered("Drag anywhere to move. The ship fires by itself.", centerX, y + Px(16), Px(18), textWidth,
+                     LIGHTGRAY);
     } else {
-        drawCentered("Press ENTER to start", Px(330), Px(32), Fade(RAYWHITE, pulse));
-        drawCentered("Move: A / D or arrows     Fire: Space (hold)     Pause: P", Px(380), Px(22), LIGHTGRAY);
-    }
+        y = DrawCentered("Press ENTER to start", centerX, y, Px(32), textWidth, Fade(RAYWHITE, pulse));
+        y = DrawCentered("Move: A / D or arrows\nFire: Space (hold)     Pause: P", centerX, y + Px(16), Px(18),
+                         textWidth, LIGHTGRAY);
 #if defined(GAME_DESKTOP)
-    drawCentered("Fullscreen: F     Window size: 1 - 5     Quit: Esc", Px(415), Px(22), LIGHTGRAY);
+        DrawCentered("Fullscreen: F     Window size: 1 - 5     Quit: Esc", centerX, y + Px(6), Px(18), textWidth,
+                     LIGHTGRAY);
 #endif
+    }
     if (config::kDemo) {
-        drawCentered("FREE DEMO: levels 1 to 3. The full game with all 7 levels is coming to Google Play.",
-                     screenH - Px(50), Px(22), Color{255, 170, 60, 255});
+        DrawCentered("FREE DEMO: levels 1 to 3. The full game with all 7 levels is coming to Google Play.",
+                     centerX, Px(720), Px(18), textWidth, Color{255, 170, 60, 255});
     }
 }
 
 void Game::DrawLevelBanner() const {
     using display::Px;
+    const Rectangle column = display::Column();
+    const float centerX = column.x + column.width / 2.0f;
+    const int textWidth = static_cast<int>(column.width) - Px(40);
     // Fade out during the last half second of the banner time.
     const float alpha = levelBannerTimer_ > 0.5f ? 1.0f : levelBannerTimer_ / 0.5f;
-    const int titleSize = Px(70);
-    const int subSize   = Px(28);
-    const int y = GetScreenHeight() / 4;
-    // .c_str() turns a std::string into the plain "const char*" that raylib wants.
-    DrawText(bannerTitle_.c_str(), (GetScreenWidth() - MeasureText(bannerTitle_.c_str(), titleSize)) / 2,
-             y, titleSize, Fade(SKYBLUE, alpha));
-    DrawText(bannerSubtitle_.c_str(), (GetScreenWidth() - MeasureText(bannerSubtitle_.c_str(), subSize)) / 2,
-             y + titleSize + Px(12), subSize, Fade(RAYWHITE, alpha));
+    const int y = DrawCentered(bannerTitle_, centerX, GetScreenHeight() * 24 / 100, Px(52), textWidth,
+                               Fade(SKYBLUE, alpha));
+    DrawCentered(bannerSubtitle_, centerX, y + Px(6), Px(22), textWidth, Fade(RAYWHITE, alpha));
 }
 
 void Game::DrawBossBar() const {
     using display::Px;
-    // The boss's name and a health bar, centred under the high score. The bar
+    // The boss's name and a health bar, centred under the best score. The bar
     // has a dark background, the remaining health in the boss's colour (red
     // when it is angry), and a thin white frame. It shakes a little when angry.
-    const int width  = GetScreenWidth() * 2 / 5;
-    const int height = Px(14);
+    const Rectangle column = display::Column();
+    const float centerX = column.x + column.width / 2.0f;
+    const int width  = static_cast<int>(column.width * 0.42f);
+    const int height = Px(10);
     const int shake  = boss_->Angry() ? static_cast<int>(2.0f * std::sin(time_ * 40.0f)) : 0;
-    const int x = (GetScreenWidth() - width) / 2 + shake;
+    const int x = static_cast<int>(centerX) - width / 2 + shake;
     const int y = Px(80);
 
-    const char* name = boss_->Name();
-    DrawText(name, (GetScreenWidth() - MeasureText(name, Px(22))) / 2, Px(52), Px(22), RAYWHITE);
+    DrawCentered(boss_->Name(), centerX, Px(58), Px(18), width + Px(40), RAYWHITE);
 
     const Color fill = boss_->Angry() ? Color{255, 60, 60, 255} : boss_->GlowColor();
     DrawRectangle(x, y, width, height, Fade(BLACK, 0.6f));
@@ -1259,53 +1382,50 @@ void Game::DrawBossBar() const {
         DrawLine(x + width * i / 4, y, x + width * i / 4, y + height, Fade(RAYWHITE, 0.5f));
     }
     if (boss_->CoreOpen()) {
-        const char* hint = "CORE OPEN!";
-        DrawText(hint, (GetScreenWidth() - MeasureText(hint, Px(20))) / 2, y + height + Px(8), Px(20),
-                 Fade(fill, 0.6f + 0.4f * std::sin(time_ * 10.0f)));
+        DrawCentered("CORE OPEN!", centerX, y + height + Px(6), Px(16), width + Px(40),
+                     Fade(fill, 0.6f + 0.4f * std::sin(time_ * 10.0f)));
     }
 }
 
 void Game::DrawCombo() const {
     using display::Px;
     if (comboTimer_ <= 0.0f || ComboMultiplier() < 2) return;   // only worth showing from x2
-    // "COMBO x3" under the high score, and a small bar that runs out with the time
+    // "COMBO x3" under the best score, and a small bar that runs out with the time
     // left to keep the combo going.
-    const char* text = TextFormat("COMBO x%d", ComboMultiplier());
-    const int size = Px(26);
+    const Rectangle column = display::Column();
+    const float centerX = column.x + column.width / 2.0f;
     const Color color = ComboMultiplier() >= config::kComboMaxMultiplier ? Color{255, 90, 200, 255}
                                                                          : Color{120, 230, 255, 255};
-    // While the key help is still showing (first seconds of a game), its long line
-    // runs under the middle of the screen: then the combo moves down a line.
-    const int y = (helpTimer_ > 0.0f) ? Px(84) : Px(50);
-    DrawText(text, (GetScreenWidth() - MeasureText(text, size)) / 2, y, size, color);
-    const int width = Px(120);
-    const int x = (GetScreenWidth() - width) / 2;
-    DrawRectangle(x, y + Px(30), static_cast<int>(static_cast<float>(width) * comboTimer_ / config::kComboWindow),
-                  Px(4), color);
+    const int y = Px(60);
+    DrawCentered(TextFormat("COMBO x%d", ComboMultiplier()), centerX, y, Px(22), static_cast<int>(column.width),
+                 color);
+    const int width = Px(110);
+    DrawRectangle(static_cast<int>(centerX) - width / 2, y + Px(26),
+                  static_cast<int>(static_cast<float>(width) * comboTimer_ / config::kComboWindow), Px(4), color);
 }
 
 Rectangle Game::StoreButtonRect() const {
     using display::Px;
-    const float width  = static_cast<float>(Px(460));
-    const float height = static_cast<float>(Px(64));
-    return Rectangle{(static_cast<float>(GetScreenWidth()) - width) / 2.0f,
-                     static_cast<float>(GetScreenHeight() / 2 + Px(70)), width, height};
+    const Rectangle column = display::Column();
+    const float width  = std::min(static_cast<float>(Px(440)), column.width - static_cast<float>(Px(40)));
+    const float height = static_cast<float>(Px(60));
+    return Rectangle{column.x + (column.width - width) / 2.0f,
+                     static_cast<float>(GetScreenHeight() / 2 + Px(80)), width, height};
 }
 
 void Game::DrawDemoEnd() const {
     using display::Px;
-    const int screenW = GetScreenWidth();
+    const Rectangle column = display::Column();
+    const float centerX = column.x + column.width / 2.0f;
+    const int textWidth = static_cast<int>(column.width) - Px(40);
     const int middle  = GetScreenHeight() / 2;
-    DrawRectangle(0, 0, screenW, GetScreenHeight(), Fade(BLACK, 0.65f));
-    auto drawCentered = [&](const char* text, int y, int fontSize, Color color) {
-        DrawText(text, (screenW - MeasureText(text, fontSize)) / 2, y, fontSize, color);
-    };
+    DrawRectangle(0, 0, GetScreenWidth(), GetScreenHeight(), Fade(BLACK, 0.65f));
 
-    drawCentered("DEMO COMPLETE!", middle - Px(190), Px(70), Color{120, 230, 255, 255});
-    drawCentered("You beat the Hive Queen. Well done!", middle - Px(110), Px(28), RAYWHITE);
-    drawCentered(TextFormat("Score: %06d", score_), middle - Px(70), Px(30), YELLOW);
-    drawCentered("The full game has 4 more levels, the Claw ship,", middle - Px(20), Px(24), LIGHTGRAY);
-    drawCentered("the War Titan and the Void Emperor.", middle + Px(10), Px(24), LIGHTGRAY);
+    int y = DrawCentered("DEMO COMPLETE!", centerX, middle - Px(250), Px(52), textWidth, Color{120, 230, 255, 255});
+    y = DrawCentered("You beat the Hive Queen. Well done!", centerX, y + Px(16), Px(24), textWidth, RAYWHITE);
+    y = DrawCentered(TextFormat("Score: %06d", score_), centerX, y + Px(12), Px(28), textWidth, YELLOW);
+    DrawCentered("The full game has 4 more levels, the Claw ship, the War Titan and the Void Emperor.",
+                 centerX, y + Px(20), Px(20), textWidth, LIGHTGRAY);
 
     // The store button: a link once the app is published, otherwise "coming soon".
     const Rectangle button = StoreButtonRect();
@@ -1314,12 +1434,19 @@ void Game::DrawDemoEnd() const {
     DrawRectangleRounded(button, 0.3f, 8, Fade(Color{40, 140, 90, 255}, live ? 0.9f : 0.4f));
     DrawRectangleRoundedLinesEx(button, 0.3f, 8, 2.0f, Fade(Color{150, 255, 170, 255}, live ? pulse : 0.4f));
     const char* label = live ? "Get the full game on Google Play" : "Full game coming soon to Google Play";
-    DrawText(label, static_cast<int>(button.x + (button.width - static_cast<float>(MeasureText(label, Px(24)))) / 2.0f),
-             static_cast<int>(button.y + (button.height - static_cast<float>(Px(24))) / 2.0f), Px(24), RAYWHITE);
+    // The label in one line if it fits, otherwise smaller.
+    int labelSize = Px(20);
+    while (labelSize > Px(12) && MeasureText(label, labelSize) > static_cast<int>(button.width) - Px(16)) {
+        --labelSize;
+    }
+    DrawCentered(label, button.x + button.width / 2.0f,
+                 static_cast<int>(button.y + (button.height - static_cast<float>(labelSize)) / 2.0f), labelSize,
+                 static_cast<int>(button.width), RAYWHITE);
     if (live && !touchMode_) {
-        drawCentered("(or press G)", static_cast<int>(button.y + button.height) + Px(8), Px(20), GRAY);
+        DrawCentered("(or press G)", centerX, static_cast<int>(button.y + button.height) + Px(8), Px(18), textWidth,
+                     GRAY);
     }
 
-    drawCentered(touchMode_ ? "Tap anywhere else to play again" : "Press ENTER to play again",
-                 middle + Px(190), Px(24), LIGHTGRAY);
+    DrawCentered(touchMode_ ? "Tap anywhere else to play again" : "Press ENTER to play again",
+                 centerX, static_cast<int>(button.y + button.height) + Px(70), Px(22), textWidth, LIGHTGRAY);
 }

@@ -375,9 +375,9 @@ void Invader::Update(float dt) {
 
 float Invader::Radius() const {
     switch (type) {
-        case AlienType::Commander: return config::kCommanderRadius;
-        case AlienType::Drone:     return config::kDroneRadius;
-        default:                   return config::kInvaderRadius;
+        case AlienType::Commander: return config::kCommanderRadius * config::kAlienScale;
+        case AlienType::Drone:     return config::kDroneRadius * config::kAlienScale;
+        default:                   return config::kInvaderRadius * config::kAlienScale;
     }
 }
 
@@ -395,6 +395,10 @@ void Invader::Draw(float time, const Model* commanderModel, int level) const {
     rlPushMatrix();
     rlTranslatef(position.x, position.y + bob + hover, position.z);
     rlRotatef(roll, 0.0f, 0.0f, 1.0f);   // divers tilt into their curve
+    // Turn the face up toward the camera: a turn around the X axis (left-right).
+    // A negative angle lifts the front (+Z) side up.
+    rlRotatef(-config::kAlienFaceTilt, 1.0f, 0.0f, 0.0f);
+    rlScalef(config::kAlienScale, config::kAlienScale, config::kAlienScale);
 
     if (type == AlienType::Commander && commanderModel != nullptr) {
         // The model's detailed side faces -Z and its nose points up (+Y). Turning it

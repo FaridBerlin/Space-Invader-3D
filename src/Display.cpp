@@ -2,7 +2,8 @@
 
 #include "Display.h"
 
-#include <cmath>   // std::lround
+#include <algorithm>   // std::min
+#include <cmath>       // std::lround
 
 #include "Config.h"
 #include "Platform.h"
@@ -52,7 +53,7 @@ void OpenWindow(const char* title) {
     InitWindow(config::kScreenWidth, config::kScreenHeight, title);
 #elif defined(GAME_ANDROID)
     // On a phone the game always fills the whole screen; 0 x 0 means "the size
-    // of the display". (Landscape only: see android/app/src/main/AndroidManifest.xml.)
+    // of the display". (Portrait only: see android/app/src/main/AndroidManifest.xml.)
     SetConfigFlags(FLAG_MSAA_4X_HINT | FLAG_FULLSCREEN_MODE);
     InitWindow(0, 0, title);
 #else
@@ -161,12 +162,22 @@ bool IsFullscreen() {
 #endif
 }
 
-float UiScale() {
-    return static_cast<float>(GetScreenHeight()) / config::kUiReferenceHeight;
+Rectangle Column() {
+    const float screenW = static_cast<float>(GetScreenWidth());
+    const float screenH = static_cast<float>(GetScreenHeight());
+    const float width = std::min(screenW, screenH * config::kColumnMaxAspect);
+    return Rectangle{(screenW - width) / 2.0f, 0.0f, width, screenH};
 }
 
-int Px(int pixelsAt720p) {
-    return static_cast<int>(std::lround(static_cast<float>(pixelsAt720p) * UiScale()));
+float UiScale() {
+    // The smaller of the two ratios, so the text fits both ways: in a long phone
+    // the width decides, in a wider column the height.
+    const Rectangle column = Column();
+    return std::min(column.width / config::kUiReferenceWidth, column.height / config::kUiReferenceHeight);
+}
+
+int Px(int designPixels) {
+    return static_cast<int>(std::lround(static_cast<float>(designPixels) * UiScale()));
 }
 
 }  // namespace display

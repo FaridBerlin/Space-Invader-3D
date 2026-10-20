@@ -14,27 +14,36 @@
 namespace config {
 
 // ---- Window ---------------------------------------------------------------
+// The game is TALL ("portrait"), like most phone games: on a phone you hold it
+// upright, on the desktop it is a tall window, on the web a tall picture.
 // The window opens at a size chosen for your monitor (see Display.cpp), and you can
 // resize it. This size is only the starting size before that, and the size of the
 // web version's canvas.
-constexpr int kScreenWidth  = 1280;
-constexpr int kScreenHeight = 720;
+constexpr int kScreenWidth  = 720;
+constexpr int kScreenHeight = 1280;
 
-// Window sizes you can pick with the keys 1 .. 5, small to big (all 16:9).
+// Window sizes you can pick with the keys 1 .. 5, small to big (all 9:16).
 constexpr int kWindowPresetCount = 5;
 constexpr int kWindowPresets[kWindowPresetCount][2] = {
-    {1280,  720},
-    {1600,  900},
-    {1920, 1080},
-    {2560, 1440},
-    {3200, 1800},
+    {450,  800},
+    {540,  960},
+    {630, 1120},
+    {720, 1280},
+    {900, 1600},
 };
-constexpr float kWindowStartShare = 0.80f;   // at start: the biggest size using <= 80% of the monitor
+constexpr float kWindowStartShare = 0.85f;   // at start: the biggest size using <= 85% of the monitor
 constexpr float kWindowMaxShare   = 0.97f;   // keys 1-5: sizes up to 97% of the monitor are allowed
 
-// The 2D text is designed for a window 720 pixels high. At other heights it is
-// scaled by (height / 720), see display::Px().
-constexpr float kUiReferenceHeight = 720.0f;
+// The "play column": the part of the screen the game uses. On a phone it is the
+// whole screen. On a wider screen (a landscape monitor in fullscreen, a tablet) it
+// is a tall strip in the middle, at most this wide compared to its height; the
+// sides show only space. Everything (field and HUD) is laid out inside it.
+constexpr float kColumnMaxAspect = 0.62f;    // width / height; 9:16 is 0.5625
+
+// The 2D text is designed for a column 540 x 960 pixels big. In bigger or smaller
+// columns it is scaled with it, see display::Px().
+constexpr float kUiReferenceWidth  = 540.0f;
+constexpr float kUiReferenceHeight = 960.0f;
 
 // Longest time step we allow, in seconds. If the game stalls (window dragged,
 // slow computer), dt can become huge and fast objects would jump straight
@@ -47,20 +56,32 @@ constexpr float kMaxFrameTime = 0.05f;
 //   Y: down (-) / up (+)
 //   Z: toward the camera (+) / away into the screen (-)   invaders come from -Z
 // One unit is roughly "one metre". The player stands at Z = 0.
-constexpr float kFieldHalfWidth = 12.0f;   // field spans X from -12 to +12
+constexpr float kFieldHalfWidth = 9.5f;    // field spans X from -9.5 to +9.5 (narrow: the screen is tall)
 constexpr float kFieldLength    = 50.0f;   // field spans Z from 0 down to -50
 
 // ---- Camera -------------------------------------------------------------------
-// The camera sits behind and above the player, looking down the field.
-constexpr Vector3 kCameraPosition{0.0f, 8.0f, 14.0f};
-constexpr Vector3 kCameraTarget{0.0f, 0.0f, -12.0f};
-constexpr float   kCameraFovDegrees = 60.0f;   // vertical field of view
+// The camera is above and behind the player and looks DOWN on the field, so the
+// field stands upright on the tall screen: the aliens at the top, the ship at the
+// bottom. 50 degrees keeps a real 3D look (higher angles look flat, like 2D).
+// The camera places itself (see Game::FitCamera): it moves as close as it can
+// while this part of the field still fits on the screen:
+//   sideways: the whole field width (kFieldHalfWidth) plus kViewSideMargin
+//   in depth: from kViewNearZ (just behind the ship) to kViewFarZ (the back rows)
+// So it works on every screen shape, from a long phone to a square-ish tablet.
+constexpr float kCameraPitchDegrees = 40.0f;   // 90 = straight down, 0 = flat behind the ship
+constexpr float kCameraFovDegrees   = 34.0f;   // vertical field of view: lower = less perspective
+constexpr float kViewNearZ     = 1.8f;         // the bottom edge of the picture ...
+constexpr float kViewFarZ      = -36.0f;       // ... and the top edge (the back rows of a big wave)
+constexpr float kViewSideMargin = 0.4f;        // a little space left and right of the field
+constexpr int   kViewTopPx     = 112;          // room for the HUD at the top (UI pixels, see Px())
+constexpr int   kViewBottomPx  = 8;            // ... and at the bottom
 
 // ---- Ground grid ------------------------------------------------------------------------
 // The floor grid covers only the play field (the area inside the blue border), see
 // DrawGround() in Game.cpp. Outside the field you see open space. Lines must stay IN FRONT
-// of the camera (it sits at Z = 14): lines that cross the camera's position are clipped by
-// the GPU, and some browsers get that wrong. The field ends at Z = 0, so we are safe.
+// of the camera (it is high above and behind the ship): lines that cross the camera's
+// position are clipped by the GPU, and some browsers get that wrong. The field ends at
+// Z = 0, so we are safe.
 //
 // Colours are {red, green, blue, alpha}. The LAST number is the opacity: 255 = solid,
 // 0 = invisible. Lower it to make a line fainter.
@@ -95,16 +116,22 @@ constexpr float kRocketFireInterval = 0.2f;    // seconds between shots (same as
 constexpr float kRocketRadius       = 0.3f;    // size of the rocket's collision sphere
 
 // ---- Invaders -----------------------------------------------------------------
-constexpr int   kInvaderMinColumns = 5;        // a wave gets a random size, like the 2D game
-constexpr int   kInvaderMaxColumns = 10;
-constexpr float kInvaderSpacingX   = 2.2f;     // distance between neighbours sideways
-constexpr float kInvaderSpacingZ   = 3.2f;     // distance between rows in depth (room to see the back rows)
-constexpr float kInvaderHalfWidth  = 0.7f;     // used to stop at the field edge
+constexpr int   kInvaderMinColumns = 4;        // a wave gets a random size, like the 2D game
+constexpr int   kInvaderMaxColumns = 6;         // (6 columns fill the narrow field)
+constexpr float kInvaderSpacingX   = 2.5f;     // distance between neighbours sideways
+constexpr float kInvaderSpacingZ   = 3.0f;     // distance between rows in depth
+constexpr float kInvaderHalfWidth  = 0.95f;    // used to stop at the field edge
 constexpr float kInvaderRadius     = 0.9f;     // size of the collision sphere
 constexpr float kInvaderHeight     = 0.9f;     // centre above the ground
-constexpr float kInvaderStepZ      = 1.0f;     // how far the wave steps toward you at an edge
-constexpr float kInvaderStartZ     = -30.0f;   // Z of the front row when a wave spawns
+constexpr float kInvaderStepZ      = 0.75f;    // how far the wave steps toward you at an edge
+constexpr float kInvaderStartZ     = -22.0f;   // Z of the front row when a wave spawns
 constexpr float kInvaderReachZ     = -2.5f;    // an invader this close to the ship = game over
+
+// Every alien is drawn this much bigger than its design (and its hit area grows with
+// it), so the aliens are easy to see on a phone. And every alien turns its face up
+// toward the high camera by this angle, so you still see its front, not its back.
+constexpr float kAlienScale    = 1.35f;
+constexpr float kAlienFaceTilt = 30.0f;   // degrees
 
 // ---- Alien types -----------------------------------------------------------------
 // Most aliens are Scarabs (one hit). Commanders sit in the back row: bigger,
@@ -278,13 +305,13 @@ constexpr const char* kBossName[kBossCount]  = {"HIVE QUEEN", "WAR TITAN", "VOID
 constexpr int   kBossHitPoints[kBossCount]   = {100, 200, 300};
 constexpr int   kBossScore[kBossCount]       = {5000, 8000, 12000};
 constexpr float kBossScale[kBossCount]       = {1.3f, 1.45f, 1.6f};   // size of the model
-constexpr float kBossSway[kBossCount]        = {4.0f, 3.2f, 2.5f};    // how far it slides left/right (bigger = less room)
+constexpr float kBossSway[kBossCount]        = {2.6f, 2.0f, 1.5f};    // how far it slides left/right (bigger bosses: less room)
 constexpr float kBossSwaySpeed[kBossCount]   = {0.45f, 0.55f, 0.65f}; // how fast (radians per second)
 constexpr float kBossAttackPause[kBossCount] = {2.2f, 1.8f, 1.5f};    // seconds between attacks
 constexpr float kBossShotSpeed[kBossCount]   = {11.0f, 13.0f, 15.0f};
 constexpr float kBossRageFactor  = 0.65f;   // angry: attack pauses get this much shorter
 constexpr float kBossZ           = -17.0f;  // where it hovers while fighting
-constexpr float kBossPitch       = 20.0f;   // degrees it leans forward, so the camera sees its top
+constexpr float kBossPitch       = -10.0f;  // degrees it leans; negative = its face turns up toward the high camera
 constexpr float kBossY           = 1.4f;    // its shots leave at the aliens' height (kInvaderHeight)
 constexpr float kBossEnterZ      = -80.0f;  // it flies in from here ...
 constexpr float kBossEnterTime   = 3.0f;    // ... taking this long (it cannot be hurt yet)
