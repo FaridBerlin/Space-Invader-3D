@@ -60,17 +60,17 @@ constexpr float kFieldHalfWidth = 9.5f;    // field spans X from -9.5 to +9.5 (n
 constexpr float kFieldLength    = 50.0f;   // field spans Z from 0 down to -50
 
 // ---- Camera -------------------------------------------------------------------
-// The camera is high above and behind the player and looks DOWN on the field at a
-// steep angle, so the field stands upright on the tall screen: the aliens at the
-// top, the ship at the bottom. A little tilt keeps the 3D look.
+// The camera is above and behind the player and looks DOWN on the field, so the
+// field stands upright on the tall screen: the aliens at the top, the ship at the
+// bottom. 50 degrees keeps a real 3D look (higher angles look flat, like 2D).
 // The camera places itself (see Game::FitCamera): it moves as close as it can
 // while this part of the field still fits on the screen:
 //   sideways: the whole field width (kFieldHalfWidth) plus kViewSideMargin
 //   in depth: from kViewNearZ (just behind the ship) to kViewFarZ (the back rows)
 // So it works on every screen shape, from a long phone to a square-ish tablet.
-constexpr float kCameraPitchDegrees = 66.0f;   // 90 = straight down, 0 = flat behind the ship
+constexpr float kCameraPitchDegrees = 50.0f;   // 90 = straight down, 0 = flat behind the ship
 constexpr float kCameraFovDegrees   = 34.0f;   // vertical field of view: lower = less perspective
-constexpr float kViewNearZ     = 3.0f;         // the bottom edge of the picture ...
+constexpr float kViewNearZ     = 1.8f;         // the bottom edge of the picture ...
 constexpr float kViewFarZ      = -36.0f;       // ... and the top edge (the back rows of a big wave)
 constexpr float kViewSideMargin = 0.4f;        // a little space left and right of the field
 constexpr int   kViewTopPx     = 112;          // room for the HUD at the top (UI pixels, see Px())
@@ -131,7 +131,7 @@ constexpr float kInvaderReachZ     = -2.5f;    // an invader this close to the s
 // it), so the aliens are easy to see on a phone. And every alien turns its face up
 // toward the high camera by this angle, so you still see its front, not its back.
 constexpr float kAlienScale    = 1.35f;
-constexpr float kAlienFaceTilt = 45.0f;   // degrees
+constexpr float kAlienFaceTilt = 30.0f;   // degrees
 
 // ---- Alien types -----------------------------------------------------------------
 // Most aliens are Scarabs (one hit). Commanders sit in the back row: bigger,
@@ -311,7 +311,7 @@ constexpr float kBossAttackPause[kBossCount] = {2.2f, 1.8f, 1.5f};    // seconds
 constexpr float kBossShotSpeed[kBossCount]   = {11.0f, 13.0f, 15.0f};
 constexpr float kBossRageFactor  = 0.65f;   // angry: attack pauses get this much shorter
 constexpr float kBossZ           = -17.0f;  // where it hovers while fighting
-constexpr float kBossPitch       = -25.0f;  // degrees it leans; negative = its face turns up toward the high camera
+constexpr float kBossPitch       = -10.0f;  // degrees it leans; negative = its face turns up toward the high camera
 constexpr float kBossY           = 1.4f;    // its shots leave at the aliens' height (kInvaderHeight)
 constexpr float kBossEnterZ      = -80.0f;  // it flies in from here ...
 constexpr float kBossEnterTime   = 3.0f;    // ... taking this long (it cannot be hurt yet)

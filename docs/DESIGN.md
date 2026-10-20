@@ -49,17 +49,18 @@ The game is **tall (portrait)**, like most phone shooters: the phone is held upr
 9:16 (sizes 450x800 up to 900x1600), the web canvas is 720x1280. The field is 19 units wide (X from -9.5 to
 +9.5); waves of at most 6 columns fill it.
 
-The camera is high above and behind the ship and looks down at 66 degrees, so the field stands upright on the
-screen: aliens at the top, the ship at the bottom, with a little perspective for the 3D look. It is not placed
+The camera is above and behind the ship and looks down at 50 degrees: the field stands upright on the screen
+(aliens at the top, the ship at the bottom), and the perspective keeps a real 3D look. (66 degrees looked too
+flat, like a 2D game.) It is not placed
 by hand: `Game::FitCamera` moves it as close as possible while the whole field width and the depth from just
-behind the ship (Z = +3) to the back rows (Z = -36) still fit. So it works on every screen shape.
+behind the ship (Z = +1.8) to the back rows (Z = -36) still fit. So it works on every screen shape.
 
 On a wider screen (a landscape monitor in fullscreen, a tablet) the game uses a tall **play column** in the
 middle (at most 0.62 x its height wide); the sides show only space. The HUD is laid out inside the column and
 scaled with it (`display::Column`, `display::Px`, design size 540 x 960).
 
-Aliens are drawn 1.35x bigger than designed and turn their face 45 degrees up toward the camera; the bosses
-lean back 25 degrees for the same reason.
+Aliens are drawn 1.35x bigger than designed and turn their face 30 degrees up toward the camera; the bosses
+lean back 10 degrees for the same reason.
 
 ### Player
 Low-poly ship, moves left/right within field bounds, banks (rolls) when moving like the 2D ship's rotation.
