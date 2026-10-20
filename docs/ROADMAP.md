@@ -79,11 +79,11 @@ Each step is its own branch and ends with something you can play.
 2. **Move up and down too**
    - [x] The ship follows the finger in both directions (relative drag, as today)
    - [x] Keyboard: up / down arrows and W / S
-   - [x] The ship may use about the bottom third of the field (less in a boss fight)
+   - [x] The ship may use the lower half of the screen, down to the bottom edge (less in a boss fight)
    - [x] Flying into an alien of the formation is a crash, like a diver
 3. **Clear power-up orbs**
-   - [ ] Glowing orbs with three arrows inside, one colour per kind
-   - [ ] Weapon levels 1, 2, 3, ... collected with orbs (instead of fixed per level); a hit costs one
+   - [x] Glowing orbs with a symbol inside, one colour per kind (weapon: three arrows)
+   - [x] Weapon levels 1 to 5 collected with orbs (instead of fixed per level); a hit costs one
 4. **New weapons**
    - [ ] Lightning laser: a beam with jagged electric branches
    - [ ] Spread shot: a fan of shots that widens with the weapon level

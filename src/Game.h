@@ -75,6 +75,7 @@ private:
     void DrawGameOver() const;
     void DrawPaused() const;
     void DrawLives() const;
+    void DrawPowerMeter() const;   // the weapon level under the lives
     void RespawnPlayer();
     void NextWave();   // after a wave is destroyed: the next wave, or the next level
     void DrawPauseButton() const;
@@ -95,6 +96,8 @@ private:
     Vector3  cameraBaseTarget_{};
     int      fittedWidth_  = 0;       // the window size FitCamera was last run for
     int      fittedHeight_ = 0;
+    float    playerMinZ_   = -10.0f;  // how far up / down the ship may fly (FitCamera works it out)
+    float    playerMaxZ_   = 0.0f;
     Player   player_;
     InvaderGrid invaders_;
     std::vector<Rocket>       rockets_;
@@ -139,6 +142,7 @@ private:
     bool  newHighScore_    = false;  // did this game beat it?
     float shieldTimer_     = 0.0f;   // > 0 while the shield is up (seconds left)
     float rapidFireTimer_  = 0.0f;   // > 0 while rapid fire is active (seconds left)
+    int   weaponLevel_     = 1;      // 1 .. kWeaponLevels: how many shots per volley (see Config.h)
     float pickupTimer_     = 0.0f;   // > 0 while the "SHIELD!" / "RAPID FIRE!" text shows
     const char* pickupText_ = "";
     Color pickupColor_{255, 255, 255, 255};

@@ -37,7 +37,7 @@ and the Void Emperor.
 
 **Touch / mouse:** drag anywhere to move, the ship fires by itself while your finger (or the mouse button) is down; tap to start; the pause and sound buttons sit at the top right (a muted game stays muted next time). The game also pauses itself when you switch to another app or window.
 
-**Keyboard:** `A`/`D` or arrow keys to move, `Space` to shoot (hold for rapid fire), `Enter` to start / restart, `P` to pause, `M` to mute, `F3` to show the FPS. On desktop also `F` for fullscreen, `1`-`5` to pick the window size (you can drag the window edges too) and `Esc` to leave fullscreen or quit.
+**Keyboard:** arrow keys or `W` `A` `S` `D` to move (up and down too), `Space` to shoot (hold for rapid fire), `Enter` to start / restart, `P` to pause, `M` to mute, `F3` to show the FPS. On desktop also `F` for fullscreen, `1`-`5` to pick the window size (you can drag the window edges too) and `Esc` to leave fullscreen or quit.
 
 ## The game
 
@@ -45,9 +45,9 @@ and the Void Emperor.
 - Four alien types: **Scarabs** (100), **Reapers** (200, shoot more often), crystal **Drones** (150) and
   **Commanders** (500, three hits). Every few seconds one alien **dives** at you in an S-curve.
 - **3 lives** (up to 5), and your **high score** is saved (on desktop and in the browser).
-- Shot aliens sometimes drop a **power-up**: a **shield** that absorbs one hit, **rapid fire**, or rarely an **extra life**.
-- Your ship **upgrades** as you go: two rockets per shot from level 4, and from level 5 you fly the
-  **Claw**, a copper ship with claw-shaped wings, which fires three rockets from level 6.
+- Shot aliens sometimes drop a glowing **orb**: purple **weapon** orbs give you more shots (5 weapon levels, up to a
+  fan of seven), plus a **shield** that absorbs one hit, **rapid fire**, or rarely an **extra life**.
+- Your ship changes its look as you go, and from level 5 you fly the **Claw**, a copper ship with claw-shaped wings.
 - **Combos** multiply your points (up to x4) for quick kills in a row, and a fast wave without losing a ship
   earns a **wave-clear bonus**. Big hits and explosions shake the screen.
 - A glowing **bomb** flies in every few seconds. Shoot it for **+500** points, or dodge it. Every level

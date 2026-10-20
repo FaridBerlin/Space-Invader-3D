@@ -11,11 +11,13 @@
 struct Rocket {
     Vector3 position;
     Color   color;          // the rocket's colour; depends on the ship (see Game::FireRocket)
+    float   sideSpeed = 0.0f;   // units per second to the side (+ = right): angled shots of the higher weapon levels
     bool    alive = true;   // set to false when it hits something or leaves the field
 
     // The constructor. ": position(start)" is an "initializer list": it sets the
     // members directly instead of creating them empty first and assigning later.
-    Rocket(Vector3 start, Color rocketColor);
+    // angleDegrees: 0 = straight ahead (-Z), negative = to the left, positive = to the right.
+    Rocket(Vector3 start, Color rocketColor, float angleDegrees = 0.0f);
 
     void Update(float dt);
     void Draw() const;

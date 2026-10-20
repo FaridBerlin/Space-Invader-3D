@@ -282,6 +282,23 @@ void Game::FitCamera() {
         if (fits(mid)) hi = mid; else lo = mid;   // fits: try closer; else further away
     }
     place(hi, centerTarget(hi));
+
+    // The ship's limits up and down the screen (see kPlayerUpLimitShare in Config.h):
+    // which Z is on the middle line of the screen, and at which Z does the back of
+    // the ship touch the bottom edge? A point further up the field (smaller z) is
+    // higher on the screen (smaller y), so again we can halve a range.
+    auto zAtScreenY = [&](float wantedY, float offsetZ) {
+        float lo = -60.0f, hi = 30.0f;
+        for (int i = 0; i < 40; ++i) {
+            const float mid = 0.5f * (lo + hi);
+            const float y = screenPos(Vector3{0.0f, config::kPlayerHeight, mid + offsetZ}).y;
+            if (y > wantedY) hi = mid; else lo = mid;
+        }
+        return 0.5f * (lo + hi);
+    };
+    playerMinZ_ = zAtScreenY(column.y + column.height * config::kPlayerUpLimitShare, 0.0f);
+    playerMaxZ_ = zAtScreenY(column.y + column.height, config::kPlayerTailLength);
+
     cameraBasePosition_ = test.position;
     cameraBaseTarget_   = test.target;
     camera_.position    = test.position;
@@ -320,6 +337,7 @@ void Game::Restart() {
     newHighScore_     = false;
     shieldTimer_      = 0.0f;
     rapidFireTimer_   = 0.0f;
+    weaponLevel_      = 1;
     pickupTimer_      = 0.0f;
     helpTimer_        = config::kHelpShowTime;   // show the keys for the first seconds
     boss_.reset();
@@ -477,8 +495,8 @@ void Game::UpdateBoss(float dt) {
         bannerTitle_      = "BOSS DEFEATED!";
         bannerSubtitle_   = TextFormat("+%d points", boss_->Points());
         levelBannerTimer_ = config::kBossOutroTime - 0.3f;
-        // Two power-ups fall out of the wreck.
-        powerUps_.emplace_back(Vector3{center.x - 2.0f, center.y, center.z}, PowerUp::RandomType());
+        // Two power-ups fall out of the wreck; one is always a weapon orb.
+        powerUps_.emplace_back(Vector3{center.x - 2.0f, center.y, center.z}, PowerUpType::Weapon);
         powerUps_.emplace_back(Vector3{center.x + 2.0f, center.y, center.z}, PowerUp::RandomType());
         boss_.reset();
         bossDefeated_ = true;
@@ -504,14 +522,16 @@ Color Game::ShotColor() const {
 }
 
 void Game::FireRocket() {
-    // A higher ship tier fires more rockets at once, from different points
-    // (nose and wing cannons, or the Claw's claw tips). The tables are in Config.h.
-    const int tier = player_.Tier();
-    // A reference to one row of a 2D array: "the 3 shot points of this ship".
-    const config::ShotPoint (&points)[3] = player_.Hero() ? config::kHeroShots[tier] : config::kTierShots[tier];
-    for (int i = 0; i < config::kTierShotCount[tier]; ++i) {
-        rockets_.emplace_back(Vector3{player_.X() + points[i].x, config::kPlayerHeight, player_.Z() + points[i].z},
-                              ShotColor());
+    // The weapon level decides how many rockets fly at once, and where to (the
+    // table is in Config.h). The ship's look only changes their colour and spacing.
+    const int level = weaponLevel_ - 1;   // the tables count from 0
+    const float scale = config::kTierScale[player_.Tier()];
+    // A reference to one row of a 2D array: "the shots of this weapon level".
+    const config::WeaponShot (&shots)[config::kMaxWeaponShots] = config::kWeaponShots[level];
+    for (int i = 0; i < config::kWeaponShotCount[level]; ++i) {
+        const Vector3 start{player_.X() + shots[i].x * scale, config::kPlayerHeight,
+                            player_.Z() + config::kWeaponMuzzleZ * scale};
+        rockets_.emplace_back(start, ShotColor(), shots[i].angle);
     }
     audio_.Play(Sfx::PlayerShot);   // one sound per volley, so it does not get louder and louder
 }
@@ -536,6 +556,18 @@ void Game::OnAlienDestroyed(const InvaderHit& hit) {
 
 void Game::Collect(PowerUpType type) {
     switch (type) {
+        case PowerUpType::Weapon:
+            if (weaponLevel_ < config::kWeaponLevels) {
+                ++weaponLevel_;
+                pickupText_ = (weaponLevel_ == config::kWeaponLevels) ? "MAX POWER!" : "POWER UP!";
+                // A burst of sparks in the shot colour: the ship is stronger now.
+                particles_.Explode(player_.Position(), ExplosionStyle{50, 8.0f, 0.8f, 0.25f, ShotColor(),
+                                                                     Color{200, 140, 255, 255}});
+            } else {
+                score_ += config::kMaxPowerBonus;   // already at the top: points instead
+                pickupText_ = TextFormat("+%d", config::kMaxPowerBonus);
+            }
+            break;
         case PowerUpType::Shield:
             shieldTimer_ = config::kShieldDuration;
             pickupText_  = "SHIELD!";
@@ -568,8 +600,10 @@ bool Game::DamagePlayer(const char* reason) {
         AddShake(config::kShakeShieldBreak);
         return false;
     }
-    // The ship is destroyed. Its power-ups (and the combo) are lost with it.
+    // The ship is destroyed. Its power-ups (and the combo) are lost with it, and
+    // the weapon drops one level (never below 1).
     AddShake(config::kShakePlayerHit);
+    weaponLevel_ = std::max(1, weaponLevel_ - 1);
     hitThisWave_ = true;
     comboCount_  = 0;
     comboTimer_  = 0.0f;
@@ -758,9 +792,10 @@ PlayerInput Game::ApplyTouchSteering(const PlayerInput& input) {
     const float limit = config::kFieldHalfWidth - player_.HalfWidth();
     if (targetX > limit)  { dragStartShipX_ -= targetX - limit;  targetX = limit; }
     if (targetX < -limit) { dragStartShipX_ += -limit - targetX; targetX = -limit; }
-    const float minZ = player_.ForwardLimit();
+    const float minZ = player_.MinZ();
+    const float maxZ = player_.MaxZ();
     if (targetZ < minZ) { dragStartShipZ_ += minZ - targetZ; targetZ = minZ; }
-    if (targetZ > config::kPlayerMaxZ) { dragStartShipZ_ -= targetZ - config::kPlayerMaxZ; targetZ = config::kPlayerMaxZ; }
+    if (targetZ > maxZ) { dragStartShipZ_ -= targetZ - maxZ; targetZ = maxZ; }
 
     steer.targetX = targetX;
     steer.targetZ = targetZ;
@@ -852,7 +887,7 @@ void Game::UpdatePlaying(float dt, const PlayerInput& input) {
 
     if (playerAlive_) {
         // A boss is big and hangs low: during the fight the ship may not fly as far up.
-        player_.SetForwardLimit(boss_ ? config::kPlayerBossMinZ : config::kPlayerMinZ);
+        player_.SetZLimits(boss_ ? std::max(playerMinZ_, config::kPlayerBossMinZ) : playerMinZ_, playerMaxZ_);
         const PlayerInput steer = ApplyTouchSteering(input);
         player_.Update(dt, steer);
 
@@ -1114,7 +1149,7 @@ void Game::Draw() const {
             glow_.Draw(camera_, bomb.position, bomb.GlowSize(time_) * factor, bomb.color);
         }
         for (const auto& powerUp : powerUps_) {
-            glow_.Draw(camera_, powerUp.position, 2.6f, powerUp.MainColor());
+            glow_.Draw(camera_, powerUp.position, config::kPowerUpOrbSize * 3.6f, powerUp.MainColor());
         }
         if (shieldVisible) {
             glow_.Draw(camera_, player_.Position(), ShieldRadius() * 2.6f, Color{60, 160, 255, 255});
@@ -1125,6 +1160,11 @@ void Game::Draw() const {
         particles_.Draw();   // last: additive blending must be drawn on top of the solid objects
 
     EndMode3D();
+
+    // The power-up symbols, in 2D on top of the 3D picture (see PowerUp::DrawIcon).
+    for (const auto& powerUp : powerUps_) {
+        powerUp.DrawIcon(camera_);
+    }
 
     if (state_ == GameState::Menu) {
         DrawMenu();
@@ -1163,9 +1203,12 @@ void Game::Draw() const {
         : TextFormat("BONUS WAVE %d", wave_ - config::kWavesPerLevel + 1);
     DrawRight(waveText, right, Px(40), Px(16), Fade(SKYBLUE, 0.75f));
 
-    // Small lines on the left, under the lives: FPS and "SOUND OFF". Each one that
-    // is shown moves the next one down, so there are never gaps.
-    int lineY = Px(92);
+    // The weapon level, under the lives: "POWER" and one bar per level.
+    DrawPowerMeter();
+
+    // Small lines on the left, under the power meter: FPS and "SOUND OFF". Each one
+    // that is shown moves the next one down, so there are never gaps.
+    int lineY = Px(112);
     if (showFps_) {
         DrawText(TextFormat("%d FPS", GetFPS()), static_cast<int>(left), lineY, Px(16), GREEN);
         lineY += Px(22);
@@ -1251,6 +1294,25 @@ void Game::DrawLives() const {
         DrawTriangle(Vector2{x, y + s * 1.5f}, Vector2{x + s * 0.35f, y + s * 0.8f},
                      Vector2{x - s * 0.35f, y + s * 0.8f}, Color{255, 140, 40, 255});   // flame
         x += static_cast<float>(Px(22));
+    }
+}
+
+// "POWER" and five small bars under the lives; the filled ones are the weapon level.
+// The bars get taller from left to right, like a signal meter.
+void Game::DrawPowerMeter() const {
+    using display::Px;
+    const Rectangle column = display::Column();
+    const int x = static_cast<int>(column.x) + Px(14);
+    const int y = Px(88);
+    DrawText("POWER", x, y + Px(3), Px(12), Fade(LIGHTGRAY, 0.75f));
+    const Color purple{170, 80, 255, 255};
+    int barX = x + MeasureText("POWER", Px(12)) + Px(6);
+    for (int i = 0; i < config::kWeaponLevels; ++i) {
+        const int height = Px(6 + 2 * i);
+        const bool on = i < weaponLevel_;
+        DrawRectangle(barX, y + Px(14) - height, Px(7), height,
+                      on ? lowpoly::Mix(purple, Color{255, 255, 255, 255}, 0.25f) : Fade(GRAY, 0.35f));
+        barX += Px(10);
     }
 }
 
