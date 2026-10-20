@@ -25,10 +25,12 @@ public:
     float X() const { return x_; }
     float Z() const { return z_; }   // 0 = the start line at the bottom, negative = further up
 
-    // How far up the screen the ship may fly (a negative Z). Game makes it smaller
-    // during a boss fight. If the ship is beyond a new limit, it glides back.
-    void SetForwardLimit(float minZ) { minZ_ = minZ; }
-    float ForwardLimit() const { return minZ_; }
+    // How far up (minZ, negative) and down (maxZ) the screen the ship may fly. Game
+    // sets them from the camera, and makes minZ smaller during a boss fight. If the
+    // ship is beyond a new limit, it glides back.
+    void SetZLimits(float minZ, float maxZ) { minZ_ = minZ; maxZ_ = maxZ; }
+    float MinZ() const { return minZ_; }
+    float MaxZ() const { return maxZ_; }
 
     // The centre of the ship in world space, used for collision tests.
     Vector3 Position() const;
@@ -58,7 +60,8 @@ private:
     float z_         = 0.0f;   // position along Z (0 = bottom line, negative = up the screen)
     float velocityX_ = 0.0f;   // current sideways speed in units per second
     float velocityZ_ = 0.0f;   // current speed up / down the screen (negative = up)
-    float minZ_      = -10.0f; // forward limit, see SetForwardLimit (Player() sets it from Config.h)
+    float minZ_      = -10.0f; // how far up the ship may fly, see SetZLimits
+    float maxZ_      = 0.0f;   // how far down
     float time_      = 0.0f;   // seconds since creation, drives the engine flicker
     int   tier_      = 0;      // upgrade level, 0..kTierCount-1
     bool  hero_      = false;  // true = draw the Claw instead of the first ship

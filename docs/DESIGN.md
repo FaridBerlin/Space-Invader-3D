@@ -63,9 +63,9 @@ Aliens are drawn 1.35x bigger than designed and turn their face 30 degrees up to
 lean back 10 degrees for the same reason.
 
 ### Player
-Low-poly ship. It moves left/right across the field and up/down in the lower part of it: from its start line at
-the bottom (Z = 0) up to Z = -10, about a third of the field (in a boss fight only up to Z = -5, so it cannot fly
-into the boss). It banks (rolls) when moving sideways, and dips its nose a little when flying forward.
+Low-poly ship. It moves left/right across the field and up/down in the lower half of the screen: down until its
+tail touches the bottom edge, up to the middle of the screen (`Game::FitCamera` works out both limits from the
+camera, so they fit every screen shape). In a boss fight it only goes up to Z = -5, so it cannot fly into the boss. It banks (rolls) when moving sideways, and dips its nose a little when flying forward.
 Keys: arrows or W A S D. Touch: drag anywhere, the ship follows the finger in both directions.
 Flying into an alien (a diver, or one still in the formation) is a crash: the alien is destroyed, the ship too
 (unless the shield is up).
@@ -73,7 +73,10 @@ Flying into an alien (a diver, or one still in the formation) is a crash: the al
 - **3 lives** (at most 5). After a hit the next ship appears in the middle and blinks for 2.5 s, unhittable.
 - **Two designs:** the first ship (levels 1-4) and the **Claw** (levels 5-7), a copper ship with claw-shaped
   wings. Its collision sphere is bigger (1.5 instead of 1.1), because it is wider.
-- **Upgrades by level:** 1 rocket (levels 1-3), 2 rockets (4-5), 3 rockets (6-7). The ship grows a little each time.
+- **Ship looks by level:** three colour tiers (levels 1-3, 4-5, 6-7); the ship grows a little each time.
+- **Weapon levels 1-5**, collected with purple weapon orbs (not tied to the level): 1, 2 and 3 shots side by side,
+  then 5 (two angled 9 degrees to the sides) and 7 (a fan up to 18 degrees). Every game starts at 1; losing a
+  ship costs one level. A weapon orb at level 5 gives 500 points. The HUD shows the level as a "POWER" meter.
 
 ### Invaders
 A wave (grid in X and Z) that sweeps sideways, reverses at the field edge and steps **toward the player**
@@ -89,8 +92,10 @@ A wave (grid in X and Z) that sweeps sideways, reverses at the field edge and st
 **Divers:** every few seconds one alien leaves the wave and swoops at the player in an S-curve. If it hits the
 ship, both are destroyed. If it misses, it flies back into its place.
 
-**Power-ups:** a destroyed alien drops one with an 8% chance: a **shield** (absorbs one hit, 20 s),
-**rapid fire** (twice as fast, 8 s) or, rarely, an **extra life**.
+**Power-ups:** a destroyed alien drops a glowing **orb** with a 10% chance (commanders always; a boss drops two,
+one of them a weapon orb). Each kind has its own colour and symbol, drawn in 2D over the ball so it stays sharp:
+**weapon** (purple, three arrows gliding upward, 45%), **shield** (cyan, a shield, absorbs one hit, 20 s, 25%),
+**rapid fire** (orange, a lightning bolt, twice as fast for 8 s, 20%), **extra life** (pink, "+1", 10%).
 
 ### Projectiles and bombs
 - Player rockets: fly along -Z with an emissive trail.

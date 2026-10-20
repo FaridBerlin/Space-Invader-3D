@@ -48,7 +48,7 @@ static_assert(std::size(kStyles) == static_cast<std::size_t>(config::kTierCount)
 
 }  // namespace
 
-Player::Player() : minZ_(config::kPlayerMinZ) {}   // the other members have starting values in Player.h
+Player::Player() = default;   // all members already have starting values in Player.h
 
 void Player::Update(float dt, const PlayerInput& input) {
     time_ += dt;
@@ -88,8 +88,8 @@ void Player::Update(float dt, const PlayerInput& input) {
         // glide back to it at normal speed instead of jumping.
         z_ = std::min(minZ_, z_ - velocityZ_ * dt + config::kPlayerSpeedZ * dt);
         velocityZ_ = 0.0f;
-    } else if (z_ > config::kPlayerMaxZ) {
-        z_ = config::kPlayerMaxZ;
+    } else if (z_ > maxZ_) {
+        z_ = maxZ_;
         velocityZ_ = 0.0f;
     }
 

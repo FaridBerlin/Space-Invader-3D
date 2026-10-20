@@ -96,18 +96,20 @@ constexpr Color kGlassColor{40, 110, 190, 0};   // blue tint, alpha 55 of 255 (s
 // ---- Player ship --------------------------------------------------------------
 constexpr float kPlayerSpeed          = 14.0f;  // top sideways speed, units per second
 constexpr float kPlayerSpeedZ         = 11.0f;  // top speed up / down the screen
-// The ship may fly up and down in the lower part of the field: from its start line
-// (Z = 0, the bottom of the screen) up to kPlayerMinZ (about a third of the way).
-constexpr float kPlayerMinZ           = -10.0f;
-constexpr float kPlayerMaxZ           = 0.0f;
-constexpr float kPlayerBossMinZ       = -5.0f;  // in a boss fight: not as far up (the boss is big and low)
+// The ship may fly up and down in the lower half of the screen. The limits depend on
+// the screen shape, so Game::FitCamera works them out from the camera:
+//   up:   until the ship's centre is this far down the screen (0.5 = the middle)
+//   down: until its tail touches the bottom edge of the screen
+constexpr float kPlayerUpLimitShare   = 0.5f;
+constexpr float kPlayerTailLength     = 1.3f;   // ship centre to the back of its hull (the flames may go off-screen)
+constexpr float kPlayerBossMinZ       = -5.0f;  // in a boss fight: not further up than this (the boss is big and low)
 constexpr float kPlayerMaxPitchDegrees = 12.0f; // the nose dips this much when flying forward at full speed
 constexpr float kPlayerResponsiveness = 12.0f;  // higher = reaches top speed / stops faster
 constexpr float kPlayerMaxBankDegrees = 35.0f;  // roll angle at top speed
 constexpr float kPlayerHalfWidth      = 1.5f;   // wing tip to centre, used for the wall limit
 constexpr float kPlayerHeight         = 0.6f;   // ship centre above the ground
 constexpr float kPlayerHitRadius      = 1.1f;   // collision sphere of the ship (a bit smaller than the wings)
-constexpr float kHeroHitRadius        = 1.5f;   // the same for the wider Claw (see "Ship upgrades")
+constexpr float kHeroHitRadius        = 1.5f;   // the same for the wider Claw (see "Ship looks")
 constexpr float kHelpShowTime         = 6.0f;   // seconds the key help stays in the HUD after a start
 
 // ---- Touch / mouse steering -----------------------------------------------------------
@@ -163,7 +165,7 @@ constexpr float kCommanderHover      = 0.6f;    // drawn this much higher, to pe
 // The 2D game fired one shot every ~8 seconds. In 3D you can see shots coming and
 // dodge them more easily, so we fire more often. Tune to taste!
 constexpr float kInvaderShotRadius   = 0.25f;  // collision sphere of a shot
-constexpr float kInvaderShotDespawnZ = 6.0f;   // shots that fly past the ship are removed here
+constexpr float kInvaderShotDespawnZ = 14.0f;  // shots that fly past the ship are removed here (off-screen)
 
 // ---- Levels --------------------------------------------------------------------------
 // Seven levels of three waves each. A level ends when its third wave is destroyed;
@@ -173,9 +175,9 @@ constexpr float kInvaderShotDespawnZ = 6.0f;   // shots that fly past the ship a
 //   level 1  Scarabs only, slow, no divers          (learn the controls)
 //   level 2  Drones join, first divers
 //   level 3  Reapers join (they shoot more), faster bombs
-//   level 4  Commanders join, ship upgrade 2
+//   level 4  Commanders join, ship look 2
 //   level 5  two divers at once, new ship design (the "Claw")
-//   level 6  faster waves, ship upgrade 3
+//   level 6  faster waves, ship look 3
 //   level 7  everything at full speed, three divers
 //
 // Every table below has one value per level. Arrays are indexed from 0: level 1 is
@@ -187,12 +189,12 @@ constexpr float kWaveBannerTime  = 1.4f;   // ... and the smaller "WAVE 2 / 3"
 constexpr int   kAllLevelsBonus  = 10000;  // points for clearing level 7
 
 constexpr const char* kLevelIntro[] = {
-    "Scarabs incoming",
+    "Scarabs incoming. Catch the purple orbs for more firepower!",
     "Drones join - and aliens start to dive!",
     "Reapers join: they shoot more often",
-    "Commanders arrive. Ship upgraded!",
+    "Commanders arrive. New ship look!",
     "Two divers at once. New ship: the Claw!",
-    "Faster waves. Ship upgraded!",
+    "Faster waves. New ship look!",
     "Final level: everything at full speed",
 };
 
@@ -224,7 +226,7 @@ constexpr Color kLevelBombColor[] = {
 };
 constexpr float kLevelDiveInterval[]  = {0.0f, 5.0f, 4.5f, 4.0f, 3.5f, 3.0f, 2.5f};   // 0 = no divers
 constexpr int   kLevelMaxDivers[]     = {0, 1, 1, 1, 2, 2, 3};                         // at the same time
-constexpr int   kLevelShipTier[]      = {0, 0, 0, 1, 1, 2, 2};                         // see "Ship upgrades"
+constexpr int   kLevelShipTier[]      = {0, 0, 0, 1, 1, 2, 2};                         // see "Ship looks"
 constexpr bool  kLevelHeroShip[]      = {false, false, false, false, true, true, true};  // the copper "Claw"
 
 // The colour mood of each level: the stars are tinted, from cool blue to hot red.
@@ -249,25 +251,13 @@ static_assert(std::size(kLevelDiveInterval) == kLevelCount && std::size(kLevelMa
 static_assert(std::size(kLevelShipTier) == kLevelCount && std::size(kLevelHeroShip) == kLevelCount &&
               std::size(kLevelStarColor) == kLevelCount, "ship and star colour: one value per level");
 
-// ---- Ship upgrades -------------------------------------------------------------------
+// ---- Ship looks ------------------------------------------------------------------------
 // The ship has three looks ("tiers"); kLevelShipTier above says which level gets which.
-// Each tier is bigger, fires more rockets at once, and fires a different colour.
-// (The colours and parts of the ship itself are in Player.cpp.)
+// Each tier is a little bigger and fires a different colour. (The colours and parts
+// of the ship itself are in Player.cpp.) HOW MANY shots it fires is not the look: that
+// is the weapon level, see "Weapon levels" below.
 constexpr int   kTierCount = 3;
 constexpr float kTierScale[kTierCount] = {1.0f, 1.12f, 1.25f};   // 1.0 = original size
-
-// Where a rocket leaves the ship: x = sideways from the ship's centre, z = forward
-// (negative = toward the invaders). Wing cannons sit at x = +-0.95 * scale.
-struct ShotPoint {
-    float x;
-    float z;
-};
-constexpr int kTierShotCount[kTierCount] = {1, 2, 3};
-constexpr ShotPoint kTierShots[kTierCount][3] = {
-    {{ 0.00f, -2.7f}, { 0.00f,  0.0f}, { 0.00f,  0.0f}},   // tier 0: one rocket from the nose
-    {{-1.06f, -1.3f}, { 1.06f, -1.3f}, { 0.00f,  0.0f}},   // tier 1: one from each wing cannon
-    {{-1.19f, -1.4f}, { 0.00f, -3.4f}, { 1.19f, -1.4f}},   // tier 2: both cannons plus the nose
-};
 constexpr Color kTierShotColor[kTierCount] = {
     {150, 255,  70, 255},   // lime green
     { 80, 220, 255, 255},   // cyan
@@ -275,15 +265,34 @@ constexpr Color kTierShotColor[kTierCount] = {
 };
 
 // The "Claw": a second ship design, flown from level 5 (kLevelHeroShip above). It is
-// a little wider than the first ship and fires from the gold tips of its front claws
-// (and at tier 2 from its nose as well). Same number of rockets per tier as above.
+// a little wider than the first ship.
 constexpr float kHeroHalfWidth = 2.05f;   // outer claw to centre, before the tier scale
-constexpr ShotPoint kHeroShots[kTierCount][3] = {
-    {{ 0.00f, -3.0f}, { 0.00f,  0.0f}, { 0.00f,  0.0f}},   // tier 0 (not used): the nose
-    {{-0.84f, -1.5f}, { 0.84f, -1.5f}, { 0.00f,  0.0f}},   // tier 1: both inner claw tips
-    {{-0.94f, -1.7f}, { 0.00f, -2.6f}, { 0.94f, -1.7f}},   // tier 2: claw tips plus the nose
-};
 constexpr Color kHeroShotColor{255, 245, 205, 255};  // white-gold: clearly not an alien shot (yellow)
+
+// ---- Weapon levels ---------------------------------------------------------------------
+// Every game starts at weapon level 1. A purple WEAPON orb (dropped by aliens, see
+// "Power-ups") raises it by one, up to 5. Losing a ship costs one level.
+// Each level is a list of shots fired together: where a shot leaves the ship
+// (x, sideways from its centre) and in which direction it flies (angle in degrees:
+// 0 = straight ahead, negative = to the left, positive = to the right).
+struct WeaponShot {
+    float x;
+    float angle;
+};
+constexpr int kWeaponLevels   = 5;
+constexpr int kMaxWeaponShots = 7;
+constexpr int kWeaponShotCount[kWeaponLevels] = {1, 2, 3, 5, 7};
+constexpr WeaponShot kWeaponShots[kWeaponLevels][kMaxWeaponShots] = {
+    {{ 0.0f, 0.0f}},                                                       // 1: one shot
+    {{-0.45f, 0.0f}, {0.45f, 0.0f}},                                       // 2: two side by side
+    {{-0.8f, 0.0f}, {0.0f, 0.0f}, {0.8f, 0.0f}},                           // 3: three
+    {{-0.8f, 0.0f}, {0.0f, 0.0f}, {0.8f, 0.0f},                            // 4: three, and two
+     {-0.5f, -9.0f}, {0.5f, 9.0f}},                                        //    angled to the sides
+    {{-0.8f, 0.0f}, {0.0f, 0.0f}, {0.8f, 0.0f},                            // 5: a fan of seven
+     {-0.5f, -9.0f}, {0.5f, 9.0f}, {-0.3f, -18.0f}, {0.3f, 18.0f}},
+};
+constexpr float kWeaponMuzzleZ = -2.0f;   // the shots leave this far in front of the ship's centre (times the tier size)
+constexpr int   kMaxPowerBonus = 500;     // a WEAPON orb at level 5: these points instead
 
 // ---- Demo ------------------------------------------------------------------------------
 // The free demo (built with the CMake option SPACE_INVADER_DEMO=ON, see CMakeLists.txt)
@@ -384,7 +393,7 @@ constexpr float kBombGlowNearFactor   = 0.5f;   // ... down to this share of its
 // S-curve. If it misses, it comes back from the far end into its place.
 // How often and how many: kLevelDiveInterval and kLevelMaxDivers (see "Levels").
 constexpr float kDiveDuration   = 3.2f;    // seconds from the formation to past the player
-constexpr float kDiveEndZ       = 9.0f;    // the dive ends here, behind the player
+constexpr float kDiveEndZ       = 14.0f;   // the dive ends here, below the bottom of the screen
 constexpr float kDiveSwing      = 4.0f;    // how far the S-curve swings sideways
 constexpr float kDiveMaxRoll    = 35.0f;   // degrees the alien tilts in the curve
 constexpr float kReturnStartZ   = -62.0f;  // a diver that missed re-enters from here ...
@@ -397,13 +406,25 @@ constexpr float kPlayerRespawnDelay = 1.5f;   // seconds between losing a ship a
 constexpr float kInvincibleTime     = 2.5f;   // the new ship blinks and cannot be hit
 
 // ---- Power-ups -----------------------------------------------------------------------
-// A destroyed alien sometimes drops a capsule that drifts toward the player.
-constexpr float kPowerUpDropChance = 0.08f;   // 8% per alien; commanders always drop one
-constexpr int   kExtraLifeChance   = 10;      // percent of drops that are an extra life
-constexpr int   kMaxPowerUps       = 2;       // capsules on the field at the same time
+// A destroyed alien sometimes drops a glowing orb that drifts toward the player.
+// Fly into it to collect it. Each kind has its own colour and symbol (PowerUp.cpp):
+//   WEAPON      purple, three arrows   weapon level +1 (see "Weapon levels")
+//   RAPID FIRE  orange, a lightning    shoot twice as fast for a while
+//   SHIELD      cyan, a shield         absorbs one hit
+//   EXTRA LIFE  pink, "+1"             one more ship
+constexpr float kPowerUpDropChance = 0.10f;   // 10% per alien; commanders always drop one
+// Which kind a drop is, in percent (together 100):
+constexpr int   kWeaponOrbChance   = 45;
+constexpr int   kShieldChance      = 25;
+constexpr int   kRapidFireChance   = 20;
+constexpr int   kExtraLifeChance   = 10;
+static_assert(kWeaponOrbChance + kShieldChance + kRapidFireChance + kExtraLifeChance == 100,
+              "power-up chances must add up to 100");
+constexpr int   kMaxPowerUps       = 3;       // orbs on the field at the same time
 constexpr float kPowerUpSpeed      = 7.0f;    // units per second toward the player
-constexpr float kPowerUpRadius     = 0.7f;
-constexpr float kPowerUpDespawnZ   = 6.0f;
+constexpr float kPowerUpRadius     = 0.9f;    // what the ship must touch to collect it
+constexpr float kPowerUpOrbSize    = 1.15f;   // how big the orb looks (radius, world units)
+constexpr float kPowerUpDespawnZ   = 14.0f;
 constexpr float kShieldDuration    = 20.0f;   // the shield also ends after absorbing one hit
 constexpr float kRapidFireDuration = 8.0f;
 constexpr float kRapidFireInterval = 0.1f;    // normal: kRocketFireInterval (0.2)
@@ -416,7 +437,7 @@ constexpr float kBombSpawnZ    = -42.0f;   // far end of the field, behind the i
 constexpr float kBombSpawnY    = 9.0f;     // starts high up ...
 constexpr float kBombLevelOutZ = -16.0f;   // ... and has sunk to cruise height by here
 constexpr float kBombCruiseY   = 1.0f;     // the height at which rockets can hit it
-constexpr float kBombDespawnZ  = 6.0f;     // flew past the ship
+constexpr float kBombDespawnZ  = 14.0f;    // flew past the ship (off-screen)
 constexpr float kBombAimSpread = 3.0f;     // aimed at the ship's X, give or take this much
 constexpr int   kScorePerBomb  = 500;
 constexpr int   kBombExplosionCount = 130;
