@@ -47,10 +47,16 @@ public:
     // crashed into the ship) and we report it.
     std::optional<InvaderHit> TryRam(Vector3 center, float radius);
 
-    // The laser: the alien nearest to the ship in a straight line up the screen.
-    // x = the beam's x, halfWidth = half its thickness, fromZ = where it starts.
-    // Returns that alien's position, or nothing when the line is free.
-    std::optional<Vector3> FirstInLine(float x, float halfWidth, float fromZ) const;
+    // The laser: the alien nearest to the ship on a line up the screen.
+    // x = the bolt's x where it starts, halfWidth = half its thickness, fromZ =
+    // where it starts. slope = how much the line leans: for every unit further up,
+    // x grows by slope (0 = straight up). Returns that alien's position, or
+    // nothing when the line is free.
+    std::optional<Vector3> FirstInLine(float x, float halfWidth, float fromZ, float slope = 0.0f) const;
+
+    // Chain lightning: the alien nearest to "from" within "range", leaving out the
+    // ones at the positions in "skip" (those were already hit by this chain).
+    std::optional<Vector3> NearestAlien(Vector3 from, float range, const std::vector<Vector3>& skip) const;
 
     bool Empty() const { return invaders_.empty(); }
     int  Count() const { return static_cast<int>(invaders_.size()); }

@@ -444,13 +444,34 @@ std::optional<InvaderHit> InvaderGrid::TryHit(Vector3 center, float radius) {
     return std::nullopt;
 }
 
-std::optional<Vector3> InvaderGrid::FirstInLine(float x, float halfWidth, float fromZ) const {
+std::optional<Vector3> InvaderGrid::FirstInLine(float x, float halfWidth, float fromZ, float slope) const {
     std::optional<Vector3> nearest;
     for (const auto& invader : invaders_) {
-        const bool inLine  = std::fabs(invader.position.x - x) <= invader.Radius() + halfWidth;
+        // Where is the line at this alien's height? Further up = more to the side.
+        const float lineX  = x + slope * (fromZ - invader.position.z);
+        const bool inLine  = std::fabs(invader.position.x - lineX) <= invader.Radius() + halfWidth;
         const bool inFront = invader.position.z < fromZ && invader.position.z > -config::kFieldLength;
         // "Nearest" to the ship = the biggest z (the ship is at the bottom, +z).
         if (inLine && inFront && (!nearest || invader.position.z > nearest->z)) {
+            nearest = invader.position;
+        }
+    }
+    return nearest;
+}
+
+std::optional<Vector3> InvaderGrid::NearestAlien(Vector3 from, float range,
+                                                 const std::vector<Vector3>& skip) const {
+    std::optional<Vector3> nearest;
+    float best = range;
+    for (const auto& invader : invaders_) {
+        if (invader.position.z < -config::kFieldLength) continue;   // still far away, flying in
+        bool skipped = false;
+        for (const Vector3& s : skip) {
+            if (Vector3Distance(s, invader.position) < 0.01f) skipped = true;
+        }
+        const float distance = Vector3Distance(from, invader.position);
+        if (!skipped && distance <= best) {
+            best = distance;
             nearest = invader.position;
         }
     }

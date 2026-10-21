@@ -356,7 +356,7 @@ void Game::Restart() {
     weaponLevel_      = 1;
     weaponType_       = WeaponType::Blaster;
     laserFiring_      = false;
-    laserTick_        = 0.0f;
+    laserTick_.fill(0.0f);
     pickupTimer_      = 0.0f;
     helpTimer_        = config::kHelpShowTime;   // show the keys for the first seconds
     boss_.reset();
@@ -671,45 +671,14 @@ const char* Game::WeaponName() const {
 void Game::UpdateLaser(float dt) {
     const int level = weaponLevel_ - 1;   // the tables count from 0
     const float scale = config::kTierScale[player_.Tier()];
-    const Vector3 start{player_.X(), config::kPlayerHeight, player_.Z() + config::kWeaponMuzzleZ * scale};
+    const Vector3 nose{player_.X(), config::kPlayerHeight, player_.Z() + config::kWeaponMuzzleZ * scale};
     const float halfWidth = config::kLaserHalfWidth[level];
+    const int bolts = config::kLaserBolts[level];
 
-    // Where does the beam end? At the NEAREST thing in its way: an alien, a bomb or
-    // the boss. If nothing is there, it reaches the far end of the field.
-    enum class Target { None, Alien, Bomb, Boss };
-    Target target = Target::None;
-    float endZ = -config::kFieldLength;
-    Vector3 alienPosition{};
-    Bomb* bombInWay = nullptr;   // a pointer to the bomb in the vector (or none)
-    if (laserFiring_) {
-        if (const auto alien = invaders_.FirstInLine(start.x, halfWidth, start.z)) {
-            alienPosition = *alien;
-            endZ = alien->z;
-            target = Target::Alien;
-        }
-        for (auto& bomb : bombs_) {
-            if (bomb.alive && bomb.position.z < start.z && bomb.position.z > endZ &&
-                std::fabs(bomb.position.x - start.x) <= bomb.radius + halfWidth) {
-                endZ = bomb.position.z;
-                target = Target::Bomb;
-                bombInWay = &bomb;
-            }
-        }
-        if (boss_) {
-            // The boss is not a simple ball: walk up the beam in small steps until
-            // a step touches it (Touches only looks, it does no damage).
-            for (float z = start.z; z > endZ; z -= 0.4f) {
-                if (boss_->Touches(Vector3{start.x, config::kPlayerHeight, z}, halfWidth)) {
-                    endZ = z;
-                    target = Target::Boss;
-                    break;
-                }
-            }
-        }
-    }
-    laser_.Update(dt, laserFiring_, start, endZ, target != Target::None, weaponLevel_);
+    laser_.Update(dt, laserFiring_, weaponLevel_);
     if (!laserFiring_) {
-        laserTick_ = 0.0f;   // the next press hits at once
+        laserTick_.fill(0.0f);   // the next press hits at once
+        for (int i = 0; i < config::kLaserMaxBolts; ++i) laser_.SetBolt(i, false, nose, nose, false);
         return;
     }
 
@@ -720,38 +689,110 @@ void Game::UpdateLaser(float dt) {
         laserSoundTimer_ = config::kLaserSoundTime;
     }
 
-    // The damage comes in "ticks": every kLaserTick seconds one hit on the target.
-    laserTick_ -= dt;
-    if (laserTick_ > 0.0f || target == Target::None) return;
-    laserTick_ = config::kLaserTick[level] * (rapidFireTimer_ > 0.0f ? 0.5f : 1.0f);
-
-    const Vector3 hitPoint{start.x, config::kPlayerHeight, endZ};
     const ExplosionStyle sparks{6, 5.0f, 0.3f, 0.18f, config::kLaserColor, Color{255, 255, 255, 255}};
-    switch (target) {
-        case Target::Alien:
-            if (const auto hit = invaders_.TryHit(alienPosition, 0.05f)) {
-                if (hit->destroyed) {
-                    OnAlienDestroyed(*hit);
-                } else {
-                    particles_.Explode(hitPoint, sparks);
+    for (int i = 0; i < config::kLaserMaxBolts; ++i) {
+        if (i >= bolts) {
+            laser_.SetBolt(i, false, nose, nose, false);
+            continue;
+        }
+        // The bolts fan out a little: one straight up, two leaning apart, or three
+        // (left, middle, right). Each one starts a bit to the side of the nose.
+        // "side" is -1, 0 or +1 (for two bolts: -0.5 and +0.5).
+        const float side = bolts == 1 ? 0.0f
+                         : bolts == 2 ? (i == 0 ? -0.5f : 0.5f)
+                                      : static_cast<float>(i - 1);
+        const float slope = std::tan(side * config::kLaserBoltAngle * DEG2RAD);
+        const Vector3 start{nose.x + side * config::kLaserBoltSpacing, nose.y, nose.z};
+        // x of this bolt at height z
+        auto lineX = [&](float z) { return start.x + slope * (start.z - z); };
+
+        // Where does the bolt end? At the NEAREST thing in its way: an alien, a
+        // bomb or the boss. If nothing is there, it reaches the far end of the field.
+        enum class Target { None, Alien, Bomb, Boss };
+        Target target = Target::None;
+        float endZ = -config::kFieldLength;
+        Vector3 alienPosition{};
+        Bomb* bombInWay = nullptr;   // a pointer to the bomb in the vector (or none)
+        if (const auto alien = invaders_.FirstInLine(start.x, halfWidth, start.z, slope)) {
+            alienPosition = *alien;
+            endZ = alien->z;
+            target = Target::Alien;
+        }
+        for (auto& bomb : bombs_) {
+            if (bomb.alive && bomb.position.z < start.z && bomb.position.z > endZ &&
+                std::fabs(bomb.position.x - lineX(bomb.position.z)) <= bomb.radius + halfWidth) {
+                endZ = bomb.position.z;
+                target = Target::Bomb;
+                bombInWay = &bomb;
+            }
+        }
+        if (boss_) {
+            // The boss is not a simple ball: walk up the bolt in small steps until
+            // a step touches it (Touches only looks, it does no damage).
+            for (float z = start.z; z > endZ; z -= 0.4f) {
+                if (boss_->Touches(Vector3{lineX(z), config::kPlayerHeight, z}, halfWidth)) {
+                    endZ = z;
+                    target = Target::Boss;
+                    break;
                 }
             }
-            break;
-        case Target::Bomb:
-            bombInWay->alive = false;
-            score_ += config::kScorePerBomb;
-            particles_.Explode(bombInWay->position, BombExplosion(bombInWay->color));
-            AddShake(config::kShakeBomb);
-            audio_.Play(Sfx::BombExplosion);
-            break;
-        case Target::Boss:
-            if (const auto hit = boss_->TryHit(hitPoint, halfWidth)) {
-                particles_.Explode(hitPoint, sparks);
-                if (hit->destroyed) audio_.Play(Sfx::BombExplosion);
+        }
+        // An alien is hit at its middle, so the bolt ends right there.
+        const Vector3 end = target == Target::Alien
+                                ? Vector3{alienPosition.x, config::kPlayerHeight, endZ}
+                                : Vector3{lineX(endZ), config::kPlayerHeight, endZ};
+        laser_.SetBolt(i, true, start, end, target != Target::None);
+
+        // The damage comes in "ticks": every kLaserTick seconds one hit on the target.
+        float& tick = laserTick_[static_cast<std::size_t>(i)];
+        tick -= dt;
+        if (tick > 0.0f || target == Target::None) continue;
+        tick = config::kLaserTick[level] * (rapidFireTimer_ > 0.0f ? 0.5f : 1.0f);
+
+        switch (target) {
+            case Target::Alien: {
+                const auto hit = invaders_.TryHit(alienPosition, 0.05f);
+                if (!hit) break;
+                if (!hit->destroyed) {
+                    particles_.Explode(end, sparks);
+                    break;
+                }
+                OnAlienDestroyed(*hit);
+                // Chain lightning: when the bolt KILLS an alien, the spark jumps on
+                // to the nearest aliens around it, one after the other (each alien
+                // only once per chain), and hits each of them once.
+                std::vector<Vector3> chain{alienPosition};
+                Vector3 from = alienPosition;
+                for (int jump = 0; jump < config::kLaserChainJumps[level]; ++jump) {
+                    const auto next = invaders_.NearestAlien(from, config::kLaserChainRange, chain);
+                    if (!next) break;
+                    laser_.AddArc(Vector3{from.x, config::kPlayerHeight, from.z},
+                                  Vector3{next->x, config::kPlayerHeight, next->z});
+                    chain.push_back(*next);
+                    if (const auto chainHit = invaders_.TryHit(*next, 0.05f)) {
+                        if (chainHit->destroyed) OnAlienDestroyed(*chainHit);
+                        else particles_.Explode(*next, sparks);
+                    }
+                    from = *next;
+                }
+                break;
             }
-            break;
-        case Target::None:
-            break;
+            case Target::Bomb:
+                bombInWay->alive = false;
+                score_ += config::kScorePerBomb;
+                particles_.Explode(bombInWay->position, BombExplosion(bombInWay->color));
+                AddShake(config::kShakeBomb);
+                audio_.Play(Sfx::BombExplosion);
+                break;
+            case Target::Boss:
+                if (const auto hit = boss_->TryHit(end, halfWidth)) {
+                    particles_.Explode(end, sparks);
+                    if (hit->destroyed) audio_.Play(Sfx::BombExplosion);
+                }
+                break;
+            case Target::None:
+                break;
+        }
     }
 }
 

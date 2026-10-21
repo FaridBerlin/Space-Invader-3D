@@ -48,7 +48,7 @@ and the Void Emperor.
 - Every wave **flies in** along curved paths, in changing **formations** (block, arrow, diamond, pincer, ...).
 - **3 lives** (up to 5), and your **high score** is saved (on desktop and in the browser).
 - Shot aliens sometimes drop a glowing **orb**: purple **weapon** orbs make your weapon stronger (5 levels), green
-  and orange orbs switch to the **spread shot** or the **lightning laser**, plus a **shield** that absorbs one hit,
+  and blue orbs switch to the **spread shot** or the **lightning laser** (1 to 3 blue bolts that chain to nearby aliens), plus a **shield** that absorbs one hit,
   **rapid fire**, or rarely an **extra life**.
 - Your ship changes its look as you go: from level 5 you fly the **Claw**, a copper ship with claw-shaped wings, and
   in levels 8 to 10 the **Horn**, with two big curved horn-wings, in green, purple and red.

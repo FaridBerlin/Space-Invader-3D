@@ -85,9 +85,9 @@ Each step is its own branch and ends with something you can play.
    - [x] Glowing orbs with a symbol inside, one colour per kind (weapon: three arrows)
    - [x] Weapon levels 1 to 5 collected with orbs (instead of fixed per level); a hit costs one
 4. **New weapons**
-   - [x] Lightning laser: a beam with jagged electric branches
+   - [x] Lightning laser: 1, 2, then 3 blue electric bolts (thicker at levels 4-5) with chain lightning between aliens
    - [x] Spread shot: a fan of shots that widens with the weapon level
-   - [x] Special orbs switch the weapon type (green: spread, orange: laser)
+   - [x] Special orbs switch the weapon type (green: spread, blue: laser)
 5. **More aliens and fly-in attacks**
    - [x] New low-poly aliens: the Wasp (level 2) and the Moth (level 6)
    - [x] Aliens fly in on curved paths before they take their places (like Galaga): 3 entry patterns
