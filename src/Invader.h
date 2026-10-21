@@ -16,6 +16,7 @@ enum class AlienType {
     Commander,   // 1-2 per wave in the back row: bigger, takes several hits
     Wasp,        // a striped insect with fast wings; dives more often
     Moth,        // a big soft insect with eye-spot wings; takes two hits
+    Mite,        // a small armoured crab with scissor claws (the crab bosses' little cousin)
 };
 
 // The colours of the aliens in one level: every level paints the whole wave in

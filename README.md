@@ -1,7 +1,7 @@
 # Space Invader 3D
 
 **[▶ Play the free demo in your browser](https://faridberlin.github.io/Space-Invader-3D/)** (levels 1-3; keyboard, mouse or touch screen).
-The full game with all 7 levels is coming to Google Play.
+The full game with all 10 levels is coming to Google Play.
 
 A 3D remake of my 2D browser game *Space Dash Invaders*, written in **C++17** with
 [raylib](https://www.raylib.com/). It is also a learning project: the goal is to understand C++ and how
@@ -42,24 +42,27 @@ and the Void Emperor.
 ## The game
 
 - Waves of invaders sweep sideways and step toward you. Shoot them before they reach you. They shoot back.
-- Six alien types: **Scarabs** (100), striped **Wasps** (150, dive a lot), crystal **Drones** (150), **Reapers**
-  (200, shoot more often), big **Moths** (250, two hits) and **Commanders** (500, three hits). Every few seconds
+- Seven alien types: **Scarabs** (100), striped **Wasps** (150, dive a lot), crystal **Drones** (150), **Shear Mites**
+  (180, little crabs), **Reapers** (200, shoot more often), big **Moths** (250, two hits) and **Commanders** (500, three hits). Every few seconds
   one alien **dives** at you in an S-curve.
 - Every wave **flies in** along curved paths, in changing **formations** (block, arrow, diamond, pincer, ...).
 - **3 lives** (up to 5), and your **high score** is saved (on desktop and in the browser).
 - Shot aliens sometimes drop a glowing **orb**: purple **weapon** orbs make your weapon stronger (5 levels), green
   and orange orbs switch to the **spread shot** or the **lightning laser**, plus a **shield** that absorbs one hit,
   **rapid fire**, or rarely an **extra life**.
-- Your ship changes its look as you go, and from level 5 you fly the **Claw**, a copper ship with claw-shaped wings.
+- Your ship changes its look as you go: from level 5 you fly the **Claw**, a copper ship with claw-shaped wings, and
+  in levels 8 to 10 the **Horn**, with two big curved horn-wings, in green, purple and red.
 - **Combos** multiply your points (up to x4) for quick kills in a row, and a fast wave without losing a ship
   earns a **wave-clear bonus**. Big hits and explosions shake the screen.
 - A glowing **bomb** flies in every few seconds. Shoot it for **+500** points, or dodge it. Every level
   has its own bomb: from a calm yellow ball in level 1 to a cracked, crimson one with lightning in level 7.
 - **Boss fights** at the end of levels 3, 5 and 7: the **Hive Queen**, the **War Titan** and the
   **Void Emperor**, each with a health bar, its own attack patterns and a core that opens for triple damage.
-- **7 levels of 3 waves each.** Every level adds something new (Drones, divers, Reapers, Commanders, ship upgrades),
-  gets faster and has its own colours: the aliens, the bombs and the stars change with every level.
-  After level 7: a bonus and endless bonus waves.
+  Then the **crab family** ends levels 8, 9 and 10: the green **Shear King**, the purple **Shear Emperor** and the
+  red **Crimson Tyrant**, armoured crabs with giant snapping **scissor claws**, each bigger than the last.
+- **10 levels of 3 waves each.** Every level adds something new (Drones, divers, Reapers, Commanders, Moths,
+  Shear Mites, new ships), gets faster and has its own colours: the aliens, the bombs and the stars change with
+  every level. After level 10: a bonus and endless bonus waves.
 - Particle explosions, a streaming starfield over a drifting **nebula** in each level's colours, glowing
   projectiles (both are custom GLSL shaders), sound effects and
   chiptune **music**: a calm menu track, a level track and a boss track that fade into each other.

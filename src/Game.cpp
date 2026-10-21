@@ -47,6 +47,10 @@ ExplosionStyle AlienExplosion(AlienType type, int level) {
             style.colorA = palette.glow;                  // its stripes
             style.colorB = Color{255, 245, 200, 255};     // glassy wing bits
             break;
+        case AlienType::Mite:
+            style.colorA = palette.glow;                  // its eyes
+            style.colorB = Color{190, 200, 215, 255};     // bits of steel
+            break;
         case AlienType::Moth:
             style.count  = style.count * 3 / 2;           // a cloud of wing dust
             style.colorA = bodyLight;
@@ -72,6 +76,7 @@ int ScoreFor(AlienType type) {
         case AlienType::Commander: return config::kScorePerCommander;
         case AlienType::Wasp:      return config::kScorePerWasp;
         case AlienType::Moth:      return config::kScorePerMoth;
+        case AlienType::Mite:      return config::kScorePerMite;
     }
     return 0;   // not reached: the switch above covers every type
 }
@@ -419,13 +424,14 @@ void Game::NextWave() {
         stars_.SetColor(config::kLevelStarColor[level_]);   // the new colour mood
         nebula_.SetColors(config::kLevelNebulaA[level_], config::kLevelNebulaB[level_]);
 
-        // Some levels upgrade the ship (a bigger tier, or the new "Claw" design):
-        // new look, and a burst of sparkles in the new shot colour around it.
-        const int  tier = config::kLevelShipTier[level_];
-        const bool hero = config::kLevelHeroShip[level_];
-        if (tier != player_.Tier() || hero != player_.Hero()) {
+        // Some levels upgrade the ship (a bigger tier, a new design, or the Horn in a
+        // new colour): new look, and a burst of sparkles in the new shot colour around it.
+        const int tier   = config::kLevelShipTier[level_];
+        const int design = config::kLevelShipDesign[level_];
+        const int color  = config::kLevelHornColor[level_];
+        if (tier != player_.Tier() || design != player_.Design() || color != player_.HornColor()) {
             player_.SetTier(tier);
-            player_.SetHero(hero);
+            player_.SetDesign(design, color);
             if (playerAlive_) {
                 particles_.Explode(player_.Position(),
                                    ExplosionStyle{70, 9.0f, 1.0f, 0.3f,
@@ -521,7 +527,7 @@ void Game::UpdateBoss(float dt) {
 void Game::RespawnPlayer() {
     player_ = Player();           // a fresh ship in the middle ...
     player_.SetTier(config::kLevelShipTier[level_]);   // ... with the upgrade of this level
-    player_.SetHero(config::kLevelHeroShip[level_]);
+    player_.SetDesign(config::kLevelShipDesign[level_], config::kLevelHornColor[level_]);
     playerAlive_     = true;
     invincibleTimer_ = config::kInvincibleTime;
     fireCooldown_    = 0.0f;
@@ -532,7 +538,11 @@ void Game::RespawnPlayer() {
 }
 
 Color Game::ShotColor() const {
-    return player_.Hero() ? config::kHeroShotColor : config::kTierShotColor[player_.Tier()];
+    switch (player_.Design()) {
+        case 2:  return config::kHornGlow[player_.HornColor()];   // the Horn: its glow colour
+        case 1:  return config::kHeroShotColor;                   // the Claw: white-gold
+        default: return config::kTierShotColor[player_.Tier()];
+    }
 }
 
 void Game::FireRocket() {
@@ -1587,7 +1597,8 @@ void Game::DrawMenu() const {
 #endif
     }
     if (config::kDemo) {
-        DrawCentered("FREE DEMO: levels 1 to 3. The full game with all 7 levels is coming to Google Play.",
+        DrawCentered(TextFormat("FREE DEMO: levels 1 to 3. The full game with all %d levels is coming to Google Play.",
+                                config::kLevelCount),
                      centerX, Px(720), Px(18), textWidth, Color{255, 170, 60, 255});
     }
 }
@@ -1670,7 +1681,8 @@ void Game::DrawDemoEnd() const {
     int y = DrawCentered("DEMO COMPLETE!", centerX, middle - Px(250), Px(52), textWidth, Color{120, 230, 255, 255});
     y = DrawCentered("You beat the Hive Queen. Well done!", centerX, y + Px(16), Px(24), textWidth, RAYWHITE);
     y = DrawCentered(TextFormat("Score: %06d", score_), centerX, y + Px(12), Px(28), textWidth, YELLOW);
-    DrawCentered("The full game has 4 more levels, the Claw ship, the War Titan and the Void Emperor.",
+    DrawCentered("The full game has 7 more levels, two more ships and five more bosses, "
+                 "including the crab family with their giant scissor claws.",
                  centerX, y + Px(20), Px(20), textWidth, LIGHTGRAY);
 
     // The store button: a link once the app is published, otherwise "coming soon".

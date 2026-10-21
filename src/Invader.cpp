@@ -69,6 +69,9 @@ constexpr LevelAlienColors kLevelAlienColors[] = {
     {{110,  35,  70, 255}, { 80, 240, 220, 255}},   // 5 maroon and aqua
     {{130,  80,  35, 255}, {255, 240, 170, 255}},   // 6 bronze and white-gold
     {{ 62,  44,  70, 255}, {255,  40,  70, 255}},   // 7 near-black and crimson
+    {{ 88, 104, 118, 255}, { 90, 255, 150, 255}},   // 8 gunmetal and green (the green crab)
+    {{100,  62, 128, 255}, {255,  60, 110, 255}},   // 9 purple and crimson (the purple crab)
+    {{150,  36,  46, 255}, {255, 190,  60, 255}},   // 10 red and gold (the red crab)
 };
 static_assert(std::size(kLevelAlienColors) == static_cast<std::size_t>(config::kLevelCount),
               "one alien colour scheme per level");
@@ -501,6 +504,68 @@ void DrawMoth(float flash, float beat, Color body, Color glow) {
     }
 }
 
+// ---- The Mite -------------------------------------------------------------------------
+// A small armoured crab, the little cousin of the crab bosses: a faceted shell with a
+// big glowing eye and two small ones, two legs on each side, and two tiny scissor
+// claws that point down at the player and snap open and shut.
+//   flash 0..1, open 0..1 (how far the scissors are open), body / glow = level colours
+void DrawMite(float flash, float open, Color body, Color glow) {
+    const Color white{255, 255, 255, 255};
+    const Color shell = Mix(body, white, flash);
+    const Color dark  = Mix(Darker(body, 0.45f), white, flash);
+    const Color steel = Mix(Mix(body, Color{170, 180, 195, 255}, 0.55f), white, flash);
+    const Color eye   = Mix(glow, white, 0.25f);
+
+    // The shell: six points around, a front centre bulging toward the player and a
+    // back centre, so every face gets its own shade.
+    const Vector3 front{0.0f, 0.05f, 0.36f};
+    const Vector3 back{0.0f, 0.05f, -0.25f};
+    Vector3 rim[6];
+    for (int i = 0; i < 6; ++i) {
+        const float a = (90.0f + 60.0f * static_cast<float>(i)) * DEG2RAD;
+        rim[i] = Vector3{0.58f * std::cos(a), 0.05f + 0.46f * std::sin(a), 0.0f};
+    }
+    for (int i = 0; i < 6; ++i) {
+        const Vector3 a = rim[i], b = rim[(i + 1) % 6];
+        DrawFace(front, a, b, (i % 2 == 0) ? shell : Mix(shell, dark, 0.3f), lowpoly::Mid(front, a, b));
+        DrawFace(back, a, b, dark, lowpoly::Mid(back, a, b));
+        DrawLine3D(a, b, Fade(glow, 0.5f));
+    }
+
+    // Legs: two on each side, bent at a knee.
+    for (const float s : {-1.0f, 1.0f}) {
+        for (const float y : {0.18f, -0.12f}) {
+            const Vector3 root{s * 0.45f, y, 0.0f};
+            const Vector3 knee{s * 0.88f, y + 0.22f, -0.05f};
+            const Vector3 foot{s * 1.02f, y - 0.25f, -0.05f};
+            DrawCylinderEx(root, knee, 0.07f, 0.06f, 5, dark);
+            DrawCylinderEx(knee, foot, 0.06f, 0.0f, 5, dark);
+        }
+    }
+
+    // The scissor claws: a short arm, then two thin blades that open and close.
+    for (const float s : {-1.0f, 1.0f}) {
+        const Vector3 shoulder{s * 0.32f, -0.36f, 0.05f};
+        const Vector3 wrist{s * 0.42f, -0.68f, 0.1f};
+        DrawCylinderEx(shoulder, wrist, 0.09f, 0.08f, 5, steel);
+        const float spread = 0.08f + 0.18f * open;
+        const Vector3 tipOut{s * (0.30f + spread), -1.22f, 0.1f};
+        const Vector3 tipIn{s * (0.30f - spread), -1.22f, 0.1f};
+        for (const Vector3& tip : {tipOut, tipIn}) {
+            const Vector3 a{wrist.x - 0.06f, wrist.y, wrist.z};
+            const Vector3 b{wrist.x + 0.06f, wrist.y, wrist.z};
+            DrawTriangle3D(a, b, tip, steel);
+            DrawTriangle3D(b, a, tip, dark);   // the back side
+            DrawLine3D(wrist, tip, glow);      // a glowing cutting edge
+        }
+    }
+
+    // The eyes: a big one in the middle, two small ones above it.
+    DrawSphereEx(Vector3{0.0f, 0.02f, 0.40f}, 0.15f, 8, 8, Mix(eye, white, 0.3f));
+    DrawSphereEx(Vector3{-0.22f, 0.26f, 0.30f}, 0.07f, 6, 6, eye);
+    DrawSphereEx(Vector3{0.22f, 0.26f, 0.30f}, 0.07f, 6, 6, eye);
+}
+
 }  // namespace
 
 LevelAlienColors AlienColorsForLevel(int level) {
@@ -526,6 +591,7 @@ float Invader::Radius() const {
         case AlienType::Drone:     return config::kDroneRadius * config::kAlienScale;
         case AlienType::Wasp:      return config::kWaspRadius * config::kAlienScale;
         case AlienType::Moth:      return config::kMothRadius * config::kAlienScale;
+        case AlienType::Mite:      return config::kMiteRadius * config::kAlienScale;
         default:                   return config::kInvaderRadius * config::kAlienScale;
     }
 }
@@ -571,6 +637,9 @@ void Invader::Draw(float time, const Model* commanderModel, int level) const {
         // Big wings beat slowly.
         rlScalef(config::kMothScale, config::kMothScale, config::kMothScale);
         DrawMoth(flashAmount, std::sin(time * 4.0f + position.x * 0.6f), palette.body, palette.glow);
+    } else if (type == AlienType::Mite) {
+        // Its little scissors snap open and shut.
+        DrawMite(flashAmount, 0.5f + 0.5f * std::sin(time * 6.0f + position.x), palette.body, palette.glow);
     } else if (type == AlienType::Drone) {
         rlScalef(config::kDroneScale, config::kDroneScale, config::kDroneScale);
         DrawDrone(flashAmount, time * 90.0f + position.x * 20.0f,   // 90 degrees per second

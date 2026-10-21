@@ -5,6 +5,7 @@
 #include <algorithm>   // std::min, std::max, std::clamp
 #include <cmath>       // std::exp, std::sin
 #include <cstddef>     // std::size_t
+#include <initializer_list>   // lists of points like {P(...), P(...)}
 #include <iterator>    // std::size
 
 #include "Config.h"
@@ -110,12 +111,14 @@ void Player::SetTier(int tier) {
 }
 
 float Player::HalfWidth() const {
-    const float base = hero_ ? config::kHeroHalfWidth : config::kPlayerHalfWidth;
+    const float base = design_ == 2 ? config::kHornHalfWidth
+                     : design_ == 1 ? config::kHeroHalfWidth : config::kPlayerHalfWidth;
     return base * config::kTierScale[tier_];
 }
 
 float Player::HitRadius() const {
-    return hero_ ? config::kHeroHitRadius : config::kPlayerHitRadius;
+    return design_ == 2 ? config::kHornHitRadius
+         : design_ == 1 ? config::kHeroHitRadius : config::kPlayerHitRadius;
 }
 
 Vector3 Player::Position() const {
@@ -151,7 +154,12 @@ void Player::Draw() const {
     const float scale = config::kTierScale[tier_];
     rlScalef(scale, scale, scale);   // bigger ship at higher tiers (x, y, z factors)
 
-    if (hero_) {          // the Claw has its own function (below)
+    if (design_ == 2) {   // the Horn and the Claw have their own functions (below)
+        DrawHorn();
+        rlPopMatrix();
+        return;
+    }
+    if (design_ == 1) {
         DrawHero();
         rlPopMatrix();
         return;
@@ -428,4 +436,107 @@ void Player::DrawHero() const {
     }
 
     rlPopMatrix();
+}
+
+// ---- The Horn ---------------------------------------------------------------------
+// The third ship (levels 8-10): an arrowhead with two big curved horn-wings that
+// sweep forward, silver inner wings, small side blades and fins at the back, and a
+// glowing diamond canopy. It comes in three colours (kHornMain / kHornDark /
+// kHornGlow in Config.h): green, purple and red.
+//
+// It was drawn as a picture from above first (on the design canvas). The points
+// below are that picture's pixel positions: x = sideways from the middle line at
+// 180, y = down the picture (the nose is at the top). P() turns them into 3D:
+// 66 pixels are one world unit, the picture's "down" is +Z (backward), and each
+// point gets a height. Only the right half is listed; the left half is the same
+// with -x.
+void Player::DrawHorn() const {
+    const Color main  = config::kHornMain[hornColor_];
+    const Color mainD = config::kHornDark[hornColor_];
+    const Color glow  = config::kHornGlow[hornColor_];
+    const Color silver{211, 216, 226, 255};
+    const Color silverD{142, 149, 166, 255};
+    const Color dark{42, 47, 60, 255};
+    const Color underside = Mix(main, Color{0, 0, 0, 255}, 0.55f);
+    const Vector3 up{0.0f, 1.0f, 0.0f};
+    const Vector3 down{0.0f, -1.0f, 0.0f};
+
+    for (const float s : {-1.0f, 1.0f}) {
+        // A point of the picture -> 3D. The wings slope down a little toward their
+        // tips, so the two sides catch the light differently.
+        auto P = [s](float px, float py, float height) {
+            const float x = (180.0f - px) / 66.0f;   // the listed half is the picture's left half
+            return Vector3{s * x, height - 0.04f * x, (py - 200.0f) / 66.0f};
+        };
+        // A flat part: triangles with an upper side in "color" and an underside.
+        auto part = [&](std::initializer_list<Vector3> points, Color color) {
+            const Vector3* p = points.begin();
+            const int n = static_cast<int>(points.size());
+            for (int i = 1; i + 1 < n; ++i) {
+                DrawFace(p[0], p[i], p[i + 1], color, up);
+                DrawFace(Vector3Add(p[0], Vector3{0, -0.08f, 0}), Vector3Add(p[i], Vector3{0, -0.08f, 0}),
+                         Vector3Add(p[i + 1], Vector3{0, -0.08f, 0}), underside, down);
+            }
+        };
+
+        // The fin at the back, and its coloured tip.
+        part({P(166, 262, 0.10f), P(92, 312, 0.06f), P(70, 392, 0.04f), P(104, 372, 0.06f),
+              P(120, 338, 0.08f), P(166, 300, 0.10f)}, silverD);
+        part({P(120, 338, 0.10f), P(104, 372, 0.09f), P(92, 340, 0.09f)}, main);
+
+        // The big horn-wing (not convex, so it is cut into triangles by hand).
+        const Vector3 A = P(166, 214, 0.16f), B = P(112, 226, 0.12f), C = P(66, 196, 0.10f);
+        const Vector3 D = P(44, 128, 0.12f), E = P(70, 40, 0.18f), F = P(78, 112, 0.16f);
+        const Vector3 G = P(98, 158, 0.16f), H = P(140, 180, 0.18f), I = P(166, 184, 0.20f);
+        part({A, B, H}, mainD);
+        part({A, H, I}, main);
+        part({B, G, H}, main);
+        part({B, C, G}, mainD);
+        part({C, F, G}, main);
+        part({C, D, F}, main);
+        part({D, E, F}, main);
+        // Its glowing inner edge, from the horn tip back to the body.
+        const Vector3 lift{0.0f, 0.03f, 0.0f};
+        DrawLine3D(Vector3Add(E, lift), Vector3Add(F, lift), glow);
+        DrawLine3D(Vector3Add(F, lift), Vector3Add(G, lift), glow);
+        DrawLine3D(Vector3Add(G, lift), Vector3Add(H, lift), glow);
+        DrawLine3D(Vector3Add(H, lift), Vector3Add(I, lift), glow);
+
+        // The silver inner wing, and a small side blade with a glowing stripe.
+        part({P(166, 150, 0.24f), P(120, 166, 0.20f), P(100, 214, 0.16f), P(130, 236, 0.16f),
+              P(166, 226, 0.20f)}, silver);
+        part({P(100, 214, 0.17f), P(62, 238, 0.12f), P(52, 286, 0.10f), P(84, 264, 0.12f),
+              P(112, 240, 0.15f)}, main);
+        DrawLine3D(Vector3Add(P(108, 234, 0.16f), lift), Vector3Add(P(66, 266, 0.12f), lift), glow);
+
+        // The body: a long spine from the nose to the tail, with a ridge on top.
+        const Vector3 nose = P(180, 16, 0.30f), tail = P(180, 340, 0.20f);
+        const Vector3 ridgeFront = P(180, 130, 0.55f), ridgeBack = P(180, 300, 0.42f);
+        const Vector3 sideFront = P(152, 130, 0.22f), sideBack = P(158, 300, 0.20f);
+        DrawFace(nose, sideFront, ridgeFront, silverD, Vector3{s, 1.0f, -0.3f});
+        DrawFace(ridgeFront, sideFront, sideBack, silver, Vector3{s, 1.0f, 0.0f});
+        DrawFace(ridgeFront, sideBack, ridgeBack, silver, Vector3{s, 1.0f, 0.0f});
+        DrawFace(ridgeBack, sideBack, tail, silverD, Vector3{s, 1.0f, 0.3f});
+        DrawFace(nose, sideFront, sideBack, dark, Vector3{s * 0.3f, -1.0f, 0.0f});   // underside
+
+        // The engine at the back of each side, with its flame.
+        const float ex = s * (180.0f - 156.0f) / 66.0f;
+        const float ez0 = (298.0f - 200.0f) / 66.0f, ez1 = (354.0f - 200.0f) / 66.0f;
+        DrawCylinderEx(Vector3{ex, 0.12f, ez0}, Vector3{ex, 0.12f, ez1}, 0.16f, 0.2f, 8, dark);
+        const float flame = 0.9f + 0.25f * std::sin(time_ * 40.0f + s * 1.7f);
+        const Vector3 start{ex, 0.12f, ez1};
+        DrawCylinderEx(start, Vector3{ex, 0.12f, ez1 + flame}, 0.17f, 0.0f, 8, Color{255, 120, 40, 255});
+        DrawCylinderEx(start, Vector3{ex, 0.12f, ez1 + flame * 0.6f}, 0.09f, 0.0f, 8, Color{255, 235, 170, 255});
+    }
+
+    // The coloured stripe down the back, and the glowing diamond canopy.
+    auto C = [](float px, float py, float height) { return Vector3{(px - 180.0f) / 66.0f, height, (py - 200.0f) / 66.0f}; };
+    DrawFace(C(180, 190, 0.5f), C(189, 242, 0.46f), C(171, 242, 0.46f), main, up);
+    DrawFace(C(171, 242, 0.46f), C(189, 242, 0.46f), C(180, 302, 0.42f), main, up);
+    const Vector3 cTop = C(180, 92, 0.62f), cRight = C(194, 138, 0.62f), cBack = C(180, 186, 0.6f);
+    const Vector3 cLeft = C(166, 138, 0.62f), cMid = C(180, 138, 0.78f);
+    DrawFace(cTop, cRight, cMid, glow, up);
+    DrawFace(cRight, cBack, cMid, lowpoly::Mix(glow, Color{255, 255, 255, 255}, 0.3f), up);
+    DrawFace(cBack, cLeft, cMid, glow, up);
+    DrawFace(cLeft, cTop, cMid, lowpoly::Mix(glow, Color{255, 255, 255, 255}, 0.5f), up);
 }

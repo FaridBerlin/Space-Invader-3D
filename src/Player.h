@@ -41,8 +41,11 @@ public:
     int  Tier() const { return tier_; }
 
     // Switches between the first ship design and the copper "Claw" (from level 5).
-    void SetHero(bool hero) { hero_ = hero; }
-    bool Hero() const { return hero_; }
+    // Which ship design: 0 = the first ship, 1 = the copper "Claw" (levels 5-7),
+    // 2 = the "Horn" (levels 8-10), whose colour is one of kHornMain (Config.h).
+    void SetDesign(int design, int hornColor = 0) { design_ = design; hornColor_ = hornColor; }
+    int  Design() const { return design_; }
+    int  HornColor() const { return hornColor_; }
 
     // Half the ship's width: it depends on the design and grows with the tier.
     // Used for the wall limit.
@@ -64,9 +67,12 @@ private:
     float maxZ_      = 0.0f;   // how far down
     float time_      = 0.0f;   // seconds since creation, drives the engine flicker
     int   tier_      = 0;      // upgrade level, 0..kTierCount-1
-    bool  hero_      = false;  // true = draw the Claw instead of the first ship
+    int   design_    = 0;      // 0 first ship, 1 the Claw, 2 the Horn (see SetDesign)
+    int   hornColor_ = 0;      // the Horn's colour: 0 green, 1 purple, 2 red
 
     // Draws the Claw around the origin. Draw() has already moved, rolled and
     // scaled the coordinate system, so this only builds the shape.
     void DrawHero() const;
+    // The same for the Horn.
+    void DrawHorn() const;
 };

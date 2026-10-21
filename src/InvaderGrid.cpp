@@ -86,23 +86,26 @@ void InvaderGrid::Respawn(int level, int wave) {
 
     // Which alien type each row gets, front to back. The back row is special
     // (Drones and Commanders). For the other rows we take the types this level
-    // has, in this order of importance: Scarab, Reaper, Wasp, Moth ... as many as
-    // there are rows, and sort them front to back as Scarab, Wasp, Reaper, Moth.
-    // If the level has fewer types than rows, the extra rows are Scarabs.
+    // has, in this order of importance: Mite, Scarab, Reaper, Wasp, Moth ... as many
+    // as there are rows, and sort them front to back as Mite, Scarab, Wasp, Reaper,
+    // Moth. If the level has fewer types than rows, the extra rows are Scarabs.
     std::vector<AlienType> rowTypes;
-    for (const AlienType t : {AlienType::Scarab, AlienType::Reaper, AlienType::Wasp, AlienType::Moth}) {
+    for (const AlienType t : {AlienType::Mite, AlienType::Scarab, AlienType::Reaper, AlienType::Wasp,
+                              AlienType::Moth}) {
         const bool has = t == AlienType::Scarab || (t == AlienType::Reaper && config::kLevelHasReapers[level]) ||
                          (t == AlienType::Wasp && config::kLevelHasWasps[level]) ||
-                         (t == AlienType::Moth && config::kLevelHasMoths[level]);
+                         (t == AlienType::Moth && config::kLevelHasMoths[level]) ||
+                         (t == AlienType::Mite && config::kLevelHasMites[level]);
         if (has && static_cast<int>(rowTypes.size()) < rows - 1) rowTypes.push_back(t);
     }
     while (static_cast<int>(rowTypes.size()) < rows - 1) rowTypes.insert(rowTypes.begin(), AlienType::Scarab);
     auto depthOrder = [](AlienType t) {
         switch (t) {
-            case AlienType::Scarab: return 0;
-            case AlienType::Wasp:   return 1;
-            case AlienType::Reaper: return 2;
-            default:                return 3;   // Moth
+            case AlienType::Mite:   return 0;
+            case AlienType::Scarab: return 1;
+            case AlienType::Wasp:   return 2;
+            case AlienType::Reaper: return 3;
+            default:                return 4;   // Moth
         }
     };
     std::stable_sort(rowTypes.begin(), rowTypes.end(),
@@ -384,7 +387,8 @@ std::optional<Vector3> InvaderGrid::PickShooterPosition() const {
     // Aliens still flying in do not shoot: they get no tickets.
     auto tickets = [](const Invader& invader) {
         if (invader.dive == DiveState::Entering) return 0;
-        return invader.type == AlienType::Reaper ? config::kReaperShotWeight : 1;
+        if (invader.type == AlienType::Reaper) return config::kReaperShotWeight;
+        return invader.type == AlienType::Mite ? config::kMiteShotWeight : 1;
     };
     int total = 0;
     for (const auto& invader : invaders_) total += tickets(invader);
