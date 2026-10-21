@@ -28,7 +28,7 @@ struct PowerUp {
     // facing the player, at any camera angle.
     void DrawIcon(const Camera3D& camera) const;
 
-    // purple: weapon, green: spread, orange: laser, yellow: rapid fire, cyan: shield, pink: extra life
+    // purple: weapon, green: spread, blue: laser, yellow: rapid fire, cyan: shield, pink: extra life
     Color MainColor() const;
 
     // A random type, used when an orb drops (the chances are in Config.h).

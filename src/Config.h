@@ -318,15 +318,16 @@ constexpr Color kHornGlow[kHornColorCount] = {{194, 255,  90, 255}, {240, 124, 2
 
 // ---- Weapons ---------------------------------------------------------------------------
 // The ship has three weapons. It starts every game with the BLASTER; a green SPREAD
-// orb or an orange LASER orb (see "Power-ups") switches to that weapon. Every weapon
+// orb or a blue LASER orb (see "Power-ups") switches to that weapon. Every weapon
 // has levels 1 to 5: a purple WEAPON orb raises the level of the weapon you have, and
 // so does an orb of the weapon you already carry. Losing a ship costs one level, but
 // you keep the weapon.
 //
 //   BLASTER  straight rockets; more of them per level (the table below)
 //   SPREAD   a fan of rockets; wider and fuller per level: good against big waves
-//   LASER    a lightning beam that burns the first thing in its way, many times a
-//            second; thicker and faster per level: good against commanders and bosses
+//   LASER    blue lightning bolts that burn the first thing in their way, many times
+//            a second, and jump on to nearby aliens ("chain lightning"): 1, 2, then 3
+//            bolts; from level 4 the bolts get thicker and stronger
 
 // Blaster: each level is a list of shots fired together: where a shot leaves the ship
 // (x, sideways from its centre) and in which direction it flies (angle in degrees:
@@ -355,13 +356,27 @@ constexpr int   kSpreadShots[kWeaponLevels]    = {3, 4, 5, 6, 7};
 constexpr float kSpreadAngle[kWeaponLevels]    = {12.0f, 17.0f, 22.0f, 27.0f, 32.0f};   // degrees, to each side
 constexpr Color kSpreadShotColor{110, 255, 150, 255};   // green, like its orb
 
-// Laser: while you hold fire, the beam "ticks": every tick hurts the first alien,
-// bomb or boss in its way by 1 (like one rocket). Higher levels tick faster and
-// the beam is thicker (easier to aim). Rapid fire halves the tick time.
-constexpr float kLaserTick[kWeaponLevels]      = {0.13f, 0.11f, 0.09f, 0.075f, 0.06f};   // seconds per hit
-constexpr float kLaserHalfWidth[kWeaponLevels] = {0.25f, 0.35f, 0.45f, 0.55f, 0.70f};    // hit width, to each side
-constexpr Color kLaserColor{255, 170, 50, 255};       // orange-gold lightning
-constexpr Color kLaserCoreColor{255, 250, 225, 255};  // the white-hot middle
+// Laser: lightning bolts from the ship's nose. Level 1 fires one bolt, level 2 two,
+// level 3 three, fanned out a little. Levels 4 and 5 keep three bolts but make them
+// thicker (easier to aim) and stronger (they hit more often).
+// While you hold fire, every bolt "ticks": each tick hurts the first alien, bomb or
+// boss in its way by 1 (like one rocket). Rapid fire halves the tick time.
+// Chain lightning: when a bolt KILLS an alien, the lightning jumps on to the nearest
+// other alien within kLaserChainRange, and from there to the next, up to
+// kLaserChainJumps times, hitting each of them once.
+constexpr int   kLaserMaxBolts = 3;
+constexpr int   kLaserBolts[kWeaponLevels]       = {1, 2, 3, 3, 3};
+constexpr float kLaserThickness[kWeaponLevels]   = {1.0f, 1.0f, 1.0f, 1.6f, 2.2f};       // 1 = thin
+constexpr float kLaserTick[kWeaponLevels]        = {0.12f, 0.18f, 0.24f, 0.20f, 0.16f};  // per bolt: more bolts, each a bit slower
+constexpr float kLaserHalfWidth[kWeaponLevels]   = {0.25f, 0.25f, 0.25f, 0.4f, 0.55f};   // hit width of a bolt, to each side
+constexpr float kLaserBoltAngle  = 7.0f;   // degrees between the bolts of a fan
+constexpr float kLaserBoltSpacing = 0.45f; // sideways distance between the bolts at the nose
+constexpr int   kLaserChainJumps[kWeaponLevels]  = {1, 1, 2, 2, 3};
+constexpr float kLaserChainRange = 4.5f;   // how far the lightning can jump (world units)
+constexpr float kLaserArcTime    = 0.18f;  // how long a jump stays visible (seconds)
+constexpr Color kLaserColor{110, 150, 255, 255};      // electric blue
+constexpr Color kLaserCoreColor{240, 245, 255, 255};  // the white-hot middle of a bolt
+constexpr Color kLaserStrandColor{165, 150, 255, 255};  // the thin violet strands around it
 constexpr float kLaserJitterTime = 0.04f;   // the lightning changes its zig-zag this often (seconds)
 constexpr float kLaserSoundTime  = 0.22f;   // the laser sound repeats this often while firing
 
@@ -500,7 +515,7 @@ constexpr float kInvincibleTime     = 2.5f;   // the new ship blinks and cannot 
 // Fly into it to collect it. Each kind has its own colour and symbol (PowerUp.cpp):
 //   WEAPON      purple, three arrows   weapon level +1 (see "Weapons")
 //   SPREAD      green, a fan           switch to the spread gun (or its level +1)
-//   LASER       orange, a lightning    switch to the laser (or its level +1)
+//   LASER       blue, a lightning      switch to the laser (or its level +1)
 //   RAPID FIRE  yellow, "x2"           shoot twice as fast for a while
 //   SHIELD      cyan, a shield         absorbs one hit
 //   EXTRA LIFE  pink, "+1"             one more ship

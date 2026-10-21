@@ -6,6 +6,7 @@
 #pragma once
 
 #include <algorithm>   // std::max
+#include <array>
 #include <optional>
 #include <string>
 #include <vector>
@@ -159,7 +160,7 @@ private:
     WeaponType weaponType_ = WeaponType::Blaster;
     Laser laser_;                    // the lightning beam's look (Game decides what it hits)
     bool  laserFiring_     = false;  // the laser is the weapon and fire is held
-    float laserTick_       = 0.0f;   // seconds until the beam hurts its target again
+    std::array<float, config::kLaserMaxBolts> laserTick_{};   // per bolt: seconds until it hurts its target again
     float laserSoundTimer_ = 0.0f;   // seconds until the laser sound plays again
     float pickupTimer_     = 0.0f;   // > 0 while the "SHIELD!" / "RAPID FIRE!" text shows
     const char* pickupText_ = "";

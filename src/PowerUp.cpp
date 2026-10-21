@@ -25,7 +25,7 @@ Color PowerUp::MainColor() const {
     switch (type) {
         case PowerUpType::Weapon:    return Color{170,  80, 255, 255};   // purple
         case PowerUpType::Spread:    return config::kSpreadShotColor;    // green
-        case PowerUpType::Laser:     return config::kLaserColor;         // orange
+        case PowerUpType::Laser:     return config::kLaserColor;         // electric blue
         case PowerUpType::Shield:    return Color{ 80, 220, 255, 255};   // cyan
         case PowerUpType::RapidFire: return Color{255, 225,  60, 255};   // yellow
         case PowerUpType::ExtraLife: return Color{255,  90, 150, 255};   // pink
