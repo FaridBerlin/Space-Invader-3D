@@ -92,7 +92,11 @@ Each step is its own branch and ends with something you can play.
    - [x] New low-poly aliens: the Wasp (level 2) and the Moth (level 6)
    - [x] Aliens fly in on curved paths before they take their places (like Galaga): 3 entry patterns
    - [x] Different formations: block, arrow, diamond, pincer, checkerboard, chevron
-6. **Google Play release**
+6. **Levels 8-10: the crab family**
+   - [x] Three crab bosses with giant scissor claws (green, purple, red), new scissor and eye-ring attacks
+   - [x] A third ship, the Horn, in green, purple and red; the Shear Mite alien
+   - [x] 10 levels, new colours, bombs and nebula for levels 8-10
+7. **Google Play release**
    - [ ] Signed app bundle (.aab), store page, screenshots of the new portrait game
    - [ ] Closed test (12 testers, 14 days), then the paid release
 

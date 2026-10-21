@@ -71,9 +71,11 @@ Flying into an alien (a diver, or one still in the formation) is a crash: the al
 (unless the shield is up).
 
 - **3 lives** (at most 5). After a hit the next ship appears in the middle and blinks for 2.5 s, unhittable.
-- **Two designs:** the first ship (levels 1-4) and the **Claw** (levels 5-7), a copper ship with claw-shaped
-  wings. Its collision sphere is bigger (1.5 instead of 1.1), because it is wider.
-- **Ship looks by level:** three colour tiers (levels 1-3, 4-5, 6-7); the ship grows a little each time.
+- **Three designs:** the first ship (levels 1-4), the **Claw** (levels 5-7), a copper ship with claw-shaped wings
+  (collision sphere 1.5 instead of 1.1, because it is wider), and the **Horn** (levels 8-10), an arrowhead with two
+  big curved horn-wings and a glowing canopy, in **green** (level 8), **purple** (9) and **red** (10); its rockets
+  have its glow colour. It was drawn on the design canvas first and built from that picture's points.
+- **Ship looks by level:** three colour tiers (levels 1-3, 4-5, 6-10); the ship grows a little each time.
 - **Three weapons, each with levels 1-5** (not tied to the game level). Every game starts with the blaster at 1.
   - **Blaster:** 1, 2 and 3 shots side by side, then 5 (two angled 9 degrees) and 7 (a fan up to 18 degrees).
   - **Spread:** a fan of 3 to 7 shots, from +-12 to +-32 degrees: best against big waves.
@@ -111,6 +113,7 @@ types the level has; extra rows are Scarabs).
 | Reaper | 200 | 3 | the middle rows, shoots more often than the others |
 | Commander | 500 | 4 | back row, needs 3 hits, always drops a power-up |
 | Moth | 250 | 6 | a big insect with glowing eye-spots on its wings; 2 hits, drops an orb 30% of the time |
+| Shear Mite | 180 | 8 | a small armoured crab with snapping scissor claws (the crab bosses' cousin); the front row, shoots a lot |
 
 **Divers:** every few seconds one alien leaves the wave and swoops at the player in an S-curve. If it hits the
 ship, both are destroyed. If it misses, it flies back into its place.
@@ -144,8 +147,9 @@ Drawn with raylib's 2D functions on top of the 3D scene, scaled with the window 
 
 ## 4. Difficulty and levels
 
-**7 levels of 3 waves each.** A wave is cleared when all its aliens are destroyed; after the third wave the next
-level starts. Levels 3, 5 and 7 end with a **boss** (see below). After level 7: +10,000 points and endless bonus waves at level 7 strength. All numbers live in
+**10 levels of 3 waves each.** A wave is cleared when all its aliens are destroyed; after the third wave the next
+level starts. Levels 3, 5, 7, 8, 9 and 10 end with a **boss** (see below). After level 10: +20,000 points and endless
+bonus waves at level 10 strength. All numbers live in
 the "Levels" section of `src/Config.h`, one table entry per level.
 
 | Level | New | Rows | Wave speed | Shot every | Divers (every / at once) | Bomb | Ship |
@@ -157,13 +161,18 @@ the "Levels" section of `src/Config.h`, one table entry per level.
 | 5 | the Claw | 3-5 | 6.0 | 1.6 s | 3.5 s / 2 | orange, sparks | Claw, 2 rockets |
 | 6 | | 4-5 | 6.8 | 1.4 s | 3.0 s / 2 | red, flicker | Claw, 3 rockets |
 | 7 | | 4-5 | 7.5 | 1.2 s | 2.5 s / 3 | crimson, cracked core and lightning | Claw, 3 rockets |
+| 8 | Shear Mites, the Horn | 4-5 | 7.8 | 1.15 s | 2.4 s / 3 | gold | Horn, green |
+| 9 | | 4-5 | 8.2 | 1.05 s | 2.2 s / 3 | cyan | Horn, purple |
+| 10 | | 5 | 8.6 | 0.95 s | 2.0 s / 4 | hot pink | Horn, red |
+
+(The "Ship" column shows the look; how many rockets it fires comes from the weapon level, see "Player".)
 
 Every level also has its own **colours**: the aliens (body and glow), the bombs and the tint of the stars.
 Bombs get bigger and faster with every level (radius 0.9 to 1.5).
 
 ### Bosses
 
-After the third wave of levels 3, 5 and 7 a huge alien flies in, with its name and a health bar at the top of the
+After the third wave of levels 3, 5, 7, 8, 9 and 10 a huge alien flies in, with its name and a health bar at the top of the
 screen. It slides from side to side and attacks in a fixed order. Every hit on its armour costs it 1 hit point; its
 **core** opens every 6 seconds for 2.5 seconds (it glows, "CORE OPEN!"), and a hit there costs 3. Below half health it
 gets **angry**: its eyes and health bar turn red, it moves faster, attacks more often and fires more shots. When it is
@@ -174,6 +183,13 @@ destroyed it explodes in a chain of blasts and drops two power-ups. The normal b
 | Hive Queen | 3 | 100 | 5,000 | fan of 5 shots, aimed burst of 3, a bomb |
 | War Titan | 5 | 200 | 8,000 | adds horns, 2 bombs and a rain of shots from its wing guns |
 | Void Emperor | 7 | 300 | 12,000 | adds a crown, a ring of blades, 3 bombs and a sweeping spiral of shots |
+| Shear King | 8 | 380 | 15,000 | the first **crab**: two giant **scissor claws** fire streams that cross like closing blades (the claws snap shut), and an **eye ring**: every eye fires outward |
+| Shear Emperor | 9 | 470 | 18,000 | bigger, longer blades, spikes on shell, arms and legs; adds claw rain and the spiral |
+| Crimson Tyrant | 10 | 580 | 25,000 | the biggest, with glowing veins; every attack, faster |
+
+The crabs hover a little further back (Z = -20) because their claws reach far forward. Their weak spot is the big
+eye in front, behind four armour petals; the many small eyes fire the eye ring. They take their colours from their
+level: gunmetal and green, purple and crimson, red and gold.
 
 All numbers are in the "Bosses" section of `src/Config.h`; the model and the attacks are in `src/Boss.cpp`.
 

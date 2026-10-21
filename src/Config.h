@@ -147,6 +147,7 @@ constexpr float kAlienFaceTilt = 30.0f;   // degrees
 // the Commanders in the back row (only the types the level has, see "Levels").
 //   Wasp   a striped insect with fast wings; it likes to dive (kWaspDiveWeight)
 //   Moth   a big soft insect with eye-spots on its wings; 2 hits, often drops an orb
+//   Mite   a small armoured crab with scissor claws (level 8+); it shoots a lot
 // Most aliens are Scarabs (one hit). Commanders sit in the back row: bigger,
 // three hits, more points. A commander is drawn with a 3D model file when
 // assets/models/commander.glb exists, otherwise with a built-in look.
@@ -156,6 +157,9 @@ constexpr int   kScorePerCommander   = 500;
 constexpr int   kScorePerWasp        = 150;
 constexpr int   kScorePerMoth        = 250;
 constexpr int   kMothHitPoints       = 2;
+constexpr int   kScorePerMite        = 180;
+constexpr float kMiteRadius          = 0.8f;
+constexpr int   kMiteShotWeight      = 2;       // a Mite is 2x as likely to be the next shooter
 constexpr float kWaspRadius          = 0.8f;    // collision spheres (before kAlienScale)
 constexpr float kMothRadius          = 1.05f;
 constexpr int   kWaspDiveWeight      = 3;       // a Wasp is 3x as likely to be the next diver
@@ -181,8 +185,8 @@ constexpr float kInvaderShotRadius   = 0.25f;  // collision sphere of a shot
 constexpr float kInvaderShotDespawnZ = 14.0f;  // shots that fly past the ship are removed here (off-screen)
 
 // ---- Levels --------------------------------------------------------------------------
-// Seven levels of three waves each. A level ends when its third wave is destroyed;
-// after level 7 the game goes on with endless bonus waves. Every level adds ONE new
+// Ten levels of three waves each. A level ends when its third wave is destroyed;
+// after level 10 the game goes on with endless bonus waves. Every level adds ONE new
 // thing, so the player keeps discovering something:
 //
 //   level 1  Scarabs only, slow, no divers          (learn the controls)
@@ -192,14 +196,17 @@ constexpr float kInvaderShotDespawnZ = 14.0f;  // shots that fly past the ship a
 //   level 5  two divers at once, new ship design (the "Claw")
 //   level 6  faster waves, giant Moths, ship look 3
 //   level 7  everything at full speed, three divers
+//   level 8  Shear Mites join, new ship: the Horn (green); boss: the green crab
+//   level 9  harder waves, the Horn turns purple; boss: the purple crab
+//   level 10 the final battle, the Horn turns red, four divers; boss: the red crab
 //
 // Every table below has one value per level. Arrays are indexed from 0: level 1 is
 // index 0. The static_asserts at the end check that no table misses a level.
-constexpr int   kLevelCount    = 7;
+constexpr int   kLevelCount    = 10;
 constexpr int   kWavesPerLevel = 3;
 constexpr float kLevelBannerTime = 3.0f;   // seconds the "LEVEL 2" banner stays on screen
 constexpr float kWaveBannerTime  = 1.4f;   // ... and the smaller "WAVE 2 / 3"
-constexpr int   kAllLevelsBonus  = 10000;  // points for clearing level 7
+constexpr int   kAllLevelsBonus  = 20000;  // points for clearing the last level
 
 constexpr const char* kLevelIntro[] = {
     "Scarabs incoming. Catch the purple orbs for more firepower!",
@@ -208,28 +215,33 @@ constexpr const char* kLevelIntro[] = {
     "Commanders arrive. New ship look!",
     "Two divers at once. New ship: the Claw!",
     "Giant Moths and faster waves. New ship look!",
-    "Final level: everything at full speed",
+    "Everything at full speed",
+    "Shear Mites arrive. New ship: the Horn!",
+    "Harder waves. The Horn turns purple!",
+    "The final battle. The Horn burns red!",
 };
 
 // Which alien types may appear (Scarabs always do).
-constexpr bool  kLevelHasDrones[]     = {false, true,  true,  true,  true,  true,  true};
-constexpr bool  kLevelHasReapers[]    = {false, false, true,  true,  true,  true,  true};
-constexpr bool  kLevelHasCommanders[] = {false, false, false, true,  true,  true,  true};
-constexpr bool  kLevelHasWasps[]      = {false, true,  true,  true,  true,  true,  true};
-constexpr bool  kLevelHasMoths[]      = {false, false, false, false, false, true,  true};
+//                                       1      2      3      4      5      6      7      8      9      10
+constexpr bool  kLevelHasDrones[]     = {false, true,  true,  true,  true,  true,  true,  true,  true,  true};
+constexpr bool  kLevelHasReapers[]    = {false, false, true,  true,  true,  true,  true,  true,  true,  true};
+constexpr bool  kLevelHasCommanders[] = {false, false, false, true,  true,  true,  true,  true,  true,  true};
+constexpr bool  kLevelHasWasps[]      = {false, true,  true,  true,  true,  true,  true,  true,  true,  true};
+constexpr bool  kLevelHasMoths[]      = {false, false, false, false, false, true,  true,  true,  true,  true};
+constexpr bool  kLevelHasMites[]      = {false, false, false, false, false, false, false, true,  true,  true};
 
 // The size of a wave: rows of aliens, from ... to (picked at random).
-constexpr int   kLevelMinRows[] = {2, 2, 3, 3, 3, 4, 4};
-constexpr int   kLevelMaxRows[] = {3, 3, 4, 4, 5, 5, 5};
+constexpr int   kLevelMinRows[] = {2, 2, 3, 3, 3, 4, 4, 4, 4, 5};
+constexpr int   kLevelMaxRows[] = {3, 3, 4, 4, 5, 5, 5, 5, 5, 5};
 
-constexpr float kLevelInvaderSpeed[]  = {4.0f, 4.5f, 5.0f, 5.5f, 6.0f, 6.8f, 7.5f};   // sideways, units/s
-constexpr float kLevelShotInterval[]  = {2.4f, 2.2f, 2.0f, 1.8f, 1.6f, 1.4f, 1.2f};   // seconds between shots
-constexpr float kLevelShotSpeed[]     = {11.0f, 12.0f, 13.0f, 15.0f, 16.0f, 18.0f, 19.0f};
-constexpr float kLevelBombSpeed[]     = {9.0f, 10.0f, 11.0f, 12.0f, 13.0f, 14.0f, 15.0f};
-constexpr float kLevelBombRadius[]    = {0.9f, 1.0f, 1.1f, 1.2f, 1.3f, 1.4f, 1.5f};     // 2D: 30 .. 50 px
+constexpr float kLevelInvaderSpeed[]  = {4.0f, 4.5f, 5.0f, 5.5f, 6.0f, 6.8f, 7.5f, 7.8f, 8.2f, 8.6f};   // sideways, units/s
+constexpr float kLevelShotInterval[]  = {2.4f, 2.2f, 2.0f, 1.8f, 1.6f, 1.4f, 1.2f, 1.15f, 1.05f, 0.95f};   // seconds between shots
+constexpr float kLevelShotSpeed[]     = {11.0f, 12.0f, 13.0f, 15.0f, 16.0f, 18.0f, 19.0f, 19.5f, 20.0f, 21.0f};
+constexpr float kLevelBombSpeed[]     = {9.0f, 10.0f, 11.0f, 12.0f, 13.0f, 14.0f, 15.0f, 15.5f, 16.0f, 17.0f};
+constexpr float kLevelBombRadius[]    = {0.9f, 1.0f, 1.1f, 1.2f, 1.3f, 1.4f, 1.5f, 1.5f, 1.55f, 1.6f};     // 2D: 30 .. 50 px
 // Every level has its own bomb: a new colour, and one more scary effect on top of
 // the previous ones (see Bomb.cpp): pulse, energy ring, spikes, sparks, flicker,
-// and in level 7 a cracked dark core with lightning.
+// and from level 7 on a cracked dark core with lightning.
 constexpr Color kLevelBombColor[] = {
     {253, 249,   0, 255},   // 1 yellow
     { 90, 255,  90, 255},   // 2 green
@@ -238,16 +250,23 @@ constexpr Color kLevelBombColor[] = {
     {255, 140,  30, 255},   // 5 orange
     {255,  50,  40, 255},   // 6 red
     {255,  30,  70, 255},   // 7 crimson
+    {255, 220,  60, 255},   // 8 gold
+    { 80, 220, 255, 255},   // 9 cyan
+    {255,  70, 210, 255},   // 10 hot pink
 };
-constexpr float kLevelDiveInterval[]  = {0.0f, 5.0f, 4.5f, 4.0f, 3.5f, 3.0f, 2.5f};   // 0 = no divers
-constexpr int   kLevelMaxDivers[]     = {0, 1, 1, 1, 2, 2, 3};                         // at the same time
-constexpr int   kLevelShipTier[]      = {0, 0, 0, 1, 1, 2, 2};                         // see "Ship looks"
-constexpr bool  kLevelHeroShip[]      = {false, false, false, false, true, true, true};  // the copper "Claw"
+constexpr float kLevelDiveInterval[]  = {0.0f, 5.0f, 4.5f, 4.0f, 3.5f, 3.0f, 2.5f, 2.4f, 2.2f, 2.0f};   // 0 = no divers
+constexpr int   kLevelMaxDivers[]     = {0, 1, 1, 1, 2, 2, 3, 3, 3, 4};                         // at the same time
+constexpr int   kLevelShipTier[]      = {0, 0, 0, 1, 1, 2, 2, 2, 2, 2};                         // see "Ship looks"
+// Which ship design: 0 = the first ship, 1 = the copper "Claw", 2 = the "Horn"
+// (levels 8, 9, 10 in green, purple and red: kLevelHornColor picks the colour).
+constexpr int   kLevelShipDesign[]    = {0, 0, 0, 0, 1, 1, 1, 2, 2, 2};
+constexpr int   kLevelHornColor[]     = {0, 0, 0, 0, 0, 0, 0, 0, 1, 2};
 
 // The colour mood of each level: the stars are tinted, from cool blue to hot red.
 constexpr Color kLevelStarColor[] = {
     {200, 220, 255, 255}, {150, 200, 255, 255}, {170, 170, 255, 255}, {200, 150, 255, 255},
     {240, 140, 230, 255}, {255, 150, 140, 255}, {255, 110,  90, 255},
+    {150, 255, 190, 255}, {210, 150, 255, 255}, {255, 120, 100, 255},
 };
 
 // std::size(array) counts the entries. If someone adds an 8th level to kLevelCount
@@ -255,7 +274,8 @@ constexpr Color kLevelStarColor[] = {
 static_assert(std::size(kLevelIntro) == kLevelCount, "one intro text per level");
 static_assert(std::size(kLevelHasDrones) == kLevelCount && std::size(kLevelHasReapers) == kLevelCount &&
               std::size(kLevelHasCommanders) == kLevelCount && std::size(kLevelHasWasps) == kLevelCount &&
-              std::size(kLevelHasMoths) == kLevelCount, "alien types: one value per level");
+              std::size(kLevelHasMoths) == kLevelCount && std::size(kLevelHasMites) == kLevelCount,
+              "alien types: one value per level");
 static_assert(std::size(kLevelMinRows) == kLevelCount && std::size(kLevelMaxRows) == kLevelCount,
               "wave size: one value per level");
 static_assert(std::size(kLevelInvaderSpeed) == kLevelCount && std::size(kLevelShotInterval) == kLevelCount &&
@@ -264,7 +284,8 @@ static_assert(std::size(kLevelBombSpeed) == kLevelCount && std::size(kLevelBombR
               std::size(kLevelBombColor) == kLevelCount, "bombs: one value per level");
 static_assert(std::size(kLevelDiveInterval) == kLevelCount && std::size(kLevelMaxDivers) == kLevelCount,
               "divers: one value per level");
-static_assert(std::size(kLevelShipTier) == kLevelCount && std::size(kLevelHeroShip) == kLevelCount &&
+static_assert(std::size(kLevelShipTier) == kLevelCount && std::size(kLevelShipDesign) == kLevelCount &&
+              std::size(kLevelHornColor) == kLevelCount &&
               std::size(kLevelStarColor) == kLevelCount, "ship and star colour: one value per level");
 
 // ---- Ship looks ------------------------------------------------------------------------
@@ -280,10 +301,20 @@ constexpr Color kTierShotColor[kTierCount] = {
     {255,  80, 200, 255},   // hot pink
 };
 
-// The "Claw": a second ship design, flown from level 5 (kLevelHeroShip above). It is
+// The "Claw": a second ship design, flown from level 5 (kLevelShipDesign above). It is
 // a little wider than the first ship.
 constexpr float kHeroHalfWidth = 2.05f;   // outer claw to centre, before the tier scale
 constexpr Color kHeroShotColor{255, 245, 205, 255};  // white-gold: clearly not an alien shot (yellow)
+
+// The "Horn": the third ship design, flown in levels 8 to 10. An arrowhead with two
+// big curved horn-wings, in a new colour each level: green, purple, red. Its rockets
+// have the colour of its glowing parts.
+constexpr int   kHornColorCount = 3;
+constexpr float kHornHalfWidth  = 2.1f;   // horn tip to centre, before the tier scale
+constexpr float kHornHitRadius  = 1.4f;
+constexpr Color kHornMain[kHornColorCount] = {{ 31, 179, 110, 255}, {123,  63, 240, 255}, {215,  42,  58, 255}};
+constexpr Color kHornDark[kHornColorCount] = {{ 13, 102,  64, 255}, { 69,  32, 143, 255}, {126,  18,  32, 255}};
+constexpr Color kHornGlow[kHornColorCount] = {{194, 255,  90, 255}, {240, 124, 255, 255}, {255, 176,  74, 255}};
 
 // ---- Weapons ---------------------------------------------------------------------------
 // The ship has three weapons. It starts every game with the BLASTER; a green SPREAD
@@ -355,16 +386,23 @@ constexpr const char* kFullGameUrl = "";
 // armour costs it 1 hit point; when its core opens (it glows), a hit there costs 3.
 // Below half health it gets angry: it attacks faster and with more shots.
 // kLevelBoss: which boss ends each level (0, 1, 2), or -1 for none.
-constexpr int   kLevelBoss[]     = {-1, -1, 0, -1, 1, -1, 2};
-constexpr int   kBossCount       = 3;
-constexpr const char* kBossName[kBossCount]  = {"HIVE QUEEN", "WAR TITAN", "VOID EMPEROR"};
-constexpr int   kBossHitPoints[kBossCount]   = {100, 200, 300};
-constexpr int   kBossScore[kBossCount]       = {5000, 8000, 12000};
-constexpr float kBossScale[kBossCount]       = {1.3f, 1.45f, 1.6f};   // size of the model
-constexpr float kBossSway[kBossCount]        = {2.6f, 2.0f, 1.5f};    // how far it slides left/right (bigger bosses: less room)
-constexpr float kBossSwaySpeed[kBossCount]   = {0.45f, 0.55f, 0.65f}; // how fast (radians per second)
-constexpr float kBossAttackPause[kBossCount] = {2.2f, 1.8f, 1.5f};    // seconds between attacks
-constexpr float kBossShotSpeed[kBossCount]   = {11.0f, 13.0f, 15.0f};
+constexpr int   kLevelBoss[]     = {-1, -1, 0, -1, 1, -1, 2, 3, 4, 5};
+// Bosses 0-2 are the dome bosses; 3-5 are the crab family with scissor claws (the
+// same crab, bigger and angrier each time, in the colours of its level).
+constexpr int   kBossCount       = 6;
+constexpr int   kFirstCrabBoss   = 3;
+constexpr const char* kBossName[kBossCount]  = {"HIVE QUEEN", "WAR TITAN", "VOID EMPEROR",
+                                                "SHEAR KING", "SHEAR EMPEROR", "CRIMSON TYRANT"};
+constexpr int   kBossHitPoints[kBossCount]   = {100, 200, 300, 380, 470, 580};
+constexpr int   kBossScore[kBossCount]       = {5000, 8000, 12000, 15000, 18000, 25000};
+constexpr float kBossScale[kBossCount]       = {1.3f, 1.45f, 1.6f, 1.45f, 1.6f, 1.75f};   // size of the model
+constexpr float kBossSway[kBossCount]        = {2.6f, 2.0f, 1.5f, 1.6f, 1.3f, 1.0f};    // how far it slides left/right (bigger bosses: less room)
+constexpr float kBossSwaySpeed[kBossCount]   = {0.45f, 0.55f, 0.65f, 0.6f, 0.7f, 0.8f}; // how fast (radians per second)
+constexpr float kBossAttackPause[kBossCount] = {2.2f, 1.8f, 1.5f, 1.6f, 1.4f, 1.2f};    // seconds between attacks
+constexpr float kBossShotSpeed[kBossCount]   = {11.0f, 13.0f, 15.0f, 15.0f, 16.0f, 17.0f};
+// The crabs' scissor claws: how long the blades are (1.0 = the level 8 crab).
+constexpr float kCrabClawSize[kBossCount]    = {0.0f, 0.0f, 0.0f, 1.0f, 1.15f, 1.3f};
+constexpr float kCrabBossZ       = -20.0f;  // the crabs hover further back: their claws reach far forward
 constexpr float kBossRageFactor  = 0.65f;   // angry: attack pauses get this much shorter
 constexpr float kBossZ           = -17.0f;  // where it hovers while fighting
 constexpr float kBossPitch       = -10.0f;  // degrees it leans; negative = its face turns up toward the high camera
@@ -386,10 +424,12 @@ static_assert(std::size(kLevelBoss) == kLevelCount, "bosses: one value per level
 constexpr Color kLevelNebulaA[] = {
     { 40,  60, 160, 255}, { 20, 110, 120, 255}, { 50,  50, 170, 255}, {110,  40, 160, 255},
     {170,  40, 110, 255}, {170,  50,  30, 255}, {160,  20,  50, 255},
+    { 20, 110,  60, 255}, {100,  30, 150, 255}, {170,  25,  30, 255},
 };
 constexpr Color kLevelNebulaB[] = {
     {100,  40, 140, 255}, { 30,  70, 150, 255}, { 20, 120, 160, 255}, {170,  40, 120, 255},
     {190,  90,  40, 255}, {140,  80,  20, 255}, { 70,  10,  90, 255},
+    { 40, 140, 100, 255}, {160,  40, 170, 255}, {190,  70,  20, 255},
 };
 static_assert(std::size(kLevelNebulaA) == kLevelCount && std::size(kLevelNebulaB) == kLevelCount,
               "nebula: two colours per level");

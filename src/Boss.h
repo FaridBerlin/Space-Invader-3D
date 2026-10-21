@@ -68,7 +68,7 @@ public:
 
 private:
     enum class State { Entering, Fighting, Dying };
-    enum class Attack { Fan, Aimed, Bombs, Rain, Spiral };
+    enum class Attack { Fan, Aimed, Bombs, Rain, Spiral, Scissor, EyeRing };
 
     // A shot that waits a moment before it is fired: bursts and rains are
     // a queue of these, so one attack can spread its shots over time.
@@ -80,6 +80,12 @@ private:
     };
 
     void StartAttack(Vector3 player, std::vector<Bomb>& bombs);
+    bool Crab() const;                  // the crab family (bosses 3-5), with scissor claws
+    Vector3 Turret(int side) const;     // where the side guns fire from (a point of the model)
+    Vector3 CoreCenter() const;         // the weak spot (a point of the model)
+    float CoreRadius() const;
+    void DrawCrab(Color shell, Color shellB, Color armour, Color dark, Color glow) const;
+    void DrawCrabClaw(float side, Color armour, Color dark, Color glow) const;
     Vector3 Mouth() const;   // where the shots leave the boss (a point of the model)
     Vector3 ToWorld(Vector3 local) const;   // a point of the model -> a point in the world
     Vector3 ToLocal(Vector3 world) const;   // and back
@@ -102,5 +108,6 @@ private:
     Vector3 position_{};
     float roll_ = 0.0f;        // tilt in degrees while sliding
     float sway_ = 0.0f;        // the side-to-side swing, an angle for sin()
+    float snap_ = 0.0f;        // crabs: > 0 while the scissor claws snap (seconds left)
     std::vector<PendingShot> pending_;
 };
