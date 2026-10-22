@@ -15,6 +15,8 @@
 #include "Invader.h"
 #include "raylib.h"
 
+class GlowRenderer;   // only used by reference, so a forward declaration is enough
+
 // What happened when a rocket hit an alien.
 struct InvaderHit {
     Vector3   position;    // where the alien is (or was)
@@ -57,6 +59,10 @@ public:
     // Chain lightning: the alien nearest to "from" within "range", leaving out the
     // ones at the positions in "skip" (those were already hit by this chain).
     std::optional<Vector3> NearestAlien(Vector3 from, float range, const std::vector<Vector3>& skip) const;
+
+    // The soft halo behind every alien, in the level's glow colour, so the aliens
+    // stand out from the dark background. Call between glow.Begin() and glow.End().
+    void DrawGlow(const GlowRenderer& glow, const Camera3D& camera) const;
 
     bool Empty() const { return invaders_.empty(); }
     int  Count() const { return static_cast<int>(invaders_.size()); }

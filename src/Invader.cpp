@@ -42,36 +42,37 @@ struct ScarabStyle {
 // The Scarab as designed. In the game its colours come from the level (see
 // kLevelAlienColors below); only its size is taken from here.
 constexpr ScarabStyle kScarabStyle{
-    { 95,  60, 150, 255},   // violet
-    { 40,  25,  70, 255},   // very dark violet
-    { 80,  48, 125, 255},
+    {191, 132, 255, 255},   // violet
+    { 96,  66, 128, 255},   // dark violet
+    {162, 112, 217, 255},
     {160, 255,  60, 255},   // lime green
     0.94f,
 };
 
 // Used for the commander when its model file is missing: bigger, red-violet and gold.
 constexpr ScarabStyle kCommanderFallbackStyle{
-    {130,  45,  80, 255},
-    { 50,  20,  35, 255},
-    {110,  40,  70, 255},
+    {225,  80, 140, 255},   // bright red-violet (it was too dark on phones)
+    {120,  45,  80, 255},
+    {195,  70, 120, 255},
     {255, 200,  60, 255},   // gold
     1.30f,
 };
 
 // ---- Colours per level ----------------------------------------------------------------
 // Body and glow colour of the wave in each level. Chosen so the glow never looks
-// like that level's bomb (see kLevelBombColor in Config.h).
+// like that level's bomb (see kLevelBombColor in Config.h). The body colours are
+// light on purpose: the background is dark, and the aliens must stand out from it.
 constexpr LevelAlienColors kLevelAlienColors[] = {
-    {{ 95,  60, 150, 255}, {160, 255,  60, 255}},   // 1 violet and lime
-    {{ 35, 115, 135, 255}, {255, 205,  70, 255}},   // 2 teal and gold
-    {{ 45,  60, 160, 255}, {255, 160,  60, 255}},   // 3 navy and orange
-    {{ 35, 100,  60, 255}, {255, 110, 200, 255}},   // 4 dark green and pink
-    {{110,  35,  70, 255}, { 80, 240, 220, 255}},   // 5 maroon and aqua
-    {{130,  80,  35, 255}, {255, 240, 170, 255}},   // 6 bronze and white-gold
-    {{ 62,  44,  70, 255}, {255,  40,  70, 255}},   // 7 near-black and crimson
-    {{ 88, 104, 118, 255}, { 90, 255, 150, 255}},   // 8 gunmetal and green (the green crab)
-    {{100,  62, 128, 255}, {255,  60, 110, 255}},   // 9 purple and crimson (the purple crab)
-    {{150,  36,  46, 255}, {255, 190,  60, 255}},   // 10 red and gold (the red crab)
+    {{191, 132, 255, 255}, {160, 255,  60, 255}},   // 1 violet and lime
+    {{ 89, 210, 235, 255}, {255, 205,  70, 255}},   // 2 teal and gold
+    {{106, 132, 255, 255}, {255, 160,  60, 255}},   // 3 blue and orange
+    {{ 89, 200, 132, 255}, {255, 110, 200, 255}},   // 4 green and pink
+    {{217,  89, 149, 255}, { 80, 240, 220, 255}},   // 5 raspberry and aqua
+    {{251, 166,  89, 255}, {255, 240, 170, 255}},   // 6 bronze and white-gold
+    {{160, 125, 178, 255}, {255,  40,  70, 255}},   // 7 dusky violet and crimson
+    {{180, 207, 230, 255}, { 90, 255, 150, 255}},   // 8 silver and green (the green crab)
+    {{200, 135, 248, 255}, {255,  60, 110, 255}},   // 9 purple and crimson (the purple crab)
+    {{255,  91, 108, 255}, {255, 190,  60, 255}},   // 10 red and gold (the red crab)
 };
 static_assert(std::size(kLevelAlienColors) == static_cast<std::size_t>(config::kLevelCount),
               "one alien colour scheme per level");
@@ -222,7 +223,7 @@ void DrawScarab(const ScarabStyle& style, float flash, float pulse, float claws)
     }
 
     // ---- The glowing core, pulsing between lime and white ---------------------------
-    DrawSphereEx(Vector3{0.0f, -0.05f, 0.42f}, 0.10f, 8, 8, Mix(lines, white, 0.5f * pulse));
+    DrawSphereEx(Vector3{0.0f, -0.05f, 0.42f}, 0.14f, 8, 8, Mix(lines, white, 0.3f + 0.5f * pulse));
 
     // ---- The claws, each turning around its root to open and close ------------------
     for (const float side : {-1.0f, 1.0f}) {
@@ -304,7 +305,7 @@ void DrawReaper(float flash, float pulse, float wings, Color metal, Color stripe
         for (const float y : {0.02f, -0.28f, -0.56f}) {
             const float x = edgePoint(y, side).x + side * 0.06f;   // sitting on the body's edge
             DrawSphereEx(Vector3{x, y, 0.0f}, 0.10f, 6, 6, back);
-            DrawSphereEx(Vector3{x, y, 0.08f}, 0.05f, 6, 6, glow);
+            DrawSphereEx(Vector3{x, y, 0.08f}, 0.07f, 6, 6, glow);
         }
     }
 }
@@ -428,7 +429,7 @@ void DrawWasp(float flash, float beat, Color body, Color glow) {
 
     // Two glowing eyes on the head, and two antennae.
     for (const float side : {-1.0f, 1.0f}) {
-        DrawSphereEx(Vector3{side * 0.09f, 0.52f, 0.12f}, 0.055f, 6, 6, Mix(glow, white, 0.4f));
+        DrawSphereEx(Vector3{side * 0.09f, 0.52f, 0.12f}, 0.075f, 6, 6, Mix(glow, white, 0.4f));
         DrawLine3D(Vector3{side * 0.05f, 0.60f, 0.08f}, Vector3{side * 0.16f, 0.80f, 0.10f}, stripe);
         DrawLine3D(Vector3{side * 0.16f, 0.80f, 0.10f}, Vector3{side * 0.30f, 0.86f, 0.10f}, stripe);
     }
@@ -467,7 +468,7 @@ void DrawMoth(float flash, float beat, Color body, Color glow) {
     const Color bodyColors[] = {fur, furB};
     DrawLathe(profile, 7, bodyColors, 2);
     for (const float side : {-1.0f, 1.0f}) {
-        DrawSphereEx(Vector3{side * 0.10f, 0.40f, 0.12f}, 0.06f, 6, 6, Mix(spot, white, 0.3f));   // eyes
+        DrawSphereEx(Vector3{side * 0.10f, 0.40f, 0.12f}, 0.08f, 6, 6, Mix(spot, white, 0.3f));   // eyes
         // Feathery antennae: a curved line with little side hairs.
         const Vector3 a{side * 0.06f, 0.48f, 0.05f};
         const Vector3 b{side * 0.30f, 0.82f, 0.05f};
@@ -499,7 +500,7 @@ void DrawMoth(float flash, float beat, Color body, Color glow) {
         const Vector3 eye{side * 0.78f, 0.36f, 0.03f};
         DrawCircle3D(eye, 0.17f, Vector3{0.0f, 1.0f, 0.0f}, 0.0f, spot);
         DrawCircle3D(eye, 0.12f, Vector3{0.0f, 1.0f, 0.0f}, 0.0f, Fade(spot, 0.6f));
-        DrawSphereEx(eye, 0.06f, 6, 6, Mix(spot, white, 0.5f));
+        DrawSphereEx(eye, 0.08f, 6, 6, Mix(spot, white, 0.5f));
         rlPopMatrix();
     }
 }
@@ -607,6 +608,10 @@ void Invader::Draw(float time, const Model* commanderModel, int level) const {
     // the rows in front. (Only the picture moves; the hit area stays where it is.)
     const float hover = (type == AlienType::Commander) ? config::kCommanderHover : 0.0f;
 
+    // Aliens keep more light on their shadow side, so they stand out from the dark
+    // background (back to normal when this function ends, see ShadowLightScope).
+    const lowpoly::ShadowLightScope brightShadows(config::kAlienShadowLight);
+
     rlPushMatrix();
     rlTranslatef(position.x, position.y + bob + hover, position.z);
     rlRotatef(roll, 0.0f, 0.0f, 1.0f);   // divers tilt into their curve
@@ -628,7 +633,7 @@ void Invader::Draw(float time, const Model* commanderModel, int level) const {
         const float pulse = 0.5f + 0.5f * std::sin(time * 5.0f + position.x);
         const float wings = 6.0f * std::sin(time * 2.5f + position.x * 0.5f);   // degrees
         // The armour: the level's body colour mixed with grey metal, so it still looks armoured.
-        DrawReaper(flashAmount, pulse, wings, Mix(palette.body, Color{92, 92, 108, 255}, 0.45f), palette.glow);
+        DrawReaper(flashAmount, pulse, wings, Mix(palette.body, Color{150, 150, 168, 255}, 0.45f), palette.glow);
     } else if (type == AlienType::Wasp) {
         // Wings beat fast: 22 times a second, a little out of step between wasps.
         rlScalef(config::kWaspScale, config::kWaspScale, config::kWaspScale);
@@ -646,7 +651,7 @@ void Invader::Draw(float time, const Model* commanderModel, int level) const {
                   palette.glow);   // the crystal glows in the level's bright colour
     } else {
         // The Scarab takes the level's colours; the commander keeps its gold.
-        const ScarabStyle levelScarab{palette.body, Darker(palette.body, 0.42f),
+        const ScarabStyle levelScarab{palette.body, Darker(palette.body, 0.5f),
                                       Darker(palette.body, 0.85f), palette.glow, kScarabStyle.scale};
         const ScarabStyle& style =
             (type == AlienType::Commander) ? kCommanderFallbackStyle : levelScarab;

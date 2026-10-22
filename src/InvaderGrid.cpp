@@ -9,6 +9,7 @@
 #include <limits>
 
 #include "Config.h"
+#include "GlowRenderer.h"
 #include "Random.h"
 #include "raymath.h"   // Vector3Add, Vector3Lerp, ...
 
@@ -476,4 +477,12 @@ std::optional<Vector3> InvaderGrid::NearestAlien(Vector3 from, float range,
         }
     }
     return nearest;
+}
+
+void InvaderGrid::DrawGlow(const GlowRenderer& glow, const Camera3D& camera) const {
+    const Color color = Fade(AlienColorsForLevel(level_).glow, config::kAlienHaloAlpha);
+    for (const auto& invader : invaders_) {
+        if (invader.position.z < -config::kFieldLength) continue;   // still far away, flying in
+        glow.Draw(camera, invader.position, invader.Radius() * config::kAlienHaloSize, color);
+    }
 }
