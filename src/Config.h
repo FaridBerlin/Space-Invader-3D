@@ -142,6 +142,14 @@ constexpr float kInvaderReachZ     = -2.5f;    // an invader this close to the s
 constexpr float kAlienScale    = 1.35f;
 constexpr float kAlienFaceTilt = 30.0f;   // degrees
 
+// Making the aliens easy to see, even on a dim phone screen:
+// - the sides of an alien that face away from the lamp keep this much light
+//   (0.35 for everything else, see lowpoly::kDefaultShadowLight)
+// - a soft halo in the level's glow colour sits behind every alien, like the orbs
+constexpr float kAlienShadowLight = 0.6f;
+constexpr float kAlienHaloSize    = 2.6f;    // times the alien's hit radius
+constexpr float kAlienHaloAlpha   = 0.22f;   // 0 = no halo, 1 = full brightness
+
 // ---- Alien types -----------------------------------------------------------------
 // The rows of a wave, front to back: Scarabs, Wasps, Reapers, Moths, and Drones with
 // the Commanders in the back row (only the types the level has, see "Levels").

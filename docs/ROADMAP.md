@@ -96,7 +96,9 @@ Each step is its own branch and ends with something you can play.
    - [x] Three crab bosses with giant scissor claws (green, purple, red), new scissor and eye-ring attacks
    - [x] A third ship, the Horn, in green, purple and red; the Shear Mite alien
    - [x] 10 levels, new colours, bombs and nebula for levels 8-10
-7. **Google Play release**
+7. **Brighter aliens**
+   - [x] Light body colours, brighter shadow sides, bigger glowing eyes, a soft halo behind every alien
+8. **Google Play release**
    - [ ] Signed app bundle (.aab), store page, screenshots of the new portrait game
    - [ ] Closed test (12 testers, 14 days), then the paid release
 

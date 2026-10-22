@@ -141,6 +141,12 @@ Neon low-poly on a dark space background: unlit or simply lit colourful meshes, 
 and explosions, a starfield of points streaming past the camera (replaces the scrolling white dots), 3D particle
 bursts that fade out (replaces the 2D fading circles). Bloom/glow via a post-process shader is a later learning step.
 
+**Aliens must stand out** from the dark background, also on a dim phone or tablet screen (play tests showed
+the first, dark alien colours were hard to see on Android). So: light body colours in every level, more light
+on the shadow side of the aliens (`kAlienShadowLight` 0.6 instead of 0.35), bigger glowing eyes and cores, and
+a soft halo in the level's glow colour behind every alien, like the power-up orbs (`kAlienHaloSize`,
+`kAlienHaloAlpha`). The bosses use the same light body colours.
+
 ### UI
 Drawn with raylib's 2D functions on top of the 3D scene, scaled with the window height:
 

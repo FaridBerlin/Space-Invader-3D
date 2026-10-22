@@ -1365,6 +1365,7 @@ void Game::Draw() const {
             const float factor = config::kBombGlowNearFactor + (1.0f - config::kBombGlowNearFactor) * closeness;
             glow_.Draw(camera_, bomb.position, bomb.GlowSize(time_) * factor, bomb.color);
         }
+        invaders_.DrawGlow(glow_, camera_);   // a soft halo behind every alien
         for (const auto& powerUp : powerUps_) {
             glow_.Draw(camera_, powerUp.position, config::kPowerUpOrbSize * 3.6f, powerUp.MainColor());
         }

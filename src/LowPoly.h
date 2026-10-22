@@ -25,6 +25,25 @@ void DrawQuadFace(Vector3 a, Vector3 b, Vector3 c, Vector3 d, Color base, Vector
 // the origin: the middle of a face points away from the centre.
 Vector3 Mid(Vector3 a, Vector3 b, Vector3 c);
 
+// How bright a face is that points AWAY from the lamp (0 = black, 1 = as bright
+// as its colour). The default is kDefaultShadowLight. The aliens use more (see
+// config::kAlienShadowLight), so they never sink into the dark background.
+// Set it before drawing and set it back afterwards (ShadowLightScope does both).
+constexpr float kDefaultShadowLight = 0.35f;
+void SetShadowLight(float light);
+
+// Sets the shadow light for as long as this object lives, then puts the old
+// value back. Use it like:  { lowpoly::ShadowLightScope bright(0.6f); ...draw... }
+class ShadowLightScope {
+public:
+    explicit ShadowLightScope(float light);
+    ~ShadowLightScope();
+    ShadowLightScope(const ShadowLightScope&) = delete;             // no copies:
+    ShadowLightScope& operator=(const ShadowLightScope&) = delete;  // only one may restore
+private:
+    float previous_;
+};
+
 // Blends colour a toward colour b. t = 0 gives a, t = 1 gives b.
 Color Mix(Color a, Color b, float t);
 
