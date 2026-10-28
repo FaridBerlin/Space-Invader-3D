@@ -134,7 +134,7 @@ private:
     int   level_           = 0;      // 0-based index into the level tables (shown as level_ + 1)
     int   wave_            = 0;      // 0-based wave within the level (beyond the last level: keeps counting)
     float levelBannerTimer_ = 0.0f;  // seconds left to show the big banner ("LEVEL 3")
-    float waveBannerTimer_ = 0.0f;   // seconds left to show "WAVE 2 / 3"
+    float waveBannerTimer_ = 0.0f;   // seconds left to show "WAVE 2 / 4"
     std::string bannerTitle_;        // the big banner's text ...
     std::string bannerSubtitle_;     // ... and the line under it
     float fireCooldown_    = 0.0f;   // seconds until the next rocket may be fired

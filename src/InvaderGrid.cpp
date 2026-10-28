@@ -64,7 +64,7 @@ void InvaderGrid::Respawn(int level, int wave) {
     // leave too few aliens (a small grid) falls back to the block.
     constexpr Shape kShapes[] = {Shape::Block, Shape::Arrow, Shape::Diamond, Shape::Pincer, Shape::Checker,
                                  Shape::Chevron};
-    Shape shape = kShapes[(level * 3 + wave) % 6];
+    Shape shape = kShapes[(level * config::kWavesPerLevel + wave) % 6];
     int kept = 0;
     for (int row = 0; row < rows; ++row) {
         for (int col = 0; col < columns; ++col) kept += InShape(shape, row, col, rows, columns) ? 1 : 0;

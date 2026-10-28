@@ -154,17 +154,23 @@ constexpr float kAlienHaloAlpha   = 0.22f;   // 0 = no halo, 1 = full brightness
 // The rows of a wave, front to back: Scarabs, Wasps, Reapers, Moths, and Drones with
 // the Commanders in the back row (only the types the level has, see "Levels").
 //   Wasp   a striped insect with fast wings; it likes to dive (kWaspDiveWeight)
-//   Moth   a big soft insect with eye-spots on its wings; 2 hits, often drops an orb
+//   Moth   a big soft insect with eye-spots on its wings; tough, often drops an orb
 //   Mite   a small armoured crab with scissor claws (level 8+); it shoots a lot
-// Most aliens are Scarabs (one hit). Commanders sit in the back row: bigger,
-// three hits, more points. A commander is drawn with a 3D model file when
+// Most aliens are Scarabs. Commanders sit in the back row: bigger, tougher, more
+// points. A commander is drawn with a 3D model file when
 // assets/models/commander.glb exists, otherwise with a built-in look.
+//
+// Hit points: how many hits (rockets, or laser ticks) an alien takes. Every hit
+// that does not kill makes the alien flash and spray sparks, so you see it counted.
+// Several hits per alien make the levels longer and the aliens easier to see.
+constexpr int   kAlienHitPoints      = 3;       // Scarab, Wasp, Drone, Reaper, Mite
+constexpr int   kMothHitPoints       = 6;
+constexpr int   kCommanderHitPoints  = 8;
 constexpr int   kScorePerReaper      = 200;
 constexpr int   kScorePerDrone       = 150;
 constexpr int   kScorePerCommander   = 500;
 constexpr int   kScorePerWasp        = 150;
 constexpr int   kScorePerMoth        = 250;
-constexpr int   kMothHitPoints       = 2;
 constexpr int   kScorePerMite        = 180;
 constexpr float kMiteRadius          = 0.8f;
 constexpr int   kMiteShotWeight      = 2;       // a Mite is 2x as likely to be the next shooter
@@ -178,7 +184,6 @@ constexpr float kWaspScale           = 0.9f;
 constexpr float kMothScale           = 0.78f;   // its wings are wide: smaller, so neighbours do not overlap
 constexpr float kDroneRadius         = 0.75f;   // collision sphere of a Drone
 constexpr int   kReaperShotWeight    = 3;       // a Reaper is 3x as likely to be the next shooter
-constexpr int   kCommanderHitPoints  = 3;
 constexpr int   kCommandersPerWave   = 2;       // when the wave is wide enough, else 1
 constexpr float kCommanderRadius     = 1.2f;    // collision sphere (Scarab: kInvaderRadius)
 constexpr float kHitFlashTime        = 0.15f;   // seconds an alien lights up after a hit
@@ -193,7 +198,7 @@ constexpr float kInvaderShotRadius   = 0.25f;  // collision sphere of a shot
 constexpr float kInvaderShotDespawnZ = 14.0f;  // shots that fly past the ship are removed here (off-screen)
 
 // ---- Levels --------------------------------------------------------------------------
-// Ten levels of three waves each. A level ends when its third wave is destroyed;
+// Ten levels of four waves each. A level ends when its last wave is destroyed;
 // after level 10 the game goes on with endless bonus waves. Every level adds ONE new
 // thing, so the player keeps discovering something:
 //
@@ -211,9 +216,9 @@ constexpr float kInvaderShotDespawnZ = 14.0f;  // shots that fly past the ship a
 // Every table below has one value per level. Arrays are indexed from 0: level 1 is
 // index 0. The static_asserts at the end check that no table misses a level.
 constexpr int   kLevelCount    = 10;
-constexpr int   kWavesPerLevel = 3;
+constexpr int   kWavesPerLevel = 4;   // (was 3: the levels felt too short)
 constexpr float kLevelBannerTime = 3.0f;   // seconds the "LEVEL 2" banner stays on screen
-constexpr float kWaveBannerTime  = 1.4f;   // ... and the smaller "WAVE 2 / 3"
+constexpr float kWaveBannerTime  = 1.4f;   // ... and the smaller "WAVE 2 / 4"
 constexpr int   kAllLevelsBonus  = 20000;  // points for clearing the last level
 
 constexpr const char* kLevelIntro[] = {
@@ -483,7 +488,7 @@ constexpr float kComboWindow      = 1.5f;    // seconds to the next kill before 
 constexpr int   kComboStep        = 5;       // kills per +1 multiplier: x2 from the 6th kill
 constexpr int   kComboMaxMultiplier = 4;
 // Wave-clear bonus: points for a fast wave, and extra for not losing a ship.
-constexpr float kWaveParPerAlien  = 1.0f;    // "par time" of a wave: 1 second per alien
+constexpr float kWaveParPerAlien  = 2.5f;    // "par time" of a wave: 2.5 seconds per alien (they take 3 hits)
 constexpr int   kSpeedBonusPerSecond = 25;   // points per second faster than par
 constexpr int   kNoHitBonus       = 1000;    // no ship lost in this wave
 constexpr float kBonusTextTime    = 1.6f;    // seconds the bonus text shows (the pause before the next wave)

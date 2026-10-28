@@ -59,6 +59,7 @@ Each milestone ends with something you can run, and a short note on what it teac
 - [x] Screen shake on hits, combo bonus, wave-clear bonus
 - [x] Music: menu, level and boss tracks with cross-fades
 - [x] Nebula background that changes per level (our second shader, rendered at 1/16 of the pixels)
+- [x] First balance pass after play tests: aliens take 3 hits (Moths 6, Commanders 8), 4 waves per level
 - [ ] Balance the level numbers after real play tests
 
 ## M8 - Android
