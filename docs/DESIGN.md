@@ -112,12 +112,12 @@ types the level has; extra rows are Scarabs).
 
 | Alien | Points | From level | What it does |
 |---|---|---|---|
-| Scarab | 100 | 1 | the front rows |
+| Scarab | 100 | 1 | the front rows. Like the Wasp, Drone, Reaper and Mite it takes **3 hits** |
 | Wasp | 150 | 2 | a striped insect with buzzing wings; dives 3x as often as the others |
 | Drone | 150 | 2 | the back row, a spinning crystal |
 | Reaper | 200 | 3 | the middle rows, shoots more often than the others |
-| Commander | 500 | 4 | back row, needs 3 hits, always drops a power-up |
-| Moth | 250 | 6 | a big insect with glowing eye-spots on its wings; 2 hits, drops an orb 30% of the time |
+| Commander | 500 | 4 | back row, needs 8 hits, always drops a power-up |
+| Moth | 250 | 6 | a big insect with glowing eye-spots on its wings; 6 hits, drops an orb 30% of the time |
 | Shear Mite | 180 | 8 | a small armoured crab with snapping scissor claws (the crab bosses' cousin); the front row, shoots a lot |
 
 **Divers:** every few seconds one alien leaves the wave and swoops at the player in an S-curve. If it hits the
@@ -158,8 +158,10 @@ Drawn with raylib's 2D functions on top of the 3D scene, scaled with the window 
 
 ## 4. Difficulty and levels
 
-**10 levels of 3 waves each.** A wave is cleared when all its aliens are destroyed; after the third wave the next
-level starts. Levels 3, 5, 7, 8, 9 and 10 end with a **boss** (see below). After level 10: +20,000 points and endless
+**10 levels of 4 waves each.** A wave is cleared when all its aliens are destroyed; after the fourth wave the next
+level starts. Play tests showed the levels were too short (an alien died from one hit, a level took about a
+minute), so the aliens now take 3 hits (Moths 6, Commanders 8) and every level has 4 waves instead of 3: a
+level lasts about two to three times as long, and the aliens stay on screen long enough to be seen. Levels 3, 5, 7, 8, 9 and 10 end with a **boss** (see below). After level 10: +20,000 points and endless
 bonus waves at level 10 strength. All numbers live in
 the "Levels" section of `src/Config.h`, one table entry per level.
 

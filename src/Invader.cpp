@@ -578,7 +578,7 @@ Invader::Invader(Vector3 start, AlienType alienType)
       type(alienType),
       hitPoints(alienType == AlienType::Commander ? config::kCommanderHitPoints
                 : alienType == AlienType::Moth   ? config::kMothHitPoints
-                                                 : 1) {}
+                                                 : config::kAlienHitPoints) {}
 
 void Invader::Update(float dt) {
     if (flash > 0.0f) {

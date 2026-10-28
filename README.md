@@ -43,7 +43,7 @@ and the Void Emperor.
 
 - Waves of invaders sweep sideways and step toward you. Shoot them before they reach you. They shoot back.
 - Seven alien types: **Scarabs** (100), striped **Wasps** (150, dive a lot), crystal **Drones** (150), **Shear Mites**
-  (180, little crabs), **Reapers** (200, shoot more often), big **Moths** (250, two hits) and **Commanders** (500, three hits). Every few seconds
+  (180, little crabs), **Reapers** (200, shoot more often), big **Moths** (250, six hits) and **Commanders** (500, eight hits). The smaller aliens take three hits each. Every few seconds
   one alien **dives** at you in an S-curve.
 - Every wave **flies in** along curved paths, in changing **formations** (block, arrow, diamond, pincer, ...).
 - **3 lives** (up to 5), and your **high score** is saved (on desktop and in the browser).
@@ -60,7 +60,7 @@ and the Void Emperor.
   **Void Emperor**, each with a health bar, its own attack patterns and a core that opens for triple damage.
   Then the **crab family** ends levels 8, 9 and 10: the green **Shear King**, the purple **Shear Emperor** and the
   red **Crimson Tyrant**, armoured crabs with giant snapping **scissor claws**, each bigger than the last.
-- **10 levels of 3 waves each.** Every level adds something new (Drones, divers, Reapers, Commanders, Moths,
+- **10 levels of 4 waves each.** Every level adds something new (Drones, divers, Reapers, Commanders, Moths,
   Shear Mites, new ships), gets faster and has its own colours: the aliens, the bombs and the stars change with
   every level. After level 10: a bonus and endless bonus waves.
 - Particle explosions, a streaming starfield over a drifting **nebula** in each level's colours, glowing
