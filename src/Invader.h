@@ -40,7 +40,8 @@ enum class DiveState {
 struct Invader {
     Vector3   position;    // centre of the alien in world space
     AlienType type;
-    int       hitPoints;   // how many rocket hits it can still take
+    int       hitPoints;      // how many hits it can still take
+    int       maxHitPoints;   // how many it had when it was new (for the damage look)
     float     flash = 0.0f;   // > 0 right after a hit: the alien lights up briefly
 
     // Diving. Only InvaderGrid changes these.
@@ -59,7 +60,11 @@ struct Invader {
     Vector3   entryPull1{};
     Vector3   entryPull2{};
 
-    Invader(Vector3 start, AlienType alienType);
+    // level (0-based) decides how tough it is, see config::kLevelAlienHitPoints.
+    Invader(Vector3 start, AlienType alienType, int level);
+
+    // 0 = unhurt .. almost 1 = nearly destroyed.
+    float Damage() const;
 
     // Counts down the hit flash.
     void Update(float dt);

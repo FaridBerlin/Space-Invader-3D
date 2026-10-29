@@ -127,7 +127,7 @@ void InvaderGrid::Respawn(int level, int wave) {
                 type = rowTypes[static_cast<std::size_t>(row)];
             }
             // emplace_back builds the Invader directly inside the vector.
-            invaders_.emplace_back(Vector3{x, config::kInvaderHeight, z}, type);
+            invaders_.emplace_back(Vector3{x, config::kInvaderHeight, z}, type, level);
         }
     }
 
@@ -480,9 +480,11 @@ std::optional<Vector3> InvaderGrid::NearestAlien(Vector3 from, float range,
 }
 
 void InvaderGrid::DrawGlow(const GlowRenderer& glow, const Camera3D& camera) const {
-    const Color color = Fade(AlienColorsForLevel(level_).glow, config::kAlienHaloAlpha);
+    const Color color = AlienColorsForLevel(level_).glow;
     for (const auto& invader : invaders_) {
         if (invader.position.z < -config::kFieldLength) continue;   // still far away, flying in
-        glow.Draw(camera, invader.position, invader.Radius() * config::kAlienHaloSize, color);
+        // The halo fades as the alien gets damaged (down to a third of its brightness).
+        const float alpha = config::kAlienHaloAlpha * (1.0f - 0.66f * invader.Damage());
+        glow.Draw(camera, invader.position, invader.Radius() * config::kAlienHaloSize, Fade(color, alpha));
     }
 }

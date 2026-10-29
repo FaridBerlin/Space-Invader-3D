@@ -160,12 +160,18 @@ constexpr float kAlienHaloAlpha   = 0.22f;   // 0 = no halo, 1 = full brightness
 // points. A commander is drawn with a 3D model file when
 // assets/models/commander.glb exists, otherwise with a built-in look.
 //
-// Hit points: how many hits (rockets, or laser ticks) an alien takes. Every hit
-// that does not kill makes the alien flash and spray sparks, so you see it counted.
-// Several hits per alien make the levels longer and the aliens easier to see.
-constexpr int   kAlienHitPoints      = 3;       // Scarab, Wasp, Drone, Reaper, Mite
-constexpr int   kMothHitPoints       = 6;
-constexpr int   kCommanderHitPoints  = 8;
+// Hit points: how many hits (rockets, or laser ticks) an alien takes. They grow
+// from level to level (kLevelAlienHitPoints, see "Levels"): the tougher aliens
+// and the stronger weapons (orbs) belong together. Moths and Commanders are this
+// many times tougher than the normal aliens of the level (rounded).
+// Every hit that does not kill makes the alien flash and spray sparks, and a
+// damaged alien gets darker and its halo fades, so you see how close it is to dying.
+constexpr float kMothToughness       = 2.0f;
+constexpr float kCommanderToughness  = 2.5f;
+constexpr float kDamageDarken        = 0.45f;   // a nearly dead alien is this much darker
+// Points: every hit that does not kill also gives a few points, so tough aliens
+// pay off while you work on them.
+constexpr int   kScorePerHit         = 20;
 constexpr int   kScorePerReaper      = 200;
 constexpr int   kScorePerDrone       = 150;
 constexpr int   kScorePerCommander   = 500;
@@ -243,6 +249,14 @@ constexpr bool  kLevelHasWasps[]      = {false, true,  true,  true,  true,  true
 constexpr bool  kLevelHasMoths[]      = {false, false, false, false, false, true,  true,  true,  true,  true};
 constexpr bool  kLevelHasMites[]      = {false, false, false, false, false, false, false, true,  true,  true};
 
+// How many hits a normal alien takes in each level (Moths and Commanders: see
+// kMothToughness / kCommanderToughness).
+//                                        1  2  3  4  5  6  7  8  9  10
+constexpr int   kLevelAlienHitPoints[] = {3, 4, 5, 5, 6, 6, 7, 7, 7, 7};
+// The weapon level never drops below this in a level (a lost ship costs one weapon
+// level, see "Weapons"), so you never face tough aliens with a single gun.
+constexpr int   kLevelMinWeapon[]      = {1, 1, 1, 2, 2, 2, 3, 3, 3, 3};
+
 // The size of a wave: rows of aliens, from ... to (picked at random).
 constexpr int   kLevelMinRows[] = {2, 2, 3, 3, 3, 4, 4, 4, 4, 5};
 constexpr int   kLevelMaxRows[] = {3, 3, 4, 4, 5, 5, 5, 5, 5, 5};
@@ -300,6 +314,8 @@ static_assert(std::size(kLevelDiveInterval) == kLevelCount && std::size(kLevelMa
 static_assert(std::size(kLevelShipTier) == kLevelCount && std::size(kLevelShipDesign) == kLevelCount &&
               std::size(kLevelHornColor) == kLevelCount &&
               std::size(kLevelStarColor) == kLevelCount, "ship and star colour: one value per level");
+static_assert(std::size(kLevelAlienHitPoints) == kLevelCount && std::size(kLevelMinWeapon) == kLevelCount,
+              "alien hit points and minimum weapon level: one value per level");
 
 // ---- Ship looks ------------------------------------------------------------------------
 // The ship has three looks ("tiers"); kLevelShipTier above says which level gets which.
@@ -491,6 +507,7 @@ constexpr int   kComboMaxMultiplier = 4;
 constexpr float kWaveParPerAlien  = 2.5f;    // "par time" of a wave: 2.5 seconds per alien (they take 3 hits)
 constexpr int   kSpeedBonusPerSecond = 25;   // points per second faster than par
 constexpr int   kNoHitBonus       = 1000;    // no ship lost in this wave
+constexpr int   kLevelClearBonus  = 12000;   // for every cleared level (paid by the last wave, or the boss)
 constexpr float kBonusTextTime    = 1.6f;    // seconds the bonus text shows (the pause before the next wave)
 // Bomb glow: smaller near the ship, so a big bomb never hides it.
 constexpr float kBombGlowNearDistance = 7.0f;   // closer than this the glow shrinks ...
