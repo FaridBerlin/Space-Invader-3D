@@ -573,12 +573,28 @@ LevelAlienColors AlienColorsForLevel(int level) {
     return kLevelAlienColors[std::clamp(level, 0, config::kLevelCount - 1)];
 }
 
-Invader::Invader(Vector3 start, AlienType alienType)
+namespace {
+
+// How many hits an alien of this type takes in this level (0-based).
+int HitPointsFor(AlienType type, int level) {
+    const int normal = config::kLevelAlienHitPoints[std::clamp(level, 0, config::kLevelCount - 1)];
+    float toughness = 1.0f;
+    if (type == AlienType::Moth)      toughness = config::kMothToughness;
+    if (type == AlienType::Commander) toughness = config::kCommanderToughness;
+    return static_cast<int>(std::lround(static_cast<float>(normal) * toughness));
+}
+
+}  // namespace
+
+Invader::Invader(Vector3 start, AlienType alienType, int level)
     : position(start),
       type(alienType),
-      hitPoints(alienType == AlienType::Commander ? config::kCommanderHitPoints
-                : alienType == AlienType::Moth   ? config::kMothHitPoints
-                                                 : config::kAlienHitPoints) {}
+      hitPoints(HitPointsFor(alienType, level)),
+      maxHitPoints(hitPoints) {}
+
+float Invader::Damage() const {
+    return 1.0f - static_cast<float>(hitPoints) / static_cast<float>(maxHitPoints);
+}
 
 void Invader::Update(float dt) {
     if (flash > 0.0f) {
@@ -598,7 +614,10 @@ float Invader::Radius() const {
 }
 
 void Invader::Draw(float time, const Model* commanderModel, int level) const {
-    const LevelAlienColors palette = AlienColorsForLevel(level);
+    // A damaged alien gets darker, step by step with every hit, so you can see
+    // which ones are nearly finished.
+    LevelAlienColors palette = AlienColorsForLevel(level);
+    palette.body = Darker(palette.body, 1.0f - config::kDamageDarken * Damage());
     // Bob up and down. Adding position.x to the angle makes neighbours move
     // out of step, so the wave looks like it is wobbling, not like a block.
     const float bob = 0.12f * std::sin(time * 4.0f + position.x);
@@ -626,7 +645,8 @@ void Invader::Draw(float time, const Model* commanderModel, int level) const {
         // down toward the player. Then we tilt it 17 degrees toward the camera.
         rlRotatef(163.0f, 1.0f, 0.0f, 0.0f);
         // A hit tints the model red for a moment ("tint" multiplies every colour).
-        const Color tint = Mix(Color{255, 255, 255, 255}, Color{255, 90, 90, 255}, flashAmount);
+        const Color unhurt = Darker(Color{255, 255, 255, 255}, 1.0f - config::kDamageDarken * Damage());
+        const Color tint = Mix(unhurt, Color{255, 90, 90, 255}, flashAmount);
         DrawModel(*commanderModel, Vector3{0.0f, 0.0f, 0.0f}, config::kCommanderModelScale, tint);
     } else if (type == AlienType::Reaper) {
         rlScalef(config::kReaperScale, config::kReaperScale, config::kReaperScale);
@@ -648,13 +668,17 @@ void Invader::Draw(float time, const Model* commanderModel, int level) const {
     } else if (type == AlienType::Drone) {
         rlScalef(config::kDroneScale, config::kDroneScale, config::kDroneScale);
         DrawDrone(flashAmount, time * 90.0f + position.x * 20.0f,   // 90 degrees per second
-                  palette.glow);   // the crystal glows in the level's bright colour
+                  Darker(palette.glow, 1.0f - config::kDamageDarken * Damage()));   // the level's bright colour
     } else {
         // The Scarab takes the level's colours; the commander keeps its gold.
         const ScarabStyle levelScarab{palette.body, Darker(palette.body, 0.5f),
                                       Darker(palette.body, 0.85f), palette.glow, kScarabStyle.scale};
-        const ScarabStyle& style =
-            (type == AlienType::Commander) ? kCommanderFallbackStyle : levelScarab;
+        const float light = 1.0f - config::kDamageDarken * Damage();
+        const ScarabStyle commanderStyle{Darker(kCommanderFallbackStyle.shell, light),
+                                         Darker(kCommanderFallbackStyle.back, light),
+                                         Darker(kCommanderFallbackStyle.claw, light),
+                                         kCommanderFallbackStyle.lines, kCommanderFallbackStyle.scale};
+        const ScarabStyle& style = (type == AlienType::Commander) ? commanderStyle : levelScarab;
         rlScalef(style.scale, style.scale, style.scale);
 
         const float pulse = 0.5f + 0.5f * std::sin(time * 6.0f + position.x * 0.7f);

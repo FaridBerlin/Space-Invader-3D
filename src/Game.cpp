@@ -417,6 +417,8 @@ void Game::NextWave() {
         }
         ++level_;
         wave_ = 0;
+        // Tougher aliens from here on: the weapon is lifted to the level's minimum.
+        weaponLevel_ = std::max(weaponLevel_, config::kLevelMinWeapon[level_]);
         bossDefeated_ = false;
         bannerTitle_      = TextFormat("LEVEL %d", level_ + 1);
         bannerSubtitle_   = config::kLevelIntro[level_];
@@ -459,8 +461,12 @@ void Game::AwardWaveBonus() {
     const int speedBonus = static_cast<int>(std::max(0.0f, par - waveTime_) *
                                             static_cast<float>(config::kSpeedBonusPerSecond)) / 10 * 10;
     const int noHitBonus = hitThisWave_ ? 0 : config::kNoHitBonus;
-    if (speedBonus + noHitBonus == 0) return;
-    score_ += speedBonus + noHitBonus;
+    // The last wave of a level without a boss also pays the level-clear bonus.
+    // (In a level with a boss, the boss pays it, see UpdateBoss.)
+    const bool levelDone = wave_ + 1 == config::kWavesPerLevel && config::kLevelBoss[level_] < 0;
+    const int levelBonus = levelDone ? config::kLevelClearBonus : 0;
+    if (speedBonus + noHitBonus + levelBonus == 0) return;
+    score_ += speedBonus + noHitBonus + levelBonus;
 
     // Build the text from the parts that were earned. std::string can be added
     // together with +, and std::to_string turns a number into text.
@@ -468,6 +474,10 @@ void Game::AwardWaveBonus() {
     if (speedBonus > 0) bonusText_ += "SPEED BONUS +" + std::to_string(speedBonus);
     if (speedBonus > 0 && noHitBonus > 0) bonusText_ += "\n";   // a new line (the screen is narrow)
     if (noHitBonus > 0) bonusText_ += "NO HIT +" + std::to_string(noHitBonus);
+    if (levelBonus > 0) {
+        if (!bonusText_.empty()) bonusText_ += "\n";
+        bonusText_ += "LEVEL CLEAR +" + std::to_string(levelBonus);
+    }
     bonusTimer_ = config::kBonusTextTime;
 }
 
@@ -511,9 +521,9 @@ void Game::UpdateBoss(float dt) {
         }
         audio_.Play(Sfx::BombExplosion);
         AddShake(config::kShakeBossDeath);
-        score_ += boss_->Points();
+        score_ += boss_->Points() + config::kLevelClearBonus;   // the boss ends the level
         bannerTitle_      = "BOSS DEFEATED!";
-        bannerSubtitle_   = TextFormat("+%d points", boss_->Points());
+        bannerSubtitle_   = TextFormat("+%d points, level clear +%d", boss_->Points(), config::kLevelClearBonus);
         levelBannerTimer_ = config::kBossOutroTime - 0.3f;
         // Two power-ups fall out of the wreck; one is always a weapon orb.
         powerUps_.emplace_back(Vector3{center.x - 2.0f, center.y, center.z}, PowerUpType::Weapon);
@@ -755,6 +765,7 @@ void Game::UpdateLaser(float dt) {
                 if (!hit) break;
                 if (!hit->destroyed) {
                     particles_.Explode(end, sparks);
+                    score_ += config::kScorePerHit;
                     break;
                 }
                 OnAlienDestroyed(*hit);
@@ -770,8 +781,12 @@ void Game::UpdateLaser(float dt) {
                                   Vector3{next->x, config::kPlayerHeight, next->z});
                     chain.push_back(*next);
                     if (const auto chainHit = invaders_.TryHit(*next, 0.05f)) {
-                        if (chainHit->destroyed) OnAlienDestroyed(*chainHit);
-                        else particles_.Explode(*next, sparks);
+                        if (chainHit->destroyed) {
+                            OnAlienDestroyed(*chainHit);
+                        } else {
+                            particles_.Explode(*next, sparks);
+                            score_ += config::kScorePerHit;
+                        }
                     }
                     from = *next;
                 }
@@ -811,9 +826,9 @@ bool Game::DamagePlayer(const char* reason) {
         return false;
     }
     // The ship is destroyed. Its power-ups (and the combo) are lost with it, and
-    // the weapon drops one level (never below 1).
+    // the weapon drops one level (never below the level's minimum, kLevelMinWeapon).
     AddShake(config::kShakePlayerHit);
-    weaponLevel_ = std::max(1, weaponLevel_ - 1);
+    weaponLevel_ = std::max(config::kLevelMinWeapon[level_], weaponLevel_ - 1);   // never below the level's minimum
     hitThisWave_ = true;
     comboCount_  = 0;
     comboTimer_  = 0.0f;
@@ -1182,6 +1197,7 @@ void Game::UpdatePlaying(float dt, const PlayerInput& input) {
             rocket.alive = false;                 // the rocket is used up
             if (!hit->destroyed) {
                 particles_.Explode(hit->position, HitSparks());   // damaged, not dead yet
+                score_ += config::kScorePerHit;
                 continue;
             }
             OnAlienDestroyed(*hit);
