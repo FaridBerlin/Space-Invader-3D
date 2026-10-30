@@ -59,7 +59,7 @@ Each milestone ends with something you can run, and a short note on what it teac
 - [x] Screen shake on hits, combo bonus, wave-clear bonus
 - [x] Music: menu, level and boss tracks with cross-fades
 - [x] Nebula background that changes per level (our second shader, rendered at 1/16 of the pixels)
-- [x] First balance pass after play tests: aliens take 3 hits (level 1) up to 7 (level 7+), 4 waves per level,
+- [x] First balance pass after play tests: aliens take 3 hits (level 1) up to 12 (level 10), 4 waves per level,
       a minimum weapon level per level, points for every hit, a level-clear bonus, damaged aliens get darker
 - [ ] Balance the level numbers after real play tests
 

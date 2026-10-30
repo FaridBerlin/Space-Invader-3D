@@ -167,12 +167,12 @@ three times as long, and the aliens stay on screen long enough to be seen.
 
 | Level | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 |
 |---|---|---|---|---|---|---|---|---|---|---|
-| Hits per alien | 3 | 4 | 5 | 5 | 6 | 6 | 7 | 7 | 7 | 7 |
-| Moth (2x) | 6 | 8 | 10 | 10 | 12 | 12 | 14 | 14 | 14 | 14 |
-| Commander (2.5x) | 8 | 10 | 13 | 13 | 15 | 15 | 18 | 18 | 18 | 18 |
+| Hits per alien | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12 |
+| Moth (2x) | 6 | 8 | 10 | 12 | 14 | 16 | 18 | 20 | 22 | 24 |
+| Commander (2.5x) | 8 | 10 | 13 | 15 | 18 | 20 | 23 | 25 | 28 | 30 |
 | Weapon level at least | 1 | 1 | 1 | 2 | 2 | 2 | 3 | 3 | 3 | 3 |
 
-A lost ship costs one weapon level, but never below the level's minimum, so you never face 7-hit aliens with a
+A lost ship costs one weapon level, but never below the level's minimum, so you never face 9- to 12-hit aliens with a
 single gun. A damaged alien gets darker and its halo fades with every hit, so you see which ones are nearly done.
 Every hit that does not kill gives 20 points (`kScorePerHit`), and every cleared level pays a **level-clear bonus**
 of 12,000 (`kLevelClearBonus`; in boss levels the boss pays it). Level 1 is worth about 25,000 to 30,000 points;
