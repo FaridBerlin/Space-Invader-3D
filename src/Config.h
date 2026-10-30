@@ -251,8 +251,8 @@ constexpr bool  kLevelHasMites[]      = {false, false, false, false, false, fals
 
 // How many hits a normal alien takes in each level (Moths and Commanders: see
 // kMothToughness / kCommanderToughness).
-//                                        1  2  3  4  5  6  7  8  9  10
-constexpr int   kLevelAlienHitPoints[] = {3, 4, 5, 5, 6, 6, 7, 7, 7, 7};
+//                                        1  2  3  4  5  6  7  8   9   10
+constexpr int   kLevelAlienHitPoints[] = {3, 4, 5, 6, 7, 8, 9, 10, 11, 12};
 // The weapon level never drops below this in a level (a lost ship costs one weapon
 // level, see "Weapons"), so you never face tough aliens with a single gun.
 constexpr int   kLevelMinWeapon[]      = {1, 1, 1, 2, 2, 2, 3, 3, 3, 3};

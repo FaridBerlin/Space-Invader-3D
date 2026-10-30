@@ -43,7 +43,7 @@ and the Void Emperor.
 
 - Waves of invaders sweep sideways and step toward you. Shoot them before they reach you. They shoot back.
 - Seven alien types: **Scarabs** (100), striped **Wasps** (150, dive a lot), crystal **Drones** (150), **Shear Mites**
-  (180, little crabs), **Reapers** (200, shoot more often), big **Moths** (250) and **Commanders** (500). The aliens get tougher every level: 3 hits in level 1, up to 7 in level 7, and they darken as you damage them. Every few seconds
+  (180, little crabs), **Reapers** (200, shoot more often), big **Moths** (250) and **Commanders** (500). The aliens get tougher every level: 3 hits in level 1, up to 12 in level 10, and they darken as you damage them. Every few seconds
   one alien **dives** at you in an S-curve.
 - Every wave **flies in** along curved paths, in changing **formations** (block, arrow, diamond, pincer, ...).
 - **3 lives** (up to 5), and your **high score** is saved (on desktop and in the browser).
