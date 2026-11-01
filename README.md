@@ -7,22 +7,28 @@ A 3D remake of my 2D browser game *Space Dash Invaders*, written in **C++17** wi
 [raylib](https://www.raylib.com/). It is also a learning project: the goal is to understand C++ and how
 real-time 3D graphics work, built one small, reviewed step at a time.
 
-![Level 7: the Claw ship with a x4 combo, a cracked lightning bomb above it](docs/img/bomb.png)
+| | | | |
+|:---:|:---:|:---:|:---:|
+| ![The title screen](docs/img/menu.jpg) | ![Level 2: Wasps, Drones and Scarabs fly in, the ship fires three shots](docs/img/play-level-2.jpg) | ![Level 6: the Claw ship fires the green spread shot at giant Moths](docs/img/play-level-6.jpg) | ![Level 9: the purple Horn fires three lightning bolts into the wave](docs/img/play-level-9.jpg) |
+| Title screen | Level 2 | Level 6: spread shot | Level 9: lightning laser |
 
-| | |
-|---|---|
-| ![Level 3: a Reaper dives at the ship, a shield power-up floats by](docs/img/action.png) | ![Level 5: the Claw ship firing white-gold rockets into the wave, combo x3](docs/img/claw.png) |
-| ![The title screen](docs/img/menu.png) | ![Aliens and bombs of levels 1 to 7](docs/img/levels.png) |
+### Ten levels, ten colour moods
 
-The three bosses: the **Hive Queen** (level 3), the **War Titan** (level 5) and the **Void Emperor** (level 7):
+Every level brings new aliens and its own colours, and the aliens get tougher: 3 hits in level 1, up to 12 in level 10.
 
-| | | |
-|---|---|---|
-| ![The Hive Queen fires a fan of shots](docs/img/boss-hive-queen.png) | ![The War Titan's wing guns fire a rain of shots](docs/img/boss-war-titan.png) | ![The Void Emperor sweeps a spiral of shots, its core open](docs/img/boss-void-emperor.png) |
+![The alien waves of levels 1 to 10](docs/img/aliens.jpg)
 
-Your ship through the levels:
+### Six bosses
 
-![The ship in levels 1-3, level 4, level 5 (the Claw) and levels 6-7](docs/img/ships.png)
+![The six bosses: Hive Queen, War Titan, Void Emperor, and the crab family Shear King, Shear Emperor and Crimson Tyrant](docs/img/bosses.jpg)
+
+### Your ship through the levels
+
+![The ship in levels 1-3 and 4, the Claw in levels 5 and 6-7, and the Horn in green, purple and red in levels 8, 9 and 10](docs/img/ships.jpg)
+
+### Power-up orbs
+
+![The six orbs: weapon, spread, laser, rapid fire, shield and extra life](docs/img/orbs.jpg)
 
 ## Play
 
@@ -32,8 +38,8 @@ Your ship through the levels:
 | **Windows / Linux (free demo)** | Download the latest zip / tar.gz from [Releases](../../releases), unpack it and start `space-invader-3d`. |
 | **Android (full game)** | Coming soon to Google Play. |
 
-The demo contains levels 1 to 3 and the first boss. The full game adds levels 4 to 7, the Claw ship, the War Titan
-and the Void Emperor.
+The demo contains levels 1 to 3 and the first boss. The full game adds levels 4 to 10, the Claw and the Horn ships,
+the lightning laser's full power, and five more bosses: the War Titan, the Void Emperor and the three crabs.
 
 **Touch / mouse:** drag anywhere to move, the ship fires by itself while your finger (or the mouse button) is down; tap to start; the pause and sound buttons sit at the top right (a muted game stays muted next time). The game also pauses itself when you switch to another app or window.
 
@@ -42,6 +48,8 @@ and the Void Emperor.
 ## The game
 
 - Waves of invaders sweep sideways and step toward you. Shoot them before they reach you. They shoot back.
+- A tall **portrait** screen, like a phone shooter. Your ship moves in all directions: left and right, and up
+  to the middle of the screen.
 - Seven alien types: **Scarabs** (100), striped **Wasps** (150, dive a lot), crystal **Drones** (150), **Shear Mites**
   (180, little crabs), **Reapers** (200, shoot more often), big **Moths** (250) and **Commanders** (500). The aliens get tougher every level: 3 hits in level 1, up to 12 in level 10, and they darken as you damage them. Every few seconds
   one alien **dives** at you in an S-curve.
@@ -53,9 +61,9 @@ and the Void Emperor.
 - Your ship changes its look as you go: from level 5 you fly the **Claw**, a copper ship with claw-shaped wings, and
   in levels 8 to 10 the **Horn**, with two big curved horn-wings, in green, purple and red.
 - **Combos** multiply your points (up to x4) for quick kills in a row, and a fast wave without losing a ship
-  earns a **wave-clear bonus**. Big hits and explosions shake the screen.
+  earns a **wave-clear bonus**. Every hit counts for points, and every cleared level pays a **level-clear bonus**. Big hits and explosions shake the screen.
 - A glowing **bomb** flies in every few seconds. Shoot it for **+500** points, or dodge it. Every level
-  has its own bomb: from a calm yellow ball in level 1 to a cracked, crimson one with lightning in level 7.
+  has its own bomb: from a calm yellow ball in level 1 to crackling, lightning-wrapped ones in the last levels.
 - **Boss fights** at the end of levels 3, 5 and 7: the **Hive Queen**, the **War Titan** and the
   **Void Emperor**, each with a health bar, its own attack patterns and a core that opens for triple damage.
   Then the **crab family** ends levels 8, 9 and 10: the green **Shear King**, the purple **Shear Emperor** and the
@@ -91,7 +99,7 @@ downloads are built.
 | Build | CMake |
 | Web build | Emscripten (WebAssembly) |
 | CI / hosting | GitHub Actions, GitHub Pages and Releases |
-| Android | planned (NDK, touch controls) |
+| Android | NDK, NativeActivity (no Java/Kotlin code), built with Android Studio |
 
 ## Documentation
 
