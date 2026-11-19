@@ -68,6 +68,7 @@ Each milestone ends with something you can run, and a short note on what it teac
 - [x] Android NDK build (Android Studio, NativeActivity, no Kotlin code), see `android/`
 - [x] App icon and Play Store icon
 - [ ] Performance pass for phones
+- [x] Save the highest level reached; CONTINUE from it on the title and game-over screens
 
 ## M9 - A mobile arcade shooter
 Ideas from playing popular phone shooters (Galaxy Invaders and others). We keep our own

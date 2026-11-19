@@ -151,6 +151,11 @@ a soft halo in the level's glow colour behind every alien, like the power-up orb
 Drawn with raylib's 2D functions on top of the 3D scene, scaled with the window height:
 
 - **HUD:** score and lives (top left), high score (top middle), wave and level (top right), sound and pause buttons.
+- **Continue:** the highest level reached is saved at the start of every level (`reached_level`, next to the high
+  score). From level 2 on, the title and game-over screens show a big **CONTINUE · LEVEL X** button and a smaller
+  **NEW GAME** button (keyboard: Enter / N). Continue starts that level with its ship and at least its minimum
+  weapon level, 3 lives and 0 points. While there are buttons, a tap elsewhere does nothing, so nobody starts a new
+  game by accident. The demo saves at most level 3.
   The key help shows for the first 6 seconds of a game and on the pause screen; F3 shows the FPS.
 - **Banners:** "LEVEL n" with a short intro text, "WAVE n / 3", and power-up names.
 - **Screens:** menu, pause (also automatic when the window or app goes to the background), game over with restart.

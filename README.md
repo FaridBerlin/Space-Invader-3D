@@ -43,7 +43,7 @@ the lightning laser's full power, and five more bosses: the War Titan, the Void 
 
 **Touch / mouse:** drag anywhere to move, the ship fires by itself while your finger (or the mouse button) is down; tap to start; the pause and sound buttons sit at the top right (a muted game stays muted next time). The game also pauses itself when you switch to another app or window.
 
-**Keyboard:** arrow keys or `W` `A` `S` `D` to move (up and down too), `Space` to shoot (hold for rapid fire), `Enter` to start / restart, `P` to pause, `M` to mute, `F3` to show the FPS. On desktop also `F` for fullscreen, `1`-`5` to pick the window size (you can drag the window edges too) and `Esc` to leave fullscreen or quit.
+**Keyboard:** arrow keys or `W` `A` `S` `D` to move (up and down too), `Space` to shoot (hold for rapid fire), `Enter` to start / continue, `N` for a new game from level 1, `P` to pause, `M` to mute, `F3` to show the FPS. On desktop also `F` for fullscreen, `1`-`5` to pick the window size (you can drag the window edges too) and `Esc` to leave fullscreen or quit.
 
 ## The game
 
@@ -54,7 +54,9 @@ the lightning laser's full power, and five more bosses: the War Titan, the Void 
   (180, little crabs), **Reapers** (200, shoot more often), big **Moths** (250) and **Commanders** (500). The aliens get tougher every level: 3 hits in level 1, up to 12 in level 10, and they darken as you damage them. Every few seconds
   one alien **dives** at you in an S-curve.
 - Every wave **flies in** along curved paths, in changing **formations** (block, arrow, diamond, pincer, ...).
-- **3 lives** (up to 5), and your **high score** is saved (on desktop and in the browser).
+- **3 lives** (up to 5). Your **high score** and the highest level you reached are saved (desktop, browser and
+  Android): **CONTINUE** starts again at that level, with its ship and weapon power, so a lost game does not
+  send you back to level 1.
 - Shot aliens sometimes drop a glowing **orb**: purple **weapon** orbs make your weapon stronger (5 levels), green
   and blue orbs switch to the **spread shot** or the **lightning laser** (1 to 3 blue bolts that chain to nearby aliens), plus a **shield** that absorbs one hit,
   **rapid fire**, or rarely an **extra life**.

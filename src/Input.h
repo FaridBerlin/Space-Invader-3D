@@ -45,6 +45,10 @@ struct PlayerInput {
     // True ONLY in the frame G was pressed: open the full game's store page (demo).
     bool  openStore = false;
 
+    // True ONLY in the frame N was pressed: start a NEW game at level 1 (on the
+    // title and game-over screens, when Enter would continue a saved game).
+    bool  newGame = false;
+
     // Which window size the player chose with the keys 1 .. 5 (counted from 0),
     // or -1 when no such key was pressed in this frame.
     int   windowPreset = -1;
