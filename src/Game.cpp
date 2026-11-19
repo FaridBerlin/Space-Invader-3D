@@ -231,6 +231,10 @@ Game::Game() {
     FitCamera();
 
     highScore_ = storage::LoadInt("highscore");   // the best score from earlier games (0 the first time)
+    // How far did we get last time? Continue starts there. std::clamp keeps the
+    // number inside the levels this build has (the demo only has the first three).
+    reachedLevel_ = std::clamp(storage::LoadInt("reached_level"), 0,
+                               config::kDemo ? config::kDemoLastLevel : config::kLevelCount - 1);
     audio_.SetMuted(storage::LoadInt("muted") != 0);   // muted last time? Then stay muted.
     touchMode_ = IsTouchDevice();     // phones and tablets start with the touch hints
 
@@ -321,9 +325,12 @@ void Game::FitCamera() {
     camera_.target      = test.target;
 }
 
-void Game::Restart() {
-    player_ = Player();            // a brand-new ship in the middle
-    invaders_.Respawn(0);          // the first wave of level 1
+void Game::Restart(int startLevel) {
+    const int start = std::clamp(startLevel, 0, config::kLevelCount - 1);
+    player_ = Player();            // a brand-new ship in the middle ...
+    player_.SetTier(config::kLevelShipTier[start]);   // ... in the look of the start level
+    player_.SetDesign(config::kLevelShipDesign[start], config::kLevelHornColor[start]);
+    invaders_.Respawn(start, 0);   // the first wave of the start level
     rockets_.clear();
     powerUps_.clear();
     invaderShots_.clear();
@@ -334,17 +341,17 @@ void Game::Restart() {
     playerAlive_      = true;
     gameOverReason_   = "";
     gameOverTime_     = 0.0f;
-    score_            = 0;
-    level_            = 0;
+    score_            = 0;           // a continued game starts from 0 points too
+    level_            = start;
     wave_             = 0;
-    levelBannerTimer_ = config::kLevelBannerTime;   // announce "LEVEL 1"
+    levelBannerTimer_ = config::kLevelBannerTime;   // announce "LEVEL 1" (or the continued level)
     waveBannerTimer_  = 0.0f;
-    bannerTitle_      = "LEVEL 1";
-    bannerSubtitle_   = config::kLevelIntro[0];
-    stars_.SetColor(config::kLevelStarColor[0]);
-    nebula_.SetColors(config::kLevelNebulaA[0], config::kLevelNebulaB[0]);
+    bannerTitle_      = TextFormat("LEVEL %d", start + 1);
+    bannerSubtitle_   = config::kLevelIntro[start];
+    stars_.SetColor(config::kLevelStarColor[start]);
+    nebula_.SetColors(config::kLevelNebulaA[start], config::kLevelNebulaB[start]);
     fireCooldown_     = 0.0f;
-    invaderShotTimer_ = config::kLevelShotInterval[0];
+    invaderShotTimer_ = config::kLevelShotInterval[start];
     bombTimer_        = config::kBombInterval;
     respawnTimer_     = config::kWaveRespawnDelay;
     lives_            = config::kStartLives;
@@ -353,7 +360,7 @@ void Game::Restart() {
     newHighScore_     = false;
     shieldTimer_      = 0.0f;
     rapidFireTimer_   = 0.0f;
-    weaponLevel_      = 1;
+    weaponLevel_      = config::kLevelMinWeapon[start];   // 1, or more for a continued later level
     weaponType_       = WeaponType::Blaster;
     laserFiring_      = false;
     laserTick_.fill(0.0f);
@@ -381,6 +388,16 @@ void Game::EndGame(const char* reason) {
         newHighScore_ = true;
         storage::SaveInt("highscore", highScore_);
     }
+}
+
+void Game::SaveReachedLevel() {
+    if (level_ <= reachedLevel_) return;   // not further than before: nothing new to save
+    reachedLevel_ = level_;
+    storage::SaveInt("reached_level", reachedLevel_);   // saved at once, so closing the app loses nothing
+}
+
+bool Game::CanContinue() const {
+    return reachedLevel_ > 0;   // only worth offering from level 2 on
 }
 
 void Game::NextWave() {
@@ -417,6 +434,7 @@ void Game::NextWave() {
         }
         ++level_;
         wave_ = 0;
+        SaveReachedLevel();   // got this far: Continue can start here next time
         // Tougher aliens from here on: the weapon is lifted to the level's minimum.
         weaponLevel_ = std::max(weaponLevel_, config::kLevelMinWeapon[level_]);
         bossDefeated_ = false;
@@ -939,9 +957,7 @@ void Game::Update(float dt) {
     // What else happens each frame depends on the state we are in.
     switch (state_) {
         case GameState::Menu:
-            if (input.confirm || tap) {   // Enter, or a tap anywhere (but not on the sound button)
-                Restart();
-            }
+            HandleStartInput(input, tap);   // Enter / N / a tap: continue or a new game
             break;
         case GameState::Playing:
             // Pause with P, with the pause button, or by itself when the game goes
@@ -972,8 +988,12 @@ void Game::Update(float dt) {
                 OpenURL(config::kFullGameUrl);
                 break;
             }
-            if (gameOverTime_ >= config::kGameOverDelay && (input.confirm || tap)) {
-                Restart();
+            if (gameOverTime_ >= config::kGameOverDelay) {
+                if (demoComplete_) {
+                    if (input.confirm || tap) Restart();   // the demo's end screen: play again from level 1
+                } else {
+                    HandleStartInput(input, tap);
+                }
             }
             break;
     }
@@ -1476,7 +1496,7 @@ void Game::Draw() const {
     // The controls, only during the first seconds of a game (they fade out in the
     // last second), low in the middle where no aliens are yet. The pause screen
     // shows them again.
-    if (helpTimer_ > 0.0f) {
+    if (helpTimer_ > 0.0f && state_ != GameState::GameOver) {   // not behind the game-over buttons
         const float alpha = std::min(1.0f, helpTimer_);
         DrawCentered(HelpLine(), centerX, screenH * 60 / 100, Px(18), textWidth, Fade(LIGHTGRAY, alpha));
     }
@@ -1612,12 +1632,88 @@ void Game::DrawGameOver() const {
         if (on) DrawCentered("NEW HIGH SCORE!", centerX, y + Px(8), Px(24), textWidth, Color{255, 200, 60, 255});
     }
     y += Px(8) + Px(30);   // room for the blinking line, also while it is off
-    y = DrawCentered(touchMode_ ? (IsTouchDevice() ? "Tap to play again" : "Click to play again")
-                                : "Press ENTER to play again",
-                     centerX, y + Px(24), Px(24), textWidth, LIGHTGRAY);
+    if (CanContinue()) {
+        DrawStartButtons();   // CONTINUE (from the saved level) and NEW GAME
+        const StartButtons buttons = StartButtonRects();
+        y = static_cast<int>(buttons.newGame.y + buttons.newGame.height);
+        if (!touchMode_) {
+            y = DrawCentered("ENTER: continue     N: new game", centerX, y + Px(12), Px(18), textWidth, RAYWHITE);
+        }
+    } else {
+        y = DrawCentered(touchMode_ ? (IsTouchDevice() ? "Tap to play again" : "Click to play again")
+                                    : "Press ENTER to play again",
+                         centerX, y + Px(24), Px(24), textWidth, LIGHTGRAY);
+    }
 #if defined(GAME_DESKTOP)
     DrawCentered("Esc to quit", centerX, y + Px(10), Px(18), textWidth, GRAY);
 #endif
+}
+
+// ---- Continue ---------------------------------------------------------------------
+// The game remembers the highest level you reached (see SaveReachedLevel). From
+// level 2 on, the title and game-over screens offer two buttons: CONTINUE starts
+// at that level (with its ship and at least its minimum weapon level, score 0),
+// NEW GAME starts at level 1.
+
+Game::StartButtons Game::StartButtonRects() const {
+    using display::Px;
+    const Rectangle column = display::Column();
+    const float width = std::min(static_cast<float>(Px(380)), column.width - static_cast<float>(Px(40)));
+    const float x     = column.x + (column.width - width) / 2.0f;
+    // On the title screen under the high score; on the game-over screen under the score.
+    const float top = state_ == GameState::Menu ? static_cast<float>(Px(520))
+                                                : static_cast<float>(GetScreenHeight() / 2 + Px(70));
+    StartButtons buttons;
+    buttons.continueGame = Rectangle{x, top, width, static_cast<float>(Px(64))};
+    buttons.newGame      = Rectangle{x + width * 0.15f, top + static_cast<float>(Px(80)), width * 0.7f,
+                                     static_cast<float>(Px(50))};
+    return buttons;
+}
+
+bool Game::HandleStartInput(const PlayerInput& input, bool tap) {
+    if (!CanContinue()) {
+        // Nothing saved yet: Enter, N or a tap anywhere starts at level 1, as always.
+        if (input.confirm || input.newGame || tap) {
+            Restart();
+            return true;
+        }
+        return false;
+    }
+    // A saved level: only the buttons count, so a stray tap starts nothing by accident.
+    const StartButtons buttons = StartButtonRects();
+    if (input.confirm || (tap && CheckCollisionPointRec(input.pointer, buttons.continueGame))) {
+        Restart(reachedLevel_);
+        return true;
+    }
+    if (input.newGame || (tap && CheckCollisionPointRec(input.pointer, buttons.newGame))) {
+        Restart(0);
+        return true;
+    }
+    return false;
+}
+
+void Game::DrawStartButtons() const {
+    using display::Px;
+    const StartButtons buttons = StartButtonRects();
+    const float pulse = 0.6f + 0.4f * sinf(static_cast<float>(GetTime()) * 3.0f);
+
+    // CONTINUE: the big green one, with a pulsing frame.
+    const Rectangle& c = buttons.continueGame;
+    DrawRectangleRounded(c, 0.3f, 8, Fade(Color{40, 140, 90, 255}, 0.9f));
+    DrawRectangleRoundedLinesEx(c, 0.3f, 8, 2.0f, Fade(Color{150, 255, 170, 255}, pulse));
+    const int bigSize = Px(26);
+    DrawCentered(TextFormat("CONTINUE  LEVEL %d", reachedLevel_ + 1), c.x + c.width / 2.0f,
+                 static_cast<int>(c.y + (c.height - static_cast<float>(bigSize)) / 2.0f), bigSize,
+                 static_cast<int>(c.width), RAYWHITE);
+
+    // NEW GAME: smaller and quieter, dark with a thin frame.
+    const Rectangle& n = buttons.newGame;
+    DrawRectangleRounded(n, 0.3f, 8, Fade(Color{20, 25, 50, 255}, 0.8f));
+    DrawRectangleRoundedLinesEx(n, 0.3f, 8, 2.0f, Fade(RAYWHITE, 0.5f));
+    const int smallSize = Px(20);
+    DrawCentered("NEW GAME", n.x + n.width / 2.0f,
+                 static_cast<int>(n.y + (n.height - static_cast<float>(smallSize)) / 2.0f), smallSize,
+                 static_cast<int>(n.width), LIGHTGRAY);
 }
 
 void Game::DrawMenu() const {
@@ -1640,24 +1736,37 @@ void Game::DrawMenu() const {
                      Color{255, 200, 60, 255});
     }
     int y = Px(530);
-    if (touchMode_) {
+    if (CanContinue()) {
+        // A saved game: CONTINUE and NEW GAME buttons instead of "tap to start".
+        DrawStartButtons();
+        const StartButtons buttons = StartButtonRects();
+        y = static_cast<int>(buttons.newGame.y + buttons.newGame.height);
+        if (!touchMode_) {
+            y = DrawCentered("ENTER: continue     N: new game", centerX, y + Px(12), Px(18), textWidth, RAYWHITE);
+        }
+        y = DrawCentered(touchMode_ ? "Drag anywhere to move. The ship fires by itself."
+                                    : "Move: arrows or W A S D\nFire: Space (hold)     Pause: P",
+                         centerX, y + Px(12), Px(18), textWidth, LIGHTGRAY);
+    } else if (touchMode_) {
         y = DrawCentered(IsTouchDevice() ? "Tap to start" : "Click to start", centerX, y, Px(32), textWidth,
                          Fade(RAYWHITE, pulse));
-        DrawCentered("Drag anywhere to move. The ship fires by itself.", centerX, y + Px(16), Px(18), textWidth,
-                     LIGHTGRAY);
+        y = DrawCentered("Drag anywhere to move. The ship fires by itself.", centerX, y + Px(16), Px(18), textWidth,
+                         LIGHTGRAY);
     } else {
         y = DrawCentered("Press ENTER to start", centerX, y, Px(32), textWidth, Fade(RAYWHITE, pulse));
         y = DrawCentered("Move: arrows or W A S D\nFire: Space (hold)     Pause: P", centerX, y + Px(16), Px(18),
                          textWidth, LIGHTGRAY);
-#if defined(GAME_DESKTOP)
-        DrawCentered("Fullscreen: F     Window size: 1 - 5     Quit: Esc", centerX, y + Px(6), Px(18), textWidth,
-                     LIGHTGRAY);
-#endif
     }
+#if defined(GAME_DESKTOP)
+    if (!touchMode_) {
+        y = DrawCentered("Fullscreen: F     Window size: 1 - 5     Quit: Esc", centerX, y + Px(6), Px(18),
+                         textWidth, LIGHTGRAY);
+    }
+#endif
     if (config::kDemo) {
         DrawCentered(TextFormat("FREE DEMO: levels 1 to 3. The full game with all %d levels is coming to Google Play.",
                                 config::kLevelCount),
-                     centerX, Px(720), Px(18), textWidth, Color{255, 170, 60, 255});
+                     centerX, std::max(Px(720), y + Px(24)), Px(18), textWidth, Color{255, 170, 60, 255});
     }
 }
 

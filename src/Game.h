@@ -56,7 +56,20 @@ public:
     bool QuitRequested() const { return quitRequested_; }
 
 private:
-    void Restart();                       // back to a fresh game
+    // A fresh game, starting at level startLevel (0 = level 1; more = Continue).
+    void Restart(int startLevel = 0);
+    void SaveReachedLevel();              // remember the level we got to (for Continue)
+    bool CanContinue() const;             // is there a saved level beyond level 1?
+    // The CONTINUE and NEW GAME buttons on the title and game-over screens.
+    struct StartButtons {
+        Rectangle continueGame;
+        Rectangle newGame;
+    };
+    StartButtons StartButtonRects() const;
+    void DrawStartButtons() const;
+    // What a tap or a key does on the title / game-over screen: continue, new game,
+    // or nothing (returns false).
+    bool HandleStartInput(const PlayerInput& input, bool tap);
     void EndGame(const char* reason);     // switch to GameOver
     void UpdatePlaying(float dt, const PlayerInput& input);
     void FireRocket();
@@ -152,7 +165,8 @@ private:
     int   lives_           = 0;      // ships left, including the one flying now
     float playerRespawnTimer_ = 0.0f;   // > 0 while waiting for the next ship
     float invincibleTimer_ = 0.0f;   // > 0 while a fresh ship blinks and cannot be hit
-    int   highScore_       = 0;      // best score ever, loaded at start (see HighScore.h)
+    int   highScore_       = 0;      // best score ever, loaded at start (see Storage.h)
+    int   reachedLevel_    = 0;      // the highest level reached so far (0 = level 1), saved for Continue
     bool  newHighScore_    = false;  // did this game beat it?
     float shieldTimer_     = 0.0f;   // > 0 while the shield is up (seconds left)
     float rapidFireTimer_  = 0.0f;   // > 0 while rapid fire is active (seconds left)
