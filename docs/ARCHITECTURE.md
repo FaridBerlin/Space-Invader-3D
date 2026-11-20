@@ -28,7 +28,8 @@ src/
   ShaderUtil.h/.cpp   loads a shader in the right GLSL dialect for desktop, web or phone
   LowPoly.h/.cpp      flat-shaded triangles for the ship and the aliens
   Audio.h/.cpp        sound effects and mute
-  Storage.h/.cpp      small saved numbers (high score, mute): a file on desktop, localStorage on the web
+  Storage.h/.cpp      small saved numbers (high score, mute, level reached): a file on desktop, localStorage on the web
+  Haptics.h/.cpp      short vibrations: Android through JNI (Java), the browser's vibration on the web
   AssetPath.h, Random.h, Util.h   small helpers
 ```
 

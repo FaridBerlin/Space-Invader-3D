@@ -69,6 +69,7 @@ Each milestone ends with something you can run, and a short note on what it teac
 - [x] App icon and Play Store icon
 - [ ] Performance pass for phones
 - [x] Save the highest level reached; CONTINUE from it on the title and game-over screens
+- [x] Vibration when the ship is hit, a boss explodes or the game ends
 
 ## M9 - A mobile arcade shooter
 Ideas from playing popular phone shooters (Galaxy Invaders and others). We keep our own
@@ -88,7 +89,8 @@ Each step is its own branch and ends with something you can play.
    - [x] Glowing orbs with a symbol inside, one colour per kind (weapon: three arrows)
    - [x] Weapon levels 1 to 5 collected with orbs (instead of fixed per level); a hit costs one
 4. **New weapons**
-   - [x] Lightning laser: 1, 2, then 3 blue electric bolts (thicker at levels 4-5) with chain lightning between aliens
+   - [x] Lightning laser: 1, 2, then 3 electric bolts (thicker at levels 4-5) with chain lightning between aliens
+   - [x] Real-looking lightning (soft glow, strands, no knots); blue, yellow, red as the weapon level rises
    - [x] Spread shot: a fan of shots that widens with the weapon level
    - [x] Special orbs switch the weapon type (green: spread, blue: laser)
 5. **More aliens and fly-in attacks**

@@ -7,6 +7,7 @@
 
 #include "Config.h"
 #include "Display.h"
+#include "Haptics.h"
 #include "Storage.h"
 #include "Input.h"
 #include "Platform.h"
@@ -236,6 +237,7 @@ Game::Game() {
     reachedLevel_ = std::clamp(storage::LoadInt("reached_level"), 0,
                                config::kDemo ? config::kDemoLastLevel : config::kLevelCount - 1);
     audio_.SetMuted(storage::LoadInt("muted") != 0);   // muted last time? Then stay muted.
+    haptics::SetEnabled(!audio_.Muted());               // the sound button also switches vibration
     touchMode_ = IsTouchDevice();     // phones and tablets start with the touch hints
 
     Restart();                 // builds a fresh game ...
@@ -539,6 +541,7 @@ void Game::UpdateBoss(float dt) {
         }
         audio_.Play(Sfx::BombExplosion);
         AddShake(config::kShakeBossDeath);
+        haptics::Vibrate(haptics::Buzz::BossDown);   // a long buzz on phones
         score_ += boss_->Points() + config::kLevelClearBonus;   // the boss ends the level
         bannerTitle_      = "BOSS DEFEATED!";
         bannerSubtitle_   = TextFormat("+%d points, level clear +%d", boss_->Points(), config::kLevelClearBonus);
@@ -683,7 +686,7 @@ void Game::SwitchWeapon(WeaponType type) {
 Color Game::WeaponColor() const {
     switch (weaponType_) {
         case WeaponType::Spread: return config::kSpreadShotColor;
-        case WeaponType::Laser:  return config::kLaserColor;
+        case WeaponType::Laser:  return config::LaserColorsFor(weaponLevel_).glow;   // blue, yellow or red
         default:                 return Color{170, 80, 255, 255};   // the blaster: purple, like the weapon orb
     }
 }
@@ -717,7 +720,7 @@ void Game::UpdateLaser(float dt) {
         laserSoundTimer_ = config::kLaserSoundTime;
     }
 
-    const ExplosionStyle sparks{6, 5.0f, 0.3f, 0.18f, config::kLaserColor, Color{255, 255, 255, 255}};
+    const ExplosionStyle sparks{6, 5.0f, 0.3f, 0.18f, config::LaserColorsFor(weaponLevel_).glow, Color{255, 255, 255, 255}};
     for (int i = 0; i < config::kLaserMaxBolts; ++i) {
         if (i >= bolts) {
             laser_.SetBolt(i, false, nose, nose, false);
@@ -816,6 +819,7 @@ void Game::UpdateLaser(float dt) {
                 particles_.Explode(bombInWay->position, BombExplosion(bombInWay->color));
                 AddShake(config::kShakeBomb);
                 audio_.Play(Sfx::BombExplosion);
+                haptics::Vibrate(haptics::Buzz::Tick);
                 break;
             case Target::Boss:
                 if (const auto hit = boss_->TryHit(end, halfWidth)) {
@@ -857,6 +861,8 @@ bool Game::DamagePlayer(const char* reason) {
     audio_.Play(Sfx::PlayerDeath);
 
     lives_ -= 1;
+    // A buzz on phones: short for a lost ship, long when it was the last one.
+    haptics::Vibrate(lives_ > 0 ? haptics::Buzz::Hit : haptics::Buzz::GameOver);
     if (lives_ > 0) {
         playerRespawnTimer_ = config::kPlayerRespawnDelay;   // the next ship comes soon
     } else {
@@ -1050,6 +1056,7 @@ PlayerInput Game::ApplyTouchSteering(const PlayerInput& input) {
 
 void Game::ToggleSound() {
     audio_.ToggleMute();
+    haptics::SetEnabled(!audio_.Muted());                 // vibration goes with the sound
     storage::SaveInt("muted", audio_.Muted() ? 1 : 0);   // remembered for next time
 }
 
@@ -1250,6 +1257,7 @@ void Game::UpdatePlaying(float dt, const PlayerInput& input) {
                 particles_.Explode(bomb.position, BombExplosion(bomb.color));
                 AddShake(config::kShakeBomb);
                 audio_.Play(Sfx::BombExplosion);
+                haptics::Vibrate(haptics::Buzz::Tick);
                 break;   // this rocket is gone: stop looking at more bombs
             }
         }
@@ -1364,7 +1372,7 @@ void Game::Draw() const {
         for (const auto& rocket : rockets_) {
             rocket.Draw();
         }
-        laser_.Draw();
+        laser_.Draw(camera_);
         for (const auto& shot : invaderShots_) {
             shot.Draw();
         }

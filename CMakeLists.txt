@@ -69,6 +69,7 @@ set(GAME_SOURCES
     src/AlienModels.cpp
     src/PowerUp.cpp
     src/Storage.cpp
+    src/Haptics.cpp
 )
 
 if(ANDROID)
