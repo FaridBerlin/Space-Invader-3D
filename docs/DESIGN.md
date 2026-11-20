@@ -79,8 +79,12 @@ Flying into an alien (a diver, or one still in the formation) is a crash: the al
 - **Three weapons, each with levels 1-5** (not tied to the game level). Every game starts with the blaster at 1.
   - **Blaster:** 1, 2 and 3 shots side by side, then 5 (two angled 9 degrees) and 7 (a fan up to 18 degrees).
   - **Spread:** a fan of 3 to 7 shots, from +-12 to +-32 degrees: best against big waves.
-  - **Laser:** blue-white lightning (a white-hot core in a blue sleeve, thin violet strands winding around it
-    and small forks, re-drawn 25 times a second). Level 1 fires 1 bolt, level 2 two, level 3 three fanned out a
+  - **Laser:** real-looking lightning (re-drawn 20 times a second): a thick white-hot core that curves gently,
+    a soft glow around it, three thin, sharp strands that wind around each bolt, small forks and a star burst
+    at the nose (look taken from Chicken Invaders). Each bolt is one jagged path made by "midpoint
+    displacement" (split the line again and again, push each new middle point sideways), drawn as connected
+    flat bands that face the camera, so there are no bright knots along it. Its **colour grows with the
+    weapon level**: blue (levels 1-2), yellow (3-4), red (5). Level 1 fires 1 bolt, level 2 two, level 3 three fanned out a
     little; levels 4 and 5 keep three bolts but make them thicker and faster. Each bolt stops at the first
     alien, bomb or boss in its way and hits it every 0.12 s (1 bolt) to 0.24 s (3 bolts at level 3), then
     0.20 s and 0.16 s. **Chain lightning** (idea from Chicken Invaders' "Lightning Fryer"): when a bolt kills

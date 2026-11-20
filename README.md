@@ -54,11 +54,12 @@ the lightning laser's full power, and five more bosses: the War Titan, the Void 
   (180, little crabs), **Reapers** (200, shoot more often), big **Moths** (250) and **Commanders** (500). The aliens get tougher every level: 3 hits in level 1, up to 12 in level 10, and they darken as you damage them. Every few seconds
   one alien **dives** at you in an S-curve.
 - Every wave **flies in** along curved paths, in changing **formations** (block, arrow, diamond, pincer, ...).
+- On Android phones the game **vibrates** when your ship is hit or a boss explodes (switched off with the sound).
 - **3 lives** (up to 5). Your **high score** and the highest level you reached are saved (desktop, browser and
   Android): **CONTINUE** starts again at that level, with its ship and weapon power, so a lost game does not
   send you back to level 1.
 - Shot aliens sometimes drop a glowing **orb**: purple **weapon** orbs make your weapon stronger (5 levels), green
-  and blue orbs switch to the **spread shot** or the **lightning laser** (1 to 3 blue bolts that chain to nearby aliens), plus a **shield** that absorbs one hit,
+  and blue orbs switch to the **spread shot** or the **lightning laser** (1 to 3 bolts that chain to nearby aliens and turn from blue to yellow to red as it powers up), plus a **shield** that absorbs one hit,
   **rapid fire**, or rarely an **extra life**.
 - Your ship changes its look as you go: from level 5 you fly the **Claw**, a copper ship with claw-shaped wings, and
   in levels 8 to 10 the **Horn**, with two big curved horn-wings, in green, purple and red.

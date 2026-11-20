@@ -403,10 +403,26 @@ constexpr float kLaserBoltSpacing = 0.45f; // sideways distance between the bolt
 constexpr int   kLaserChainJumps[kWeaponLevels]  = {1, 1, 2, 2, 3};
 constexpr float kLaserChainRange = 4.5f;   // how far the lightning can jump (world units)
 constexpr float kLaserArcTime    = 0.18f;  // how long a jump stays visible (seconds)
-constexpr Color kLaserColor{110, 150, 255, 255};      // electric blue
-constexpr Color kLaserCoreColor{240, 245, 255, 255};  // the white-hot middle of a bolt
-constexpr Color kLaserStrandColor{165, 150, 255, 255};  // the thin violet strands around it
-constexpr float kLaserJitterTime = 0.04f;   // the lightning changes its zig-zag this often (seconds)
+constexpr Color kLaserColor{110, 150, 255, 255};      // electric blue: the laser orb, and the bolts at levels 1-2
+
+// The lightning changes colour as the weapon level rises, so you see your power at a
+// glance: blue (levels 1-2), yellow (3-4), red (5).
+struct LaserColors {
+    Color core;     // the white-hot middle of a bolt
+    Color glow;     // the light around it
+    Color strand;   // the thin forks
+};
+constexpr LaserColors kLaserPalettes[] = {
+    {{240, 245, 255, 255}, {110, 150, 255, 255}, {165, 150, 255, 255}},   // blue
+    {{255, 252, 225, 255}, {255, 205,  60, 255}, {255, 160,  40, 255}},   // yellow
+    {{255, 235, 228, 255}, {255,  60,  50, 255}, {255, 140,  70, 255}},   // red
+};
+constexpr int   kLaserPaletteForLevel[kWeaponLevels] = {0, 0, 1, 1, 2};
+constexpr LaserColors LaserColorsFor(int weaponLevel) {
+    return kLaserPalettes[kLaserPaletteForLevel[(weaponLevel < 1 ? 1 : weaponLevel > kWeaponLevels ? kWeaponLevels
+                                                                                                     : weaponLevel) - 1]];
+}
+constexpr float kLaserJitterTime = 0.05f;   // the lightning changes its shape this often (seconds)
 constexpr float kLaserSoundTime  = 0.22f;   // the laser sound repeats this often while firing
 
 // ---- Demo ------------------------------------------------------------------------------
