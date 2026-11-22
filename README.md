@@ -43,7 +43,7 @@ the lightning laser's full power, and five more bosses: the War Titan, the Void 
 
 **Touch / mouse:** drag anywhere to move, the ship fires by itself while your finger (or the mouse button) is down; tap to start; the pause and sound buttons sit at the top right (a muted game stays muted next time). The game also pauses itself when you switch to another app or window.
 
-**Keyboard:** arrow keys or `W` `A` `S` `D` to move (up and down too), `Space` to shoot (hold for rapid fire), `Enter` to start / continue, `N` for a new game from level 1, `P` to pause, `M` to mute, `F3` to show the FPS. On desktop also `F` for fullscreen, `1`-`5` to pick the window size (you can drag the window edges too) and `Esc` to leave fullscreen or quit.
+**Keyboard:** arrow keys or `W` `A` `S` `D` to move (up and down too), `Space` to shoot (hold for rapid fire), `Enter` to start / continue, `N` for a new game from level 1, `P` to pause, `M` to mute, `F3` to show the FPS (on a phone: tap the score). On desktop also `F` for fullscreen, `1`-`5` to pick the window size (you can drag the window edges too) and `Esc` to leave fullscreen or quit.
 
 ## The game
 

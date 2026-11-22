@@ -2,6 +2,8 @@
 
 #include "Bomb.h"
 
+#include "LowPoly.h"   // DrawOrb: a cheap round ball
+
 #include <algorithm>   // std::clamp
 #include <cmath>       // std::sin, std::fabs, std::fmod, std::floor, std::sqrt
 
@@ -73,7 +75,7 @@ void Bomb::Draw(float time) const {
                                : Color{static_cast<unsigned char>(color.r / 3),
                                        static_cast<unsigned char>(color.g / 3),
                                        static_cast<unsigned char>(color.b / 3), 255};
-    DrawSphereEx(position, radius * 0.8f, 12, 12, core);
+    lowpoly::DrawOrb(position, radius * 0.8f, core, true);
 
     rlPushMatrix();
         rlTranslatef(position.x, position.y, position.z);

@@ -414,7 +414,7 @@ void Boss::Draw() const {
         // A gun under the wing; its muzzle glows (see DrawGlow).
         const Vector3 muzzle = kTurrets[side];
         DrawCylinderEx(Vector3{muzzle.x, muzzle.y, muzzle.z - 1.4f}, muzzle, 0.32f, 0.24f, 8, dark);
-        DrawSphere(muzzle, 0.2f, glow);
+        lowpoly::DrawOrb(muzzle, 0.2f, glow, true);
 
         // A big mandible in front, pointing at the player.
         const Vector3 root = P(1.0f, -0.1f, 2.0f), out = P(2.3f, -0.2f, 2.6f);
@@ -430,7 +430,7 @@ void Boss::Draw() const {
         DrawLine3D(ridge, tip, glow);
 
         // Eyes.
-        DrawSphere(kEyes[side], 0.26f, Angry() ? kRed : glow);
+        lowpoly::DrawOrb(kEyes[side], 0.26f, Angry() ? kRed : glow, true);
 
         // ---- Extra parts of the bigger bosses ----
         if (index_ >= 1) {
@@ -480,7 +480,7 @@ void Boss::Draw() const {
     } else if (state_ == State::Dying) {
         open = 1.0f;
     }
-    DrawSphere(kCoreCenter, kCoreRadius, Mix(Darker(glow, 0.35f), Mix(glow, kWhite, 0.4f), open));
+    lowpoly::DrawOrb(kCoreCenter, kCoreRadius, Mix(Darker(glow, 0.35f), Mix(glow, kWhite, 0.4f), open), true);
     for (int i = 0; i < 4; ++i) {
         const float a  = (45.0f + 90.0f * static_cast<float>(i)) * DEG2RAD;
         const float a1 = a - 45.0f * DEG2RAD, a2 = a + 45.0f * DEG2RAD;
@@ -568,13 +568,13 @@ void Boss::DrawCrab(Color shell, Color shellB, Color armour, Color dark, Color g
             const Vector3 knee{s * 3.7f, 1.0f + wave, z0 - 0.4f};
             const Vector3 foot{s * 4.5f, -0.6f, z0 - 0.9f};
             const Vector3 tip{s * 4.2f, -0.95f, z0 - 1.35f};
-            DrawCylinderEx(root, knee, 0.24f, 0.2f, 6, armour);
-            DrawCylinderEx(knee, foot, 0.2f, 0.12f, 6, armour);
-            DrawCylinderEx(foot, tip, 0.12f, 0.0f, 6, dark);
-            DrawSphere(knee, 0.26f, dark);
-            DrawSphere(Vector3{knee.x, knee.y + 0.14f, knee.z + 0.12f}, 0.1f, glow);   // a small eye on the knee
+            lowpoly::DrawTube(root, knee, 0.24f, 0.2f, 6, armour);
+            lowpoly::DrawTube(knee, foot, 0.2f, 0.12f, 6, armour);
+            lowpoly::DrawTube(foot, tip, 0.12f, 0.0f, 6, dark);
+            lowpoly::DrawOrb(knee, 0.26f, dark, true);
+            lowpoly::DrawOrb(Vector3{knee.x, knee.y + 0.14f, knee.z + 0.12f}, 0.1f, glow);   // a small eye on the knee
             if (spiky) {
-                DrawCylinderEx(knee, Vector3{knee.x + s * 0.3f, knee.y + 0.8f, knee.z - 0.2f}, 0.12f, 0.0f, 5, armour);
+                lowpoly::DrawTube(knee, Vector3{knee.x + s * 0.3f, knee.y + 0.8f, knee.z - 0.2f}, 0.12f, 0.0f, 5, armour);
             }
         }
     }
@@ -584,14 +584,14 @@ void Boss::DrawCrab(Color shell, Color shellB, Color armour, Color dark, Color g
         const Vector3 shoulder{s * kCrabShoulder.x, kCrabShoulder.y, kCrabShoulder.z};
         const Vector3 elbow{s * kCrabElbow.x, kCrabElbow.y, kCrabElbow.z};
         const Vector3 wrist{s * kCrabWrist.x, kCrabWrist.y, kCrabWrist.z};
-        DrawCylinderEx(shoulder, elbow, 0.45f, 0.38f, 7, armour);
-        DrawCylinderEx(elbow, wrist, 0.38f, 0.32f, 7, armour);
-        DrawSphere(elbow, 0.48f, dark);
-        DrawSphere(Vector3{elbow.x, elbow.y + 0.3f, elbow.z + 0.25f}, 0.15f, glow);
+        lowpoly::DrawTube(shoulder, elbow, 0.45f, 0.38f, 7, armour);
+        lowpoly::DrawTube(elbow, wrist, 0.38f, 0.32f, 7, armour);
+        lowpoly::DrawOrb(elbow, 0.48f, dark, true);
+        lowpoly::DrawOrb(Vector3{elbow.x, elbow.y + 0.3f, elbow.z + 0.25f}, 0.15f, glow);
         if (spiky) {
             for (const float t : {0.35f, 0.7f}) {
                 const Vector3 p = Vector3Lerp(shoulder, elbow, t);
-                DrawCylinderEx(p, Vector3{p.x + s * 0.2f, p.y + 0.75f, p.z - 0.15f}, 0.14f, 0.0f, 5, armour);
+                lowpoly::DrawTube(p, Vector3{p.x + s * 0.2f, p.y + 0.75f, p.z - 0.15f}, 0.14f, 0.0f, 5, armour);
             }
         }
         DrawCrabClaw(s, armour, dark, glow);
@@ -613,7 +613,7 @@ void Boss::DrawCrab(Color shell, Color shellB, Color armour, Color dark, Color g
 
     // ---- The eyes -----------------------------------------------------------------
     for (const Vector3& eye : kCrabEyes) {
-        DrawSphere(eye, 0.17f, Angry() ? Mix(glow, kRed, 0.6f) : glow);
+        lowpoly::DrawOrb(eye, 0.17f, Angry() ? Mix(glow, kRed, 0.6f) : glow);
     }
 
     // ---- The big eye and its four armour petals (they open with the core) -----------
@@ -625,7 +625,7 @@ void Boss::DrawCrab(Color shell, Color shellB, Color armour, Color dark, Color g
     } else if (state_ == State::Dying) {
         open = 1.0f;
     }
-    DrawSphere(kCrabCore, kCrabCoreRadius, Mix(Darker(glow, 0.35f), Mix(glow, kWhite, 0.4f), open));
+    lowpoly::DrawOrb(kCrabCore, kCrabCoreRadius, Mix(Darker(glow, 0.35f), Mix(glow, kWhite, 0.4f), open), true);
     for (int i = 0; i < 4; ++i) {
         const float a  = (45.0f + 90.0f * static_cast<float>(i)) * DEG2RAD;
         const float a1 = a - 45.0f * DEG2RAD, a2 = a + 45.0f * DEG2RAD;
@@ -655,8 +655,8 @@ void Boss::DrawCrabClaw(float side, Color armour, Color dark, Color glow) const 
     rlPushMatrix();
     rlTranslatef(side * kCrabWrist.x, kCrabWrist.y, kCrabWrist.z);
     rlRotatef(-side * kCrabClawYaw, 0.0f, 1.0f, 0.0f);   // point a little inward
-    DrawSphere(Vector3{0.0f, 0.0f, 0.0f}, 0.5f, armour);  // the hinge
-    DrawSphere(Vector3{0.0f, 0.36f, 0.12f}, 0.13f, glow);
+    lowpoly::DrawOrb(Vector3{0.0f, 0.0f, 0.0f}, 0.5f, armour, true);  // the hinge
+    lowpoly::DrawOrb(Vector3{0.0f, 0.36f, 0.12f}, 0.13f, glow);
 
     // One blade, along +z, its back edge toward +x * mirror. Built as a flat slab:
     // the outline below, a top and a bottom face, and side walls. The teeth are

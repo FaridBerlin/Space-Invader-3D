@@ -114,11 +114,21 @@ void DrawRibbon(const Vector3* points, int count, float widthStart, float widthE
     rlEnd();
 }
 
+// Every second point of a path: enough for the soft, wide layers (you cannot see
+// small jags in a blur), and half the triangles.
+int EveryOther(const Vector3* points, int count, std::array<Vector3, Laser::kPathPoints>& out) {
+    int n = 0;
+    for (int i = 0; i < count; i += 2) out[static_cast<std::size_t>(n++)] = points[i];
+    return n;   // count is odd (65), so the last point is always included
+}
+
 // One bolt or arc in three layers: a wide soft haze, a brighter glow, a white core.
 void DrawLightning(const Vector3* points, int count, float thickness, float brightness,
                    const config::LaserColors& colors, const Camera3D& camera) {
-    DrawRibbon(points, count, 0.45f * thickness, 0.45f * thickness, Fade(colors.glow, 0.35f * brightness), camera, true);
-    DrawRibbon(points, count, 0.14f * thickness, 0.14f * thickness, Fade(colors.glow, 0.80f * brightness), camera, true);
+    std::array<Vector3, Laser::kPathPoints> coarse;
+    const int n = EveryOther(points, count, coarse);
+    DrawRibbon(coarse.data(), n, 0.45f * thickness, 0.45f * thickness, Fade(colors.glow, 0.35f * brightness), camera, true);
+    DrawRibbon(coarse.data(), n, 0.14f * thickness, 0.14f * thickness, Fade(colors.glow, 0.80f * brightness), camera, true);
     const float core = std::max(0.04f, 0.05f * thickness);
     DrawRibbon(points, count, core, core, colors.core, camera);
 }
@@ -199,9 +209,11 @@ void Laser::Draw(const Camera3D& camera) const {
             // faint glow and a thin bright line.
             for (const Path& strand : bolt.strands) {
                 PathToPoints(strand, bolt.start, bolt.end, points);
-                DrawRibbon(points.data(), kPathPoints, 0.08f * thick, 0.08f * thick,
+                std::array<Vector3, kPathPoints> coarse;   // the thin strands: every second point is plenty
+                const int n = EveryOther(points.data(), kPathPoints, coarse);
+                DrawRibbon(coarse.data(), n, 0.08f * thick, 0.08f * thick,
                            Fade(colors.glow, 0.25f * bolt.brightness), camera, true);
-                DrawRibbon(points.data(), kPathPoints, 0.014f * thick, 0.014f * thick,
+                DrawRibbon(coarse.data(), n, 0.014f * thick, 0.014f * thick,
                            Fade(colors.strand, 0.75f * bolt.brightness), camera);
             }
 

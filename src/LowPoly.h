@@ -18,6 +18,19 @@ namespace lowpoly {
 //            has two sides; this tells us which one is the outside.
 void DrawFace(Vector3 a, Vector3 b, Vector3 c, Color base, Vector3 outward);
 
+// A round ball in one flat colour (like raylib's DrawSphere), but MUCH cheaper.
+// raylib builds a sphere from many thin rings: 288 to 1,728 corners ("vertices")
+// that the processor computes every frame, even for an eye of a few pixels. This
+// one is a "geodesic" ball: 20 triangles (small, 60 vertices) or 80 triangles
+// (smooth = true, 240 vertices) for bigger balls. In one flat colour you cannot
+// tell the difference.
+void DrawOrb(Vector3 center, float radius, Color color, bool smooth = false);
+
+// A tube from a to b in one flat colour, thick radiusA at a and radiusB at b (0 =
+// a point). Like raylib's DrawCylinderEx, but without the flat end caps, which
+// are hidden anyway when a joint ball sits on them: half the vertices.
+void DrawTube(Vector3 a, Vector3 b, float radiusA, float radiusB, int sides, Color color);
+
 // A four-cornered face, as two triangles. Corners must go around the edge in order.
 void DrawQuadFace(Vector3 a, Vector3 b, Vector3 c, Vector3 d, Color base, Vector3 outward);
 

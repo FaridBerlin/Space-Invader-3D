@@ -26,7 +26,7 @@ src/
   GlowRenderer.h/.cpp soft additive glow, our first custom shader
   Nebula.h/.cpp       the drifting colour clouds in the background, our second shader
   ShaderUtil.h/.cpp   loads a shader in the right GLSL dialect for desktop, web or phone
-  LowPoly.h/.cpp      flat-shaded triangles for the ship and the aliens
+  LowPoly.h/.cpp      flat-shaded triangles for the ship and the aliens; cheap balls (DrawOrb) and tubes (DrawTube)
   Audio.h/.cpp        sound effects and mute
   Storage.h/.cpp      small saved numbers (high score, mute, level reached): a file on desktop, localStorage on the web
   Haptics.h/.cpp      short vibrations: Android through JNI (Java), the browser's vibration on the web

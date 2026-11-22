@@ -223,7 +223,7 @@ void Player::Draw() const {
         // Cannon on the wing: a dark barrel with a glowing cyan muzzle.
         DrawCylinderEx(Vector3{sign * 0.95f, 0.18f, -1.0f}, Vector3{sign * 0.95f, 0.18f, 0.6f},
                        0.1f, 0.1f, 8, darkColor);
-        DrawSphereEx(Vector3{sign * 0.95f, 0.18f, -1.0f}, 0.1f, 8, 8, Color{120, 230, 255, 255});
+        lowpoly::DrawOrb(Vector3{sign * 0.95f, 0.18f, -1.0f}, 0.1f, Color{120, 230, 255, 255});
     }
 
     // ---- Extra parts that come with the upgrades -----------------------------------
@@ -251,9 +251,9 @@ void Player::Draw() const {
     rlPushMatrix();
     rlTranslatef(0.0f, 0.38f, -0.35f);
     rlScalef(0.45f, 0.4f, 1.0f);   // squash the ball into an egg shape (x, y, z factors)
-    DrawSphereEx(Vector3{0.0f, 0.0f, 0.0f}, 0.5f, 14, 14, style.canopy);
+    lowpoly::DrawOrb(Vector3{0.0f, 0.0f, 0.0f}, 0.5f, style.canopy, true);
     rlPopMatrix();
-    DrawSphereEx(Vector3{-0.07f, 0.56f, -0.62f}, 0.07f, 6, 6, Color{235, 250, 255, 255});
+    lowpoly::DrawOrb(Vector3{-0.07f, 0.56f, -0.62f}, 0.07f, Color{235, 250, 255, 255});
 
     // ---- Engines with a flickering flame (the top tier has a third, central one) --------
     const int   engineCount = (tier_ >= 2) ? 3 : 2;

@@ -892,9 +892,16 @@ void Game::Update(float dt) {
     if (input.pointerPressed) {
         const bool onMute  = CheckCollisionPointRec(input.pointer, MuteButtonRect());
         const bool onPause = state_ == GameState::Playing && CheckCollisionPointRec(input.pointer, PauseButtonRect());
-        touchOnButton_ = onMute || onPause;
+        // A tap on the score shows or hides the FPS (phones have no F3 key).
+        const bool onScore = (state_ == GameState::Playing || state_ == GameState::Paused) &&
+                             CheckCollisionPointRec(input.pointer, ScoreRect());
+        touchOnButton_ = onMute || onPause || onScore;
         if (onMute) {
             ToggleSound();
+            tapUsed = true;
+        }
+        if (onScore) {
+            showFps_ = !showFps_;
             tapUsed = true;
         }
     } else if (!input.pointerDown) {
@@ -906,6 +913,15 @@ void Game::Update(float dt) {
     }
     if (input.toggleFps) {
         showFps_ = !showFps_;
+    }
+    // The slowest frame of each 2 seconds: one slow frame is a visible stutter,
+    // even when the average FPS still looks fine.
+    frameWorstMs_ = std::max(frameWorstMs_, GetFrameTime() * 1000.0f);
+    frameWorstTimer_ += GetFrameTime();
+    if (frameWorstTimer_ >= 2.0f) {
+        frameWorstShown_ = frameWorstMs_;
+        frameWorstMs_    = 0.0f;
+        frameWorstTimer_ = 0.0f;
     }
     // Esc: first step out of fullscreen; if we are not in fullscreen, quit.
     // These window keys work in EVERY state: menu, playing and game over.
@@ -1103,6 +1119,13 @@ Rectangle Game::PlayButtonRect() const {
     return Rectangle{column.x + (column.width - size) / 2.0f,
                      column.y + column.height / 2.0f - size / 2.0f + static_cast<float>(Px(20)),
                      size, size};
+}
+
+Rectangle Game::ScoreRect() const {
+    using display::Px;
+    const Rectangle column = display::Column();
+    // The "SCORE" label and the number under it, with a little extra room for a finger.
+    return Rectangle{column.x, 0.0f, static_cast<float>(Px(170)), static_cast<float>(Px(62))};
 }
 
 Rectangle Game::PauseButtonRect() const {
@@ -1473,7 +1496,10 @@ void Game::Draw() const {
     // that is shown moves the next one down, so there are never gaps.
     int lineY = Px(112);
     if (showFps_) {
-        DrawText(TextFormat("%d FPS", GetFPS()), static_cast<int>(left), lineY, Px(16), GREEN);
+        // Green while smooth; orange when a frame took longer than 1/50 s (a visible stutter).
+        const Color fpsColor = (GetFPS() >= 55 && frameWorstShown_ < 20.0f) ? GREEN : ORANGE;
+        DrawText(TextFormat("%d FPS  slowest %.0f ms", GetFPS(), frameWorstShown_), static_cast<int>(left), lineY,
+                 Px(16), fpsColor);
         lineY += Px(22);
     }
     if (audio_.Muted()) {
