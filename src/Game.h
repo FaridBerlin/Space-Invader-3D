@@ -112,6 +112,7 @@ private:
     Rectangle PauseButtonRect() const;   // the on-screen pause button (top right)
     Rectangle PlayButtonRect() const;    // the big play button on the pause screen
     Rectangle MuteButtonRect() const;    // the sound on/off button, left of the pause button
+    Rectangle ScoreRect() const;         // the score (top left): a tap on it shows / hides the FPS
     void DrawMuteButton() const;
     void ToggleSound();                  // mute or unmute, and remember the choice
     // Places the camera so the field fits the window (see "Camera" in Config.h).
@@ -181,7 +182,10 @@ private:
     Color pickupColor_{255, 255, 255, 255};
     bool  quitRequested_   = false;
     float helpTimer_       = 0.0f;   // > 0 while the key help shows in the HUD (after a start)
-    bool  showFps_         = false;  // F3 shows the frames per second
+    bool  showFps_         = false;  // F3 or a tap on the score shows the frames per second
+    float frameWorstMs_    = 0.0f;   // the slowest frame in the current 2 seconds (milliseconds)
+    float frameWorstShown_ = 0.0f;   // ... and in the 2 seconds before (shown next to the FPS)
+    float frameWorstTimer_ = 0.0f;   // counts the 2 seconds
 
     // The boss fight. std::optional: there is a boss, or there is none. A boss is
     // created (emplace) when it appears and removed (reset) when it is destroyed.

@@ -54,7 +54,7 @@ void PowerUp::Draw() const {
     // A see-through ball in the orb's colour. The glow around it is drawn by Game
     // (with the other glows), and the bright rim and symbol by DrawIcon.
     const Vector3 center{position.x, position.y + Bob(), position.z};
-    DrawSphereEx(center, config::kPowerUpOrbSize, 10, 14, Fade(MainColor(), 0.30f));
+    lowpoly::DrawOrb(center, config::kPowerUpOrbSize, Fade(MainColor(), 0.30f), true);
 }
 
 namespace {

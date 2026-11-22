@@ -67,7 +67,9 @@ Each milestone ends with something you can run, and a short note on what it teac
 - [x] Touch controls (done for the web version)
 - [x] Android NDK build (Android Studio, NativeActivity, no Kotlin code), see `android/`
 - [x] App icon and Play Store icon
-- [ ] Performance pass for phones
+- [x] Performance pass for phones, part 1: cheaper balls and tubes, lighter lightning (half the vertices,
+      up to 78% fewer in boss fights); FPS + slowest frame on screen (F3, or tap the score)
+- [ ] Measure on the tablet; if needed, part 2: alien shapes stored once on the graphics chip (meshes)
 - [x] Save the highest level reached; CONTINUE from it on the title and game-over screens
 - [x] Vibration when the ship is hit, a boss explodes or the game ends
 

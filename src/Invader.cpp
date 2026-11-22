@@ -223,7 +223,7 @@ void DrawScarab(const ScarabStyle& style, float flash, float pulse, float claws)
     }
 
     // ---- The glowing core, pulsing between lime and white ---------------------------
-    DrawSphereEx(Vector3{0.0f, -0.05f, 0.42f}, 0.14f, 8, 8, Mix(lines, white, 0.3f + 0.5f * pulse));
+    lowpoly::DrawOrb(Vector3{0.0f, -0.05f, 0.42f}, 0.14f, Mix(lines, white, 0.3f + 0.5f * pulse));
 
     // ---- The claws, each turning around its root to open and close ------------------
     for (const float side : {-1.0f, 1.0f}) {
@@ -304,8 +304,8 @@ void DrawReaper(float flash, float pulse, float wings, Color metal, Color stripe
         // Three glowing pods down each side, like the bumps in the picture.
         for (const float y : {0.02f, -0.28f, -0.56f}) {
             const float x = edgePoint(y, side).x + side * 0.06f;   // sitting on the body's edge
-            DrawSphereEx(Vector3{x, y, 0.0f}, 0.10f, 6, 6, back);
-            DrawSphereEx(Vector3{x, y, 0.08f}, 0.07f, 6, 6, glow);
+            lowpoly::DrawOrb(Vector3{x, y, 0.0f}, 0.10f, back);
+            lowpoly::DrawOrb(Vector3{x, y, 0.08f}, 0.07f, glow);
         }
     }
 }
@@ -429,7 +429,7 @@ void DrawWasp(float flash, float beat, Color body, Color glow) {
 
     // Two glowing eyes on the head, and two antennae.
     for (const float side : {-1.0f, 1.0f}) {
-        DrawSphereEx(Vector3{side * 0.09f, 0.52f, 0.12f}, 0.075f, 6, 6, Mix(glow, white, 0.4f));
+        lowpoly::DrawOrb(Vector3{side * 0.09f, 0.52f, 0.12f}, 0.075f, Mix(glow, white, 0.4f));
         DrawLine3D(Vector3{side * 0.05f, 0.60f, 0.08f}, Vector3{side * 0.16f, 0.80f, 0.10f}, stripe);
         DrawLine3D(Vector3{side * 0.16f, 0.80f, 0.10f}, Vector3{side * 0.30f, 0.86f, 0.10f}, stripe);
     }
@@ -468,7 +468,7 @@ void DrawMoth(float flash, float beat, Color body, Color glow) {
     const Color bodyColors[] = {fur, furB};
     DrawLathe(profile, 7, bodyColors, 2);
     for (const float side : {-1.0f, 1.0f}) {
-        DrawSphereEx(Vector3{side * 0.10f, 0.40f, 0.12f}, 0.08f, 6, 6, Mix(spot, white, 0.3f));   // eyes
+        lowpoly::DrawOrb(Vector3{side * 0.10f, 0.40f, 0.12f}, 0.08f, Mix(spot, white, 0.3f));   // eyes
         // Feathery antennae: a curved line with little side hairs.
         const Vector3 a{side * 0.06f, 0.48f, 0.05f};
         const Vector3 b{side * 0.30f, 0.82f, 0.05f};
@@ -500,7 +500,7 @@ void DrawMoth(float flash, float beat, Color body, Color glow) {
         const Vector3 eye{side * 0.78f, 0.36f, 0.03f};
         DrawCircle3D(eye, 0.17f, Vector3{0.0f, 1.0f, 0.0f}, 0.0f, spot);
         DrawCircle3D(eye, 0.12f, Vector3{0.0f, 1.0f, 0.0f}, 0.0f, Fade(spot, 0.6f));
-        DrawSphereEx(eye, 0.08f, 6, 6, Mix(spot, white, 0.5f));
+        lowpoly::DrawOrb(eye, 0.08f, Mix(spot, white, 0.5f));
         rlPopMatrix();
     }
 }
@@ -539,8 +539,8 @@ void DrawMite(float flash, float open, Color body, Color glow) {
             const Vector3 root{s * 0.45f, y, 0.0f};
             const Vector3 knee{s * 0.88f, y + 0.22f, -0.05f};
             const Vector3 foot{s * 1.02f, y - 0.25f, -0.05f};
-            DrawCylinderEx(root, knee, 0.07f, 0.06f, 5, dark);
-            DrawCylinderEx(knee, foot, 0.06f, 0.0f, 5, dark);
+            lowpoly::DrawTube(root, knee, 0.07f, 0.06f, 5, dark);
+            lowpoly::DrawTube(knee, foot, 0.06f, 0.0f, 5, dark);
         }
     }
 
@@ -548,7 +548,7 @@ void DrawMite(float flash, float open, Color body, Color glow) {
     for (const float s : {-1.0f, 1.0f}) {
         const Vector3 shoulder{s * 0.32f, -0.36f, 0.05f};
         const Vector3 wrist{s * 0.42f, -0.68f, 0.1f};
-        DrawCylinderEx(shoulder, wrist, 0.09f, 0.08f, 5, steel);
+        lowpoly::DrawTube(shoulder, wrist, 0.09f, 0.08f, 5, steel);
         const float spread = 0.08f + 0.18f * open;
         const Vector3 tipOut{s * (0.30f + spread), -1.22f, 0.1f};
         const Vector3 tipIn{s * (0.30f - spread), -1.22f, 0.1f};
@@ -562,9 +562,9 @@ void DrawMite(float flash, float open, Color body, Color glow) {
     }
 
     // The eyes: a big one in the middle, two small ones above it.
-    DrawSphereEx(Vector3{0.0f, 0.02f, 0.40f}, 0.15f, 8, 8, Mix(eye, white, 0.3f));
-    DrawSphereEx(Vector3{-0.22f, 0.26f, 0.30f}, 0.07f, 6, 6, eye);
-    DrawSphereEx(Vector3{0.22f, 0.26f, 0.30f}, 0.07f, 6, 6, eye);
+    lowpoly::DrawOrb(Vector3{0.0f, 0.02f, 0.40f}, 0.15f, Mix(eye, white, 0.3f));
+    lowpoly::DrawOrb(Vector3{-0.22f, 0.26f, 0.30f}, 0.07f, eye);
+    lowpoly::DrawOrb(Vector3{0.22f, 0.26f, 0.30f}, 0.07f, eye);
 }
 
 }  // namespace

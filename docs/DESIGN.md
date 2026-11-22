@@ -160,7 +160,15 @@ Drawn with raylib's 2D functions on top of the 3D scene, scaled with the window 
   **NEW GAME** button (keyboard: Enter / N). Continue starts that level with its ship and at least its minimum
   weapon level, 3 lives and 0 points. While there are buttons, a tap elsewhere does nothing, so nobody starts a new
   game by accident. The demo saves at most level 3.
-  The key help shows for the first 6 seconds of a game and on the pause screen; F3 shows the FPS.
+  The key help shows for the first 6 seconds of a game and on the pause screen; F3 or a tap on the score shows
+  the FPS and the slowest frame of the last 2 seconds (orange when a frame took over 20 ms: a visible stutter).
+- **Performance on phones:** raylib builds every shape on the processor, corner by corner ("vertices"), every
+  frame. Measured on level 10: the aliens were 70-90% of all vertices, mostly from raylib's round spheres (288 to
+  1,728 vertices each, even for a tiny eye) and cylinders with hidden end caps. They are now drawn with
+  `lowpoly::DrawOrb` (a 20- or 80-triangle ball, 60 / 240 vertices) and `lowpoly::DrawTube` (no caps), and the
+  lightning's soft layers use every second point. Result: about half the vertices in a normal wave, and up to 78%
+  fewer in a boss fight (crab boss: 72,500 -> 15,700 per frame). If a phone still stutters, the next step is to
+  store each alien shape once on the graphics chip (a mesh) instead of rebuilding it every frame.
 - **Banners:** "LEVEL n" with a short intro text, "WAVE n / 3", and power-up names.
 - **Screens:** menu, pause (also automatic when the window or app goes to the background), game over with restart.
 - **Touch / mouse:** drag anywhere to move, the ship fires by itself while the finger is down.
